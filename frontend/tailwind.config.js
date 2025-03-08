@@ -4,8 +4,17 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  
+  safelist: [
+    'bg-primary', // Add this line
+  ],
+
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        primary:"#5f6FFF",
+      }
+    },
   },
   plugins: [],
 }
