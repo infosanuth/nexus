@@ -4,11 +4,6 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  
-  safelist: [
-    'bg-primary', // Add this line
-  ],
-
   theme: {
     extend: {
       colors: {
