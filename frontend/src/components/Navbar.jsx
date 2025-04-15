@@ -11,8 +11,8 @@ const Navbar = () => {
   const [token, setToken] = useState(true)
   
   return (
-    <div className='flex items-center justify-between py-4 mb-5 text-sm border-b border-b-gray-400'>
-      {/* <img className='cursor-pointer w-44' src={assets.logo} alt=""/> */}
+    <div className='flex items-center justify-between py-1 mb-5 text-sm border-b border-b-gray-400'>  {/* py-4 */}
+      <img className='cursor-pointer w-44 -ml-2' src={assets.logo} alt=""/> {/*Margin left edited*/}
       <ul className='items-start hidden gap-5 font-medium md:flex'>
         <NavLink to='/'>
             <li className='py-1'>HOME</li>
