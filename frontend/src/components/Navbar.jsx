@@ -45,7 +45,7 @@ const Navbar = () => {
                 </div>
               </div>
             </div>
-          :<button onClick={()=>navigate('/loging')} className='hidden px-8 py-3 font-light text-white rounded-full bg-[#5f6FFF] md:block'>Create account</button>
+          :<button onClick={()=>navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-[#5f6FFF] md:block'>Create account</button>
         }
         
       </div>
