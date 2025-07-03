@@ -1,6 +1,6 @@
 import validator from "validator"
 import bycrypt from 'bcrypt'
-import { v2 as cloudinary } from 'cloudinary'
+// import { v2 as cloudinary } from 'cloudinary'
 import doctorModel from "../models/doctorModel.js"
 import jwt from 'jsonwebtoken'
 
@@ -33,14 +33,18 @@ const addDoctor = async (req, res) => {
         const salt = await bycrypt.genSalt(10)
         const hashedPassword = await bycrypt.hash(password, salt)
 
+        // let imageUrl = "";   initialize variable
+        // Use local image path (uploaded by multer)
+        const imagePath = `/uploads/${req.file.filename}` // e.g., "uploads/1710000000-dr.jpg"
+
         //  Upload image to cloudinary
-        const imageUpoad = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" })
-        const imageUrl = imageUpoad.secure_url
+        // const imageUpoad = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" })
+        // const imageUrl = imageUpoad.secure_url
 
         const doctorData = {
             name,
             email,
-            image: imageUrl,
+            image: imagePath,
             password: hashedPassword,
             speciality,
             degree,
@@ -83,4 +87,16 @@ const loginAdmin = async (req, res) => {
     }
 }
 
-export { addDoctor, loginAdmin } 
+// API to get all doctors list for admin panel
+const allDoctors = async (req,res) =>{
+    try {
+        const doctors = await doctorModel.find({}).select('-password')
+        res.json({success:true,doctors})
+        
+    } catch (error) {
+         console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { addDoctor, loginAdmin, allDoctors } 
