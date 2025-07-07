@@ -21,8 +21,8 @@ app.use(cors())
 app.use('/api/admin', adminRouter)
 app.use('/api/doctor',doctorRouter)
 app.use('/api/user',userRouter)
-//app.use('/uploads', express.static('uploads'));
-app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')))
+app.use('/uploads', express.static('uploads'));
+// app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')))
 
 
 

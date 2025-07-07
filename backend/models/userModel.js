@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
     address: { type: Object, default: { line1: '', line2: '' } },
     gender: { type: String, default: "Not Selected" },
     dob: { type: String, default: 'Not Selected' },
-    phoneNumber: { type: String, unique: true } // unique:true, default: '0000000000',
+    phoneNumber: { type: String, unique: true },
 })
 
 const userModel = mongoose.model.user || mongoose.model('user', userSchema)
