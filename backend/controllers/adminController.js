@@ -112,6 +112,21 @@ const appointmentsAdmin = async (req, res) => {
     }
 
 }
+// API for appointment cancellation
+const appointmentCancel = async (req, res) => {
+    try {
+
+        const { appointmentId } = req.body
+        await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
+
+        res.json({ success: true, message: 'Appointment Cancelled' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+
+}
 
 
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin } 
+export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel } 
