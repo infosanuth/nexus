@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import crypto from 'crypto';
 
 // API to register user
 const registerUser = async (req, res) => {
@@ -239,9 +240,86 @@ const cancelAppointment = async (req, res) => {
     }
 }
 
+// API to make payment of appointment using payhere
+const paymentPayHere = async (req, res) => {
+    try {
+
+        if (!process.env.PAYHERE_MERCHANT_ID) {
+            return res.json({ success: false, message: 'Missing PAYHERE_MERCHANT_ID in backend environment' });
+        }
+
+        const { appointmentId } = req.body
+        const appointmentData = await appointmentModel.findById(appointmentId)
+
+        if (!appointmentData || appointmentData.cancelled) {
+            return res.json({ success: false, message: 'Appointment Cancelled or not found' })
+        }
+
+        const fullName = appointmentData.userData.name || 'Unknown Patient';
+        const [firstName, ...rest] = fullName.split(' ');
+        const lastName = rest.join(' ') || ' ';
+
+        const merchant_id = process.env.PAYHERE_MERCHANT_ID;
+        const merchant_secret = process.env.PAYHERE_MERCHANT_SECRET;
+        const order_id = appointmentData._id.toString();
+        const amount = Number(appointmentData.amount).toFixed(2);
+        const currency = 'LKR';
+
+
+        const hash = generatePayHereHash(merchant_id, order_id, amount, currency, merchant_secret);
+
+        function generatePayHereHash(merchant_id, order_id, amount, currency, merchant_secret) {
+            const formattedAmount = Number(amount).toFixed(2); // must be 2 decimal places
+            const secretHash = crypto.createHash('md5').update(merchant_secret).digest('hex').toUpperCase();
+
+            const rawString = merchant_id + order_id + formattedAmount + currency + secretHash;
+            const finalHash = crypto.createHash('md5').update(rawString).digest('hex').toUpperCase();
+
+            return finalHash;
+        }
+
+        const paymentDetails = {
+            sandbox: true,
+            merchant_id,
+            return_url: 'http://localhost:5173/payment-success',
+            cancel_url: 'http://localhost:5173/payment-cancel',
+            notify_url: 'http://localhost:4000/api/payhere-notify',
+            order_id,
+            items: 'Doctor Appointment',
+            amount,
+            currency,
+            first_name: firstName,
+            last_name: lastName,
+            email: appointmentData.userData.email || 'example@mail.com',
+            phone: appointmentData.userData.phoneNumber || '0712345678',
+            address: 'N/A',
+            city: 'Colombo',
+            country: 'Sri Lanka',
+            hash,
+        };
+
+        res.json({ success: true, paymentDetails });
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to verify payment of payhere
+const verifyPayhere = async (req, res) => {
+    try {
+        const { order_id } = req.body;
+
+        await appointmentModel.findByIdAndUpdate(order_id, { payment: true });
+        res.json({ success: true, message: "Payment Successful" })
+
+    } catch (error) {
+        console.error("PayHere Verify Error:", error);
+        res.json({ success: false, message: error.message });
+    }
+};
 
 
 
-
-
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment ,cancelAppointment }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere}
