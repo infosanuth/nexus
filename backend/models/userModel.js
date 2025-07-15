@@ -9,8 +9,14 @@ const userSchema = new mongoose.Schema({
     gender: { type: String, default: "Not Selected" },
     dob: { type: String, default: 'Not Selected' },
     phoneNumber: { type: String, unique: true },
+    verifyOtp : {type: String, default: ''},
+    verifyOtpExpireAt : {type: Number, default: 0},
+    isAccountVerified : {type: Boolean, default: false},
+    resetOtp : {type: String, default: ''},
+    resetOtpExpireAt : {type: Number, default: 0},
+    
 })
 
-const userModel = mongoose.model.user || mongoose.model('user', userSchema)
+const userModel = mongoose.models.user || mongoose.model('user', userSchema)
 
 export default userModel

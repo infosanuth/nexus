@@ -5,6 +5,7 @@ import userModel from "../models/userModel.js";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import crypto from 'crypto';
+import transporter from "../config/nodemailer.js";
 
 // API to register user
 const registerUser = async (req, res) => {
@@ -26,7 +27,7 @@ const registerUser = async (req, res) => {
         if (password.length < 8) {
             return res.json({ success: false, message: "Please enter a strong password" })
         }
-        //validating strong password
+        //validating mobile number
         if (phoneNumber.length != 10) {
             return res.json({ success: false, message: "Enter valid phone number" })
         }
@@ -34,7 +35,7 @@ const registerUser = async (req, res) => {
             return res.json({ success: false, message: "Enter valid phone number" });
         }
         // hashing user password
-        const salt = await bcrypt.genSalt(10); // the more no. round the more time it will take
+        const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt)
 
         const userData = {
@@ -46,12 +47,22 @@ const registerUser = async (req, res) => {
 
         const newUser = new userModel(userData)
         const user = await newUser.save()
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' }) // expiresIn
+
+        // Sending welcome email
+        const mailOptions = {
+            from: process.env.SENDER_EMAIL,
+            to: email,
+            subject: 'Your account has been created',
+            text: `Welcome to Nexus Hospital website. Your account has been created with email id: ${email}`
+        }
+        // await transporter.sendMail(mailOptions)
+
 
         res.json({ success: true, token })
     } catch (error) {
         console.log(error)
-        res.json({ success: false, message: error.message })
+        res.json({ success: false, message: error.message });
     }
 }
 
@@ -63,16 +74,16 @@ const loginUser = async (req, res) => {
         const user = await userModel.findOne({ email })
 
         if (!user) {
-            return res.json({ success: false, message: "User does not exist" })
+            return res.json({ success: false, message: "Invalid email" })
         }
 
         const isMatch = await bcrypt.compare(password, user.password)
 
         if (isMatch) {
-            const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
+            const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' }) // expiresIn
             res.json({ success: true, token })
         } else {
-            res.json({ success: false, message: "Invalid credentials" })
+            res.json({ success: false, message: "Invalid password" })
         }
 
     } catch (error) {
@@ -80,6 +91,164 @@ const loginUser = async (req, res) => {
         res.json({ success: false, message: error.message })
     }
 
+}
+
+// User verification otp send to the user's email
+const sendVerifyOtp = async (req, res) => {
+
+    try {
+        const { userId } = req.body
+        const user = await userModel.findById(userId)
+
+        if (user.isAccountVerified) {
+            return res.json({ success: false, message: "Account has been already verified" })
+        }
+
+        const otp = String(Math.floor(100000 + Math.random() * 900000))
+        user.verifyOtp = otp;
+        user.verifyOtpExpireAt = Date.now() + 60 * 1000;
+
+        await user.save()
+
+        // Sending otp to email
+        const mailOptions = {
+            from: process.env.SENDER_EMAIL,
+            to: user.email,
+            subject: 'Account Verification OTP',
+            text: `Your OTP is ${otp}. Verify your account using this OTP.`
+        }
+        await transporter.sendMail(mailOptions)
+
+        return res.json({ success: true, message: "OTP sent to your email" })
+
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+// Email verification using the OTP
+const verifyEmail = async (req, res) => {
+    try {
+
+        const { userId, otp } = req.body
+
+        if (!userId || !otp) {
+            return res.json({ success: false, message: "Missing Details" })
+        }
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" })
+        }
+
+        // if(user.verifyOtp === '' || user.verifyOtp !== otp){
+        //     return res.json({ success: false, message: "Invalid OTP" })
+        // }
+
+        if (user.verifyOtpExpireAt < Date.now()) {
+            return res.json({ success: false, message: "OTP Expired" })
+        }
+        if (user.verifyOtp !== otp) {
+            return res.json({ success: false, message: "Invalid OTP" })
+        }
+
+        user.isAccountVerified = true;
+        user.verifyOtp = '';
+        user.verifyOtpExpireAt = 0;
+
+        await user.save()
+
+        return res.json({ success: true, message: "Email verified successfully" })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+
+}
+// Check if user is authenticated
+const isAuthenticated = async (req, res) => {
+    try {
+
+        return res.json({ success: true, })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+// Send Password Rest OTP
+const sendResetOtp = async (req, res) => {
+    try {
+        const { email } = req.body
+
+        if (!email) {
+            return res.json({ success: false, message: "Email is required" })
+        }
+
+        const user = await userModel.findOne({ email })
+
+        if (!user) {
+            return res.json({ success: false, message: "User not found" })
+        }
+
+        const otp = String(Math.floor(100000 + Math.random() * 900000))
+        user.resetOtp = otp;
+        user.resetOtpExpireAt = Date.now() + 60 * 1000;
+
+        await user.save()
+
+        // Sending otp to email
+        const mailOptions = {
+            from: process.env.SENDER_EMAIL,
+            to: user.email,
+            subject: 'Password Reset OTP',
+            text: `Your OTP for resetting your password is ${otp}. Use this OTP to proceed with resetting your password.`
+        }
+        await transporter.sendMail(mailOptions)
+
+        return res.json({ success: true, message: "OTP sent to your email" })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// Reset user password
+const resetPassword = async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+
+        if (!email || !otp || !newPassword) {
+            return res.json({ success: false, message: "Email, OTP, and New Password are required" })
+        }
+
+        const user = await userModel.findOne({ email })
+        if (!user) {
+            return res.json({ success: false, message: "User not found" })
+        }
+        if (user.resetOtp === "" || user.resetOtp !== otp) {
+            return res.json({ success: false, message: "Invalid OTP" })
+        }
+        if (user.resetOtpExpireAt < Date.now()) {
+            return res.json({ success: false, message: "OTP Expired" })
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10)
+        user.password = hashedPassword
+        user.resetOtp = ""
+        user.resetOtpExpireAt = 0
+
+        await user.save()
+
+        return res.json({ success: true, message: "Password has been reset successfully" })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
 }
 
 // API to get user profile data
@@ -322,4 +491,4 @@ const verifyPayhere = async (req, res) => {
 
 
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere}
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword }
