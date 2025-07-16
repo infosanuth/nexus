@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from 'react-router-dom'
 
 const Login = () => {
-  
+
   const [state, setState] = useState('Sign Up')
 
   const [email, setEmail] = useState('')
@@ -14,13 +14,18 @@ const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('')
 
   const navigate = useNavigate()
+
   const { backendUrl, token, setToken } = useContext(AppContext)
 
 
   const onSubmitHandler = async (event) => {
-    event.preventDefault()
-
+    
     try {
+
+      event.preventDefault()
+
+      // axios.defaults.withCredentials = true
+
       if (state === 'Sign Up') {
 
         const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password, phoneNumber })
@@ -76,6 +81,10 @@ const Login = () => {
           <p>Password</p>
           <input className='border border-zinc-300 rounded w-full p-2 mt-1' type="password" onChange={(e) => setPassword(e.target.value)} value={password} required />
         </div>
+
+        {state === "Login" && 
+          <p onClick={() => navigate('/reset-passowrd')} className='text-primary underline cursor-pointer'>Forgot password?</p>
+        }
 
         <button type='submit' className='bg-[#64748B] text-white w-full py-2 rounded-md text-base'>{state === 'Sign Up' ? "Create Account" : "Login"}</button>
         {

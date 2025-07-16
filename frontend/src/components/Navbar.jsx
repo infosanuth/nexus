@@ -52,7 +52,7 @@ const Navbar = () => {
                 </div>
               </div>
             </div>
-          :<button onClick={()=>navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-[#5f6FFF] md:block'>Create account</button>
+          :<button onClick={()=>navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-[#64748B] md:block'>Create account</button>
         }
         <img onClick={()=>setshowMenu(true)} className='w-6 md:hidden' src={assets.menu_icon} alt="" />
         {/* Mobile Menu*/}
