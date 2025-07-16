@@ -269,7 +269,7 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
     try {
         // const userId = req.body.userId 
-        const { userId, name, phoneNumber, address, dob, gender } = req.body;
+        const { userId, name, phoneNumber, address, dob, gender,  } = req.body;  // isAccountVerified
         const imageFile = req.file;
 
         if (!name || !phoneNumber || !dob || !gender) {
