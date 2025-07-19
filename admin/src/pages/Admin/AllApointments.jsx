@@ -7,7 +7,7 @@ import { assets } from '../../assets/assets'
 
 const AllApointments = () => {
 
-  const { aToken, appointments, getAllAppointments } = useContext(AdminContext)
+  const { aToken, appointments, getAllAppointments ,cancelAppointment } = useContext(AdminContext)
   const { slotDateFormat, calculateAge, currency } = useContext(AppContext)
 
   useEffect(() => {
