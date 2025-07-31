@@ -17,7 +17,7 @@ userRouter.post('/payment-payhere', authUser, paymentPayHere)
 userRouter.post('/verifyPayhere', authUser, verifyPayhere)
 userRouter.post('/send-verify-otp', authUser, sendVerifyOtp)
 userRouter.post('/verify-account', authUser, verifyEmail)
-userRouter.post('/is-auth', authUser, isAuthenticated)
+userRouter.get('/is-auth', authUser, isAuthenticated)
 userRouter.post('/send-reset-otp', sendResetOtp)
 userRouter.post('/reset-password', resetPassword)
 

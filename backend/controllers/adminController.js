@@ -71,15 +71,15 @@ const addDoctor = async (req, res) => {
 // API for admin login
 const loginAdmin = async (req, res) => {
     try {
-        const {email, password} = req.body
+        const { email, password } = req.body
 
-        if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD){
-            
-            const token = jwt.sign(email+password, process.env.JWT_SECRET)
-            res.json({success:true,token})
+        if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
 
-        } else{
-            res.json({success:false,message:"Invalid credentials"})
+            const token = jwt.sign(email + password, process.env.JWT_SECRET)
+            res.json({ success: true, token })
+
+        } else {
+            res.json({ success: false, message: "Invalid credentials" })
         }
 
     } catch (error) {
@@ -89,13 +89,13 @@ const loginAdmin = async (req, res) => {
 }
 
 // API to get all doctors list for admin panel
-const allDoctors = async (req,res) =>{
+const allDoctors = async (req, res) => {
     try {
         const doctors = await doctorModel.find({}).select('-password')
-        res.json({success:true,doctors})
-        
+        res.json({ success: true, doctors })
+
     } catch (error) {
-         console.log(error)
+        console.log(error)
         res.json({ success: false, message: error.message })
     }
 }
@@ -129,28 +129,151 @@ const appointmentCancel = async (req, res) => {
 
 }
 
-// API to get dashboard data for admin panel
 const adminDashboard = async (req, res) => {
-    try {
+  try {
+    // Fetch basic counts
+    const doctors = await doctorModel.find({});
+    const users = await userModel.find({});
+    const appointments = await appointmentModel.find({});
 
-        const doctors = await doctorModel.find({})
-        const users = await userModel.find({})
-        const appointments = await appointmentModel.find({})
+    // Get current year and month for filtering revenue
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // JS months are 0-based
 
-        const dashData = {
-            doctors: doctors.length,
-            appointments: appointments.length,
-            patients: users.length,
-            latestAppointments: appointments.reverse().slice(0,5)
+    // Aggregate total revenue for current month where payment true
+    const revenueResult = await appointmentModel.aggregate([
+      { $match: { payment: true } },
+      {
+        $addFields: {
+          createdAtDate: { $toDate: "$date" }  // convert your timestamp field to Date
         }
+      },
+      {
+        $match: {
+          $expr: {
+            $and: [
+              { $eq: [{ $year: "$createdAtDate" }, currentYear] },
+              { $eq: [{ $month: "$createdAtDate" }, currentMonth] }
+            ]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$amount" }
+        }
+      }
+    ]);
 
-        res.json({ success: true, dashData })
+    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
 
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
-    }
-}
+    // Build dashboard data object
+    const dashData = {
+      doctors: doctors.length,
+      appointments: appointments.length,
+      patients: users.length,
+      latestAppointments: appointments.slice().reverse().slice(0, 5),
+      totalRevenueForCurrentMonth: totalRevenue
+    };
+
+    res.json({ success: true, dashData });
+
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
 
 
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel ,adminDashboard } 
+const getMonthlyRevenue = async (req, res) => {
+  try {
+    const result = await appointmentModel.aggregate([
+      { $match: { payment: true } },
+      {
+        $addFields: {
+          createdAtDate: { $toDate: "$date" }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAtDate" },
+            month: { $month: "$createdAtDate" }
+          },
+          totalRevenue: { $sum: "$amount" }
+        }
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 }
+      }
+    ]);
+
+    const monthNames = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+
+    // Create a map from aggregation result keyed by "year-month"
+    const revenueMap = new Map();
+    result.forEach(item => {
+      const year = item._id.year;
+      const month = item._id.month;
+      revenueMap.set(`${year}-${month}`, item.totalRevenue); // <-- fix here: backticks for template literal
+    });
+
+    const year = 2025;
+    const monthsToShow = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // All 12 months
+
+    // Build the full array with zeros for missing months
+    const formatted = monthsToShow.map(month => {
+      return {
+        name: `${monthNames[month - 1]} `,               // <-- fix here: backticks for template literal
+        revenue: revenueMap.get(`${year}-${month}`) || 0         // <-- fix here: backticks for template literal
+      };
+    });
+
+    res.json({ success: true, monthlyRevenue: formatted });
+  } catch (error) {
+    console.error("Error fetching monthly revenue:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Controller to get appointment counts grouped by doctor specialty
+const getAppointmentsBySpecialty = async (req, res) => {
+  try {
+    // Fetch all completed, paid, and not cancelled appointments
+    const appointments = await appointmentModel.find({
+      cancelled: false,
+      payment: true,
+      isCompleted: true,
+    });
+
+    // Group counts by specialty from docData.speciality
+    const specialtyCounts = appointments.reduce((acc, appointment) => {
+      const specialty =
+        appointment.docData && appointment.docData.speciality
+          ? appointment.docData.speciality
+          : 'Unknown';
+      acc[specialty] = (acc[specialty] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Convert to array suitable for pie chart [{ name: 'Specialty', value: count }]
+    const pieChartData = Object.entries(specialtyCounts).map(([name, value]) => ({
+      name,
+      value,
+    }));
+
+    res.status(200).json({ success: true, data: pieChartData });
+  } catch (error) {
+    console.error('Error fetching appointments by specialty:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+
+
+export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty } 
