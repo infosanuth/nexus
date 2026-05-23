@@ -1,5 +1,5 @@
 import express from 'express'
-import { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword  } from '../controllers/userController.js'
+import { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, rescheduleAppointment } from '../controllers/userController.js'
 import authUser from '../middleware/authUser.js';
 import upload from '../middleware/multer.js';
 
@@ -20,5 +20,6 @@ userRouter.post('/verify-account', authUser, verifyEmail)
 userRouter.get('/is-auth', authUser, isAuthenticated)
 userRouter.post('/send-reset-otp', sendResetOtp)
 userRouter.post('/reset-password', resetPassword)
+userRouter.post('/reschedule-appointment',authUser,rescheduleAppointment)
 
 export default userRouter

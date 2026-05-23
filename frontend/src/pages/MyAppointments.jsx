@@ -5,6 +5,7 @@ import axios from 'axios'
 import { toast } from 'react-toastify'
 
 
+
 const MyAppointments = () => {
 
   const { backendUrl, token, getDoctorsData } = useContext(AppContext)
@@ -13,6 +14,10 @@ const MyAppointments = () => {
   const [appointments, setAppointments] = useState([])
   const [payment, setPayment] = useState('')
 
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState(null);
+
+
   const months = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   // Function to format the date eg. ( 20_01_2000 => 20 Jan 2000 )
@@ -20,6 +25,22 @@ const MyAppointments = () => {
     const dateArray = slotDate.split('_')
     return dateArray[0] + " " + months[Number(dateArray[1])] + " " + dateArray[2]
   }
+
+  const handleReschedule = (appointmentId) => {
+    rescheduleAppointment(appointmentId, backendUrl, token);
+  };
+
+  //Filter Appointments by Status
+//   const handleStatusFilter = (e) => {
+//   const filter = e.target.value;
+//   if (filter === "completed") {
+//     setAppointments(allAppointments.filter(a => a.isCompleted && !a.cancelled));
+//   } else if (filter === "cancelled") {
+//     setAppointments(allAppointments.filter(a => a.cancelled));
+//   } else {
+//     setAppointments(allAppointments);
+//   }
+// };
 
 
   // Getting User Appointments Data Using API
@@ -91,7 +112,7 @@ const MyAppointments = () => {
         toast.info(`Payment completed. Verifying payment...`);
 
         try {
-          const { data } = await axios.post(backendUrl + "/api/user/verifyPayhere",{ order_id: orderId, status_code: "2" }, { headers: { token } });
+          const { data } = await axios.post(backendUrl + "/api/user/verifyPayhere", { order_id: orderId, status_code: "2" }, { headers: { token } });
 
           if (data.success) {
             toast.success("Payment verified successfully!");
@@ -134,6 +155,33 @@ const MyAppointments = () => {
     }
   };
 
+  const confirmPayOnline = () => {
+    if (selectedAppointmentId) {
+      appointmentPayHere(selectedAppointmentId);
+      setShowPaymentDialog(false);
+      setSelectedAppointmentId(null);
+    }
+  };
+
+  // const rescheduleAppointment = async (appointmentId, userId, newSlotDate, newSlotTime, backendUrl, token) => {
+  //   try {
+  //     const { data } = await axios.post(
+  //       backendUrl + "/api/user/reschedule-appointment",
+  //       { appointmentId, userId, newSlotDate, newSlotTime },
+  //       { headers: { token } }
+  //     );
+
+  //     if (data.success) {
+  //       toast.success(data.message || "Appointment rescheduled successfully");
+  //     } else {
+  //       toast.error(data.message || "Failed to reschedule appointment");
+  //     }
+  //   } catch (error) {
+  //     console.error("Reschedule error:", error);
+  //     toast.error("Failed to reschedule appointment");
+  //   }
+  // };
+
 
   useEffect(() => {
     if (token) {
@@ -160,18 +208,73 @@ const MyAppointments = () => {
             </div>
             <div></div>
             <div className='flex flex-col gap-2 justify-end text-sm text-center'>
-              {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={(e) => { e.preventDefault(); console.log('Button clicked for appointment ID:', item._id); appointmentPayHere(item._id) }} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
+              {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={(e) => { e.preventDefault(); setSelectedAppointmentId(item._id); setShowPaymentDialog(true); console.log('Button clicked for appointment ID:', item._id); }} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
 
               {/* {!item.cancelled && item.payment && !item.isCompleted && <button className='sm:min-w-48 py-2 border rounded text-[#696969]  bg-[#EAEFFF]'>Paid</button>} */}
 
               {item.isCompleted && <button className='sm:min-w-48 py-2 border border-green-500 rounded text-green-500'>Completed</button>}
-              {!item.cancelled && !item.payment && !item.isCompleted &&  <button className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Reschedule Appointment</button>}
+              {/* {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => navigate(`/reschedule-appointment/${item.docData._id}`, {
+                state: {       
+                  slotDate: item.slotDate,
+                  slotTime: item.slotTime,
+                  appointmentId: item._id
+                }
+              })} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Reschedule Appointment</button>} */}
+
+              {!item.cancelled && !item.payment && !item.isCompleted && (
+                <button
+                  onClick={() =>
+                    navigate(`/reschedule-appointment/${item.docData._id}`, {
+                      state: {
+                        appointmentId: item._id,
+                        slotDate: item.slotDate,
+                        slotTime: item.slotTime,
+                        userId: item.userId,
+                      },
+                    })
+                  }
+                  className="text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300"
+                >
+                  Reschedule Appointment
+                </button>
+              )}
+
 
               {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
               {item.payment && <button className='sm:min-w-48 py-2 border border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
               {item.cancelled && !item.isCompleted && <button className='sm:min-w-48 py-2 border border-red-500 rounded text-red-500'>Appointment cancelled</button>}
-             
+
             </div>
+            {showPaymentDialog && (
+              <div className="fixed inset-0 bg-transparent  bg-opacity-20 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-[320px]">
+
+                  <h2 className="text-lg font-semibold mb-4 text-gray-800">Confirm Payment</h2>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Are you sure you want to proceed with online payment?<br />
+                    Once paid, you will <strong>not</strong> be able to reschedule or cancel this appointment.
+                  </p>
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => {
+                        setShowPaymentDialog(false);
+                        setSelectedAppointmentId(null);
+                      }}
+                      className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+                    >
+                      No
+                    </button>
+                    <button
+                      onClick={confirmPayOnline}
+                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    >
+                      Yes, Pay Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </div>
         ))}
       </div>

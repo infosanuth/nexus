@@ -30,6 +30,7 @@ const addDoctor = async (req, res) => {
             return res.json({ success: false, message: "Please enter a strong password" })
         }
 
+
         // Hashign doctor password
         const salt = await bycrypt.genSalt(10)
         const hashedPassword = await bycrypt.hash(password, salt)
@@ -38,9 +39,7 @@ const addDoctor = async (req, res) => {
         // Use local image path (uploaded by multer)
         const imagePath = `/uploads/${req.file.filename}` // e.g., "uploads/1710000000-dr.jpg"
 
-        //  Upload image to cloudinary
-        // const imageUpoad = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" })
-        // const imageUrl = imageUpoad.secure_url
+
 
         const doctorData = {
             name,
@@ -87,6 +86,31 @@ const loginAdmin = async (req, res) => {
         res.json({ success: false, message: error.message })
     }
 }
+
+// const loginAdmin1 = async (req, res) => {
+//   try {
+//     const { email, password } = req.body
+
+//     // Parse admin users from .env
+//     const adminUsers = JSON.parse(process.env.ADMIN_USERS)
+
+//     // Check if provided credentials match any admin
+//     const isValid = adminUsers.find(
+//       (admin) => admin.email === email && admin.password === password
+//     )
+
+//     if (isValid) {
+//       const token = jwt.sign(email + password, process.env.JWT_SECRET)
+//       return res.json({ success: true, token })
+//     } else {
+//       return res.json({ success: false, message: "Invalid credentials" })
+//     }
+//   } catch (error) {
+//     console.error("Login error:", error.message)
+//     return res.json({ success: false, message: error.message })
+//   }
+// }
+
 
 // API to get all doctors list for admin panel
 const allDoctors = async (req, res) => {
@@ -275,5 +299,25 @@ const getAppointmentsBySpecialty = async (req, res) => {
 };
 
 
+const getAppointmentsByDoctor = async (req, res) => {
+  try {
+    const { doctorId } = req.body;
 
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty } 
+    if (!doctorId) {
+      return res.json({ success: false, message: "Doctor ID is required" });
+    }
+
+    // const appointments = await appointmentModel.find({ docId })
+    const appointments = await appointmentModel.find({ docId: doctorId });
+
+    res.json({ success: true, appointments });
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+
+
+export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty  } 

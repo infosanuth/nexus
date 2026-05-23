@@ -11,6 +11,9 @@ const AdminContextProvider = (props) => {
     const [doctors, setDoctors] = useState([])
     const [appointments, setAppointments] = useState([])
     const [dashData, setDashData] = useState(false)
+    const [monthlyRevenue, setMonthlyRevenue] = useState([]);
+    const [appointmentBySpeciallity, SetAppointmentBySpeciallity] = useState([]);
+
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL
 
@@ -51,7 +54,7 @@ const AdminContextProvider = (props) => {
             const { data } = await axios.get(backendUrl + '/api/admin/appointments', { headers: { aToken } })
             if (data.success) {
                 setAppointments(data.appointments.reverse())
-                console.log(data.appointments)
+                // console.log(data.appointments)
             } else {
                 toast.error(data.message)
             }
@@ -87,11 +90,11 @@ const AdminContextProvider = (props) => {
 
     const getDashData = async () => {
         try {
-            const { data } = await axios.get(backendUrl + '/api/admin/dashboard',  { headers: { aToken } })
+            const { data } = await axios.get(backendUrl + '/api/admin/dashboard', { headers: { aToken } })
             if (data.success) {
                 setDashData(data.dashData)
                 console.log(data.dashData)
-            } else{
+            } else {
                 toast.error(data.message)
             }
         } catch (error) {
@@ -100,6 +103,41 @@ const AdminContextProvider = (props) => {
         }
     }
 
+
+    const getMonthlyRevenue = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/monthly-revenue', { headers: { aToken } });
+
+            if (data.success) {
+                setMonthlyRevenue(data.monthlyRevenue);
+                console.log(data.monthlyRevenue);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
+            console.log(error);
+        }
+    };
+
+
+    const SpecialtyPieChart = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/specialty-count', { headers: { aToken } });
+            if (data.success) {
+                SetAppointmentBySpeciallity(data.data);
+                console.log(data.data);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
+            console.log(error);
+        }
+    }
+
+
+
     const value = {
         aToken, setAToken,
         backendUrl, doctors,
@@ -107,7 +145,10 @@ const AdminContextProvider = (props) => {
         appointments, setAppointments,
         getAllAppointments,
         cancelAppointment,
-        dashData,getDashData,
+        dashData, getDashData,
+        monthlyRevenue, getMonthlyRevenue,
+        appointmentBySpeciallity, SpecialtyPieChart
+        
 
     }
     return (

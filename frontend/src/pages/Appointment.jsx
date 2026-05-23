@@ -104,8 +104,9 @@ const Appointment = () => {
         toast.success(data.message)
         getDoctorsData()
         navigate('/my-appointment')
+        console.log(slotDate)
       } else {
-        toast.error(data.message)
+        toast.error("Please choose a time slot")
       }
 
     } catch (error) {
@@ -118,9 +119,10 @@ const Appointment = () => {
     fetchDocInfo()
   }, [doctors, docId])
 
-  // useEffect(() => {
-  //   getAvailableSlots()
-  // }, [docInfo])
+  useEffect(() => {
+    getAvailableSlots()
+  }, [docInfo])
+
   useEffect(() => {
     if (docInfo) {
       getAvailableSlots()

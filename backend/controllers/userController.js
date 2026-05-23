@@ -117,7 +117,8 @@ const sendVerifyOtp = async (req, res) => {
             subject: 'Account Verification OTP',
             text: `Your OTP is ${otp}. Verify your account using this OTP.`
         }
-        await transporter.sendMail(mailOptions)
+        // await transporter.sendMail(mailOptions)
+        console.log(mailOptions)
 
         return res.json({ success: true, message: "OTP sent to your email" })
 
@@ -143,9 +144,9 @@ const verifyEmail = async (req, res) => {
             return res.json({ success: false, message: "User not found" })
         }
 
-        // if(user.verifyOtp === '' || user.verifyOtp !== otp){
-        //     return res.json({ success: false, message: "Invalid OTP" })
-        // }
+        if (user.verifyOtp === '' || user.verifyOtp !== otp) {
+            return res.json({ success: false, message: "Invalid OTP" })
+        }
 
         if (user.verifyOtpExpireAt < Date.now()) {
             return res.json({ success: false, message: "OTP Expired" })
@@ -207,7 +208,8 @@ const sendResetOtp = async (req, res) => {
             subject: 'Password Reset OTP',
             text: `Your OTP for resetting your password is ${otp}. Use this OTP to proceed with resetting your password.`
         }
-        await transporter.sendMail(mailOptions)
+        // await transporter.sendMail(mailOptions)
+        console.log(mailOptions)
 
         return res.json({ success: true, message: "OTP sent to your email" })
 
@@ -269,7 +271,7 @@ const getProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
     try {
         // const userId = req.body.userId 
-        const { userId, name, phoneNumber, address, dob, gender,  } = req.body;  // isAccountVerified
+        const { userId, name, phoneNumber, address, dob, gender, } = req.body;  // isAccountVerified
         const imageFile = req.file;
 
         if (!name || !phoneNumber || !dob || !gender) {
@@ -309,9 +311,10 @@ const bookAppointment = async (req, res) => {
 
     try {
 
-        const { userId, docId, slotDate, slotTime } = req.body
+        const { userId, docId, slotDate, slotTime, } = req.body
 
         const docData = await doctorModel.findById(docId).select("-password")
+
 
         if (!docData.available) {
             return res.json({ success: false, message: 'Doctor Not Available' })
@@ -322,7 +325,7 @@ const bookAppointment = async (req, res) => {
         // checking for slot availablity 
         if (slots_booked[slotDate]) {
             if (slots_booked[slotDate].includes(slotTime)) {
-                return res.json({ success: false, message: 'Slot Not Available' })
+                return res.json({ success: false, message: 'Doctor Not Available' })
             }
             else {
                 slots_booked[slotDate].push(slotTime)
@@ -351,8 +354,10 @@ const bookAppointment = async (req, res) => {
 
         // save new slots data in docData
         await doctorModel.findByIdAndUpdate(docId, { slots_booked })
-
+        // console.log(appointmentData.userData.name)
+        console.log(`Your appointment with ${docData.name} is confirmed for ${slotDate} at ${slotTime}. Thank you!`)
         res.json({ success: true, message: 'Appointment Booked' })
+        
 
     } catch (error) {
         console.log(error)
@@ -397,7 +402,12 @@ const cancelAppointment = async (req, res) => {
 
         let slots_booked = doctorData.slots_booked
 
-        slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime)
+        // slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime)
+
+        slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime);
+        if (slots_booked[slotDate].length === 0) {
+            delete slots_booked[slotDate];
+        }
 
         await doctorModel.findByIdAndUpdate(docId, { slots_booked })
 
@@ -490,5 +500,79 @@ const verifyPayhere = async (req, res) => {
 };
 
 
+const rescheduleAppointment = async (req, res) => {
+    try {
+        const { userId, appointmentId, newSlotDate, newSlotTime } = req.body;
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword }
+        // 1. Find the existing appointment
+        const appointment = await appointmentModel.findById(appointmentId);
+        if (!appointment) {
+            return res.json({ success: false, message: "Appointment not found" });
+        }
+
+        // 2. Ensure the user is authorized
+        if (appointment.userId.toString() !== userId) {
+            return res.json({ success: false, message: "Unauthorized action" });
+        }
+
+        const { docId, slotDate: oldDate, slotTime: oldTime } = appointment;
+
+        // 3. Fetch doctor
+        const doctor = await doctorModel.findById(docId);
+        if (!doctor) {
+            return res.json({ success: false, message: "Doctor not found" });
+        }
+
+        // 4. Remove old slot from booked list
+        if (doctor.slots_booked?.[oldDate]) {
+            doctor.slots_booked[oldDate] = doctor.slots_booked[oldDate].filter(t => t !== oldTime);
+            if (doctor.slots_booked[oldDate].length === 0) {
+                delete doctor.slots_booked[oldDate];
+            }
+        }
+
+        // 5. Check for double-booking in new slot
+        if (!doctor.slots_booked[newSlotDate]) {
+            doctor.slots_booked[newSlotDate] = [];
+        }
+        if (doctor.slots_booked[newSlotDate].includes(newSlotTime)) {
+            return res.json({ success: false, message: "Selected slot already booked" });
+        }
+
+        // 6. Add new slot to booked list
+        doctor.slots_booked[newSlotDate].push(newSlotTime);
+        await doctor.save();
+
+        // 7. Update the existing appointment with new slot and mark as rescheduled
+        appointment.slotDate = newSlotDate;
+        appointment.slotTime = newSlotTime;
+        appointment.reSchedule = true; // ✅ Mark as rescheduled
+        await appointment.save();
+
+        return res.json({ success: true, message: "Appointment rescheduled successfully" });
+
+    } catch (error) {
+        console.error("Reschedule Error:", error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+const maximumAppointment = async (req, res) => {
+try {
+    // Count existing appointments for this user
+        const existingAppointmentsCount = await appointmentModel.countDocuments({ userId });
+
+        if (existingAppointmentsCount >= 3) {
+            return res.json({ success: false, message:'' });
+        }
+    
+} catch (error) {
+    console.error(error);
+}
+}
+
+
+
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, rescheduleAppointment }
+
+       

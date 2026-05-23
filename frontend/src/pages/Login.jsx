@@ -50,6 +50,7 @@ const Login = () => {
 
       }
     } catch (error) {
+      console.log(error.message)
       toast.error(error.message)
     }
   }
@@ -83,7 +84,7 @@ const Login = () => {
         </div>
 
         {state === "Login" && 
-          <p onClick={() => navigate('/reset-passowrd')} className='text-primary underline cursor-pointer'>Forgot password?</p>
+          <p onClick={() => navigate('/reset-password')} className='text-primary underline cursor-pointer'>Forgot password?</p>
         }
 
         <button type='submit' className='bg-[#64748B] text-white w-full py-2 rounded-md text-base'>{state === 'Sign Up' ? "Create Account" : "Login"}</button>

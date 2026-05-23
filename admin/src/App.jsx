@@ -9,11 +9,13 @@ import { Route, Routes } from 'react-router-dom'
 import Dashboard from './pages/Admin/Dashboard'
 import AllApointments from './pages/Admin/AllApointments'
 import AddDoctor from './pages/Admin/AddDoctor'
-import DoctorsList from './pages/Admin/DoctorsLIst'
+import DoctorsList from './pages/Admin/DoctorsList'
 import { DoctorContext } from './context/DoctorContext'
 import DoctorAppointments from './pages/Doctor/DoctorAppointments';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorProfile from './pages/Doctor/DoctorProfile';
+import DocAppointment from './pages/Admin/DocAppointment'
+
 
 
 const App = () => {
@@ -30,7 +32,6 @@ const App = () => {
         <Routes>
           {/* Admin Route */}
           {/* <Route path='/' element={<></>} /> */}
-          <Route path='/' element={<Dashboard />} />
           <Route path='/admin-dashboard' element={<Dashboard />} />
           <Route path='/all-appointments' element={<AllApointments />} />
           <Route path='/add-doctor' element={<AddDoctor />} />
@@ -40,6 +41,7 @@ const App = () => {
           <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
           <Route path='/doctor-appointments' element={<DoctorAppointments />} />
           <Route path='/doctor-profile' element={<DoctorProfile />} />
+          <Route path='/appointments/:doctorId' element={<DocAppointment/>} />
         </Routes>
       </div>
     </div>

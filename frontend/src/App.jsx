@@ -14,6 +14,7 @@ import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css'
+import RescheduleAppointment from './pages/RescheduleAppointment'
 
 const App = () => {
   return (
@@ -32,6 +33,7 @@ const App = () => {
         <Route path='/email-veify' element={<EmailVerify />}/>
         <Route path='/reset-password' element={<ResetPassword />}/>
         <Route path='/appointment/:docId' element={<Appointment />}/>
+        <Route path='/reschedule-appointment/:docId' element={<RescheduleAppointment/>}/>
       </Routes>
       <Footer/>
     </div>

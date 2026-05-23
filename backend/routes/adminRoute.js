@@ -15,6 +15,7 @@ adminRouter.post('/cancel-appointment', authAdmin, appointmentCancel)
 adminRouter.get('/dashboard', authAdmin, adminDashboard)
 adminRouter.get('/monthly-revenue', authAdmin, getMonthlyRevenue);
 adminRouter.get('/specialty-count',authAdmin, getAppointmentsBySpecialty)
+adminRouter.post('/appointments-doctor',authAdmin,)
 
 
 export default adminRouter  
