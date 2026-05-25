@@ -4,9 +4,10 @@ import { AppContext } from '../context/AppContext'
 
 const getPageSize = () => {
   const w = window.innerWidth
-  if (w >= 1024) return 12  // lg+
-  if (w >= 640) return 10   // sm–lg
-  return 6                   // xs
+  if (w >= 1920) return 12  // 24"+ / large displays
+  if (w >= 1024) return 8   // 13"–22" laptops & monitors
+  if (w >= 640) return 10   // tablets
+  return 6                   // mobile
 }
 
 const specialities = [
