@@ -4,87 +4,88 @@ import doctorModel from "../models/doctorModel.js"
 import appointmentModel from "../models/appointmentModel.js";
 import jwt from 'jsonwebtoken'
 import userModel from "../models/userModel.js";
+import specialityModel from "../models/specialityModel.js";
 
 // API for adding doctor
 const addDoctor = async (req, res) => {
 
-    try {
+  try {
 
-        const { name, email, password, speciality, degree, experience, about, fees, address } = req.body
-        const imageFile = req.file
+    const { name, email, password, speciality, degree, experience, about, fees, address } = req.body
+    const imageFile = req.file
 
-        // console.log({ name, email, password, speciality, degree, experience, about, fees, address },imageFile);
+    // console.log({ name, email, password, speciality, degree, experience, about, fees, address },imageFile);
 
-        // Checking for all data to add doctor
-        if (!name || !email || !password || !speciality || !degree || !experience || !about) {
-            return res.json({ success: false, message: "Missing Details" })
-        }
-
-        // Validating email format
-        if (!validator.isEmail(email)) {
-            return res.json({ success: false, message: "Please enter a vaild email" })
-        }
-
-        // Validating strong password
-        if (password.length < 8) {
-            return res.json({ success: false, message: "Please enter a strong password" })
-        }
-
-
-        // Hashign doctor password
-        const salt = await bycrypt.genSalt(10)
-        const hashedPassword = await bycrypt.hash(password, salt)
-
-        // let imageUrl = "";   initialize variable
-        // Use local image path (uploaded by multer)
-        const imagePath = `/uploads/${req.file.filename}` // e.g., "uploads/1710000000-dr.jpg"
-
-
-
-        const doctorData = {
-            name,
-            email,
-            image: imagePath,
-            password: hashedPassword,
-            speciality,
-            degree,
-            experience,
-            about,
-            fees,
-            address: JSON.parse(address),
-            date: Date.now()
-        }
-
-        const newDoctor = new doctorModel(doctorData)
-        await newDoctor.save()
-
-        res.json({ success: true, message: "Doctor Added" })
-
-
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
+    // Checking for all data to add doctor
+    if (!name || !email || !password || !speciality || !degree || !experience || !about) {
+      return res.json({ success: false, message: "Missing Details" })
     }
+
+    // Validating email format
+    if (!validator.isEmail(email)) {
+      return res.json({ success: false, message: "Please enter a vaild email" })
+    }
+
+    // Validating strong password
+    if (password.length < 8) {
+      return res.json({ success: false, message: "Please enter a strong password" })
+    }
+
+
+    // Hashign doctor password
+    const salt = await bycrypt.genSalt(10)
+    const hashedPassword = await bycrypt.hash(password, salt)
+
+    // let imageUrl = "";   initialize variable
+    // Use local image path (uploaded by multer)
+    const imagePath = `/uploads/${req.file.filename}` // e.g., "uploads/1710000000-dr.jpg"
+
+
+
+    const doctorData = {
+      name,
+      email,
+      image: imagePath,
+      password: hashedPassword,
+      speciality,
+      degree,
+      experience,
+      about,
+      fees,
+      address: JSON.parse(address),
+      date: Date.now()
+    }
+
+    const newDoctor = new doctorModel(doctorData)
+    await newDoctor.save()
+
+    res.json({ success: true, message: "Doctor Added" })
+
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
 }
 
 // API for admin login
 const loginAdmin = async (req, res) => {
-    try {
-        const { email, password } = req.body
+  try {
+    const { email, password } = req.body
 
-        if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
 
-            const token = jwt.sign(email + password, process.env.JWT_SECRET)
-            res.json({ success: true, token })
+      const token = jwt.sign(email + password, process.env.JWT_SECRET)
+      res.json({ success: true, token })
 
-        } else {
-            res.json({ success: false, message: "Invalid credentials" })
-        }
-
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
+    } else {
+      res.json({ success: false, message: "Invalid credentials" })
     }
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
 }
 
 // const loginAdmin1 = async (req, res) => {
@@ -114,42 +115,42 @@ const loginAdmin = async (req, res) => {
 
 // API to get all doctors list for admin panel
 const allDoctors = async (req, res) => {
-    try {
-        const doctors = await doctorModel.find({}).select('-password')
-        res.json({ success: true, doctors })
+  try {
+    const doctors = await doctorModel.find({}).select('-password')
+    res.json({ success: true, doctors })
 
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
-    }
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
 }
 
 // API to get all appointments list
 const appointmentsAdmin = async (req, res) => {
-    try {
+  try {
 
-        const appointments = await appointmentModel.find({})
-        res.json({ success: true, appointments })
+    const appointments = await appointmentModel.find({})
+    res.json({ success: true, appointments })
 
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
-    }
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
 
 }
 // API for appointment cancellation
 const appointmentCancel = async (req, res) => {
-    try {
+  try {
 
-        const { appointmentId } = req.body
-        await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
+    const { appointmentId } = req.body
+    await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
 
-        res.json({ success: true, message: 'Appointment Cancelled' })
+    res.json({ success: true, message: 'Appointment Cancelled' })
 
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
-    }
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
 
 }
 
@@ -317,7 +318,39 @@ const getAppointmentsByDoctor = async (req, res) => {
   }
 };
 
+// API for add speciality
+const addSpeciality = async (req, res) => {
+  try {
+    const { speciality, channelingFee } = req.body
+
+    if (!speciality || !channelingFee) {
+      return res.json({ success: false, message: "Speciality name and channeling fee are required" })
+    }
+
+    if (!req.file) {
+      return res.json({ success: false, message: "Speciality image is required" })
+    }
+
+    const imagePath = `/uploads/${req.file.filename}`
+
+    const newSpeciality = new specialityModel({
+      speciality,
+      image: imagePath,
+      channelingFee: Number(channelingFee)
+    })
+
+    await newSpeciality.save()
+
+    res.json({ success: true, message: "Speciality Added" })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
 
 
 
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty  } 
+
+
+export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality }
