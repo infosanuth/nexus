@@ -318,6 +318,17 @@ const getAppointmentsByDoctor = async (req, res) => {
   }
 };
 
+// API to get all specialities (public)
+const getSpecialities = async (req, res) => {
+  try {
+    const specialities = await specialityModel.find({})
+    res.json({ success: true, specialities })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 // API for add speciality
 const addSpeciality = async (req, res) => {
   try {
@@ -353,4 +364,4 @@ const addSpeciality = async (req, res) => {
 
 
 
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality }
+export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities }
