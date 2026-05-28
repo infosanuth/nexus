@@ -13,10 +13,12 @@ const AdminContextProvider = (props) => {
     const [dashData, setDashData] = useState(false)
     const [monthlyRevenue, setMonthlyRevenue] = useState([]);
     const [appointmentBySpeciallity, SetAppointmentBySpeciallity] = useState([]);
+    const [specialities, setSpecialities] = useState([])
 
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL
 
+    // Getting all doctors data
     const getAllDoctors = async () => {
         try {
             const { data } = await axios.post(backendUrl + '/api/admin/all-doctors', {}, { headers: { aToken } })
@@ -31,6 +33,7 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    // Toggling doctor availability status
     const changeAvailability = async (docId) => {
         try {
 
@@ -46,7 +49,8 @@ const AdminContextProvider = (props) => {
         }
 
     }
-    // Getting all appointment data from Database using API
+
+    // Getting all appointment data
     const getAllAppointments = async () => {
 
         try {
@@ -54,7 +58,6 @@ const AdminContextProvider = (props) => {
             const { data } = await axios.get(backendUrl + '/api/admin/appointments', { headers: { aToken } })
             if (data.success) {
                 setAppointments(data.appointments.reverse())
-                // console.log(data.appointments)
             } else {
                 toast.error(data.message)
             }
@@ -65,9 +68,9 @@ const AdminContextProvider = (props) => {
         }
 
     }
-    // Function to cancel appointment using API
-    const cancelAppointment = async (appointmentId) => {
 
+    // Cancelling an appointment by ID
+    const cancelAppointment = async (appointmentId) => {
         try {
 
             const { data } = await axios.post(backendUrl + '/api/admin/cancel-appointment', { appointmentId }, { headers: { aToken } })
@@ -86,8 +89,7 @@ const AdminContextProvider = (props) => {
 
     }
 
-    // Function to dispaly dashboard details
-
+    // Getting dashboard summary data
     const getDashData = async () => {
         try {
             const { data } = await axios.get(backendUrl + '/api/admin/dashboard', { headers: { aToken } })
@@ -103,7 +105,7 @@ const AdminContextProvider = (props) => {
         }
     }
 
-
+    // Getting monthly revenue data for chart
     const getMonthlyRevenue = async () => {
         try {
             const { data } = await axios.get(backendUrl + '/api/admin/monthly-revenue', { headers: { aToken } });
@@ -120,7 +122,7 @@ const AdminContextProvider = (props) => {
         }
     };
 
-
+    // Getting appointment counts grouped by specialty for pie chart
     const SpecialtyPieChart = async () => {
         try {
             const { data } = await axios.get(backendUrl + '/api/admin/specialty-count', { headers: { aToken } });
@@ -136,6 +138,20 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    // Getting all specialities data
+    const getSpecialities = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/specialities')
+            if (data.success) {
+                setSpecialities(data.specialities)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+    }
 
 
     const value = {
@@ -147,10 +163,10 @@ const AdminContextProvider = (props) => {
         cancelAppointment,
         dashData, getDashData,
         monthlyRevenue, getMonthlyRevenue,
-        appointmentBySpeciallity, SpecialtyPieChart
-        
-
+        appointmentBySpeciallity, SpecialtyPieChart,
+        specialities, getSpecialities
     }
+
     return (
         <AdminContext.Provider value={value}>
             {props.children}
