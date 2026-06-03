@@ -14,6 +14,13 @@ const Specialities = () => {
   const [imagePreview, setImagePreview] = useState(null)
   const [loading, setLoading] = useState(false)
 
+  const [editTarget, setEditTarget] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editFee, setEditFee] = useState('')
+  const [editImage, setEditImage] = useState(null)
+  const [editImagePreview, setEditImagePreview] = useState(null)
+  const [editLoading, setEditLoading] = useState(false)
+
   useEffect(() => {
     getSpecialities()
   }, [])
@@ -63,6 +70,62 @@ const Specialities = () => {
     setFee('')
     setImage(null)
     setImagePreview(null)
+  }
+
+  const openEdit = (item) => {
+    setEditTarget(item)
+    setEditName(item.speciality)
+    setEditFee(item.channelingFee)
+    setEditImage(null)
+    setEditImagePreview(`${backendUrl}${item.image}`)
+  }
+
+  const closeEdit = () => {
+    setEditTarget(null)
+    setEditName('')
+    setEditFee('')
+    setEditImage(null)
+    setEditImagePreview(null)
+  }
+
+  const handleEditImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setEditImage(file)
+      setEditImagePreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault()
+    if (!editName || !editFee) {
+      toast.error('Name and fee are required')
+      return
+    }
+    setEditLoading(true)
+    try {
+      const formData = new FormData()
+      formData.append('speciality', editName)
+      formData.append('channelingFee', editFee)
+      if (editImage) formData.append('image', editImage)
+
+      const { data } = await axios.put(
+        backendUrl + `/api/admin/update-speciality/${editTarget._id}`,
+        formData,
+        { headers: { aToken } }
+      )
+      if (data.success) {
+        toast.success(data.message || 'Speciality updated successfully')
+        closeEdit()
+        getSpecialities()
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setEditLoading(false)
+    }
   }
 
   return (
@@ -161,7 +224,10 @@ const Specialities = () => {
                 <span className='px-3 py-1 mt-2 text-xs font-medium text-indigo-600 border border-indigo-100 rounded-full bg-indigo-50'>
                   Rs {item.channelingFee.toLocaleString()}
                 </span>
-                <button className='mt-4 w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 rounded-xl transition-colors'>
+                <button
+                  onClick={() => openEdit(item)}
+                  className='mt-4 w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 rounded-xl transition-colors'
+                >
                   <Pencil size={13} />
                   Edit
                 </button>
@@ -171,6 +237,69 @@ const Specialities = () => {
           : <p className='text-sm text-gray-400'>No specialities found.</p>
         }
       </div>
+
+      {/* Edit Modal */}
+      {editTarget && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'>
+          <form
+            onSubmit={handleEditSubmit}
+            className='bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6'
+          >
+            <h2 className='mb-4 text-base font-medium text-neutral-700'>Edit Speciality</h2>
+
+            <div className='mb-4'>
+              <p className='mb-2 text-sm text-gray-600'>Speciality Image</p>
+              <label className='inline-block cursor-pointer'>
+                <div className='flex items-center justify-center w-24 h-24 overflow-hidden transition-all border-2 border-gray-300 border-dashed rounded-xl hover:border-indigo-400 bg-gray-50'>
+                  {editImagePreview
+                    ? <img src={editImagePreview} alt="preview" className='object-cover w-full h-full' />
+                    : <span className='text-3xl text-gray-300'>+</span>
+                  }
+                </div>
+                <input type='file' accept='image/*' onChange={handleEditImageChange} className='hidden' />
+              </label>
+            </div>
+
+            <div className='mb-3'>
+              <label className='block mb-1 text-sm text-gray-600'>Speciality Name</label>
+              <input
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                type='text'
+                className='w-full px-3 py-2 text-sm transition-colors border border-gray-300 rounded outline-none focus:border-indigo-400'
+              />
+            </div>
+
+            <div className='mb-5'>
+              <label className='block mb-1 text-sm text-gray-600'>Channeling Fee (Rs)</label>
+              <input
+                value={editFee}
+                onChange={e => setEditFee(e.target.value)}
+                type='number'
+                min='0'
+                className='w-full px-3 py-2 text-sm transition-colors border border-gray-300 rounded outline-none focus:border-indigo-400'
+              />
+            </div>
+
+            <div className='flex gap-3'>
+              <button
+                type='submit'
+                disabled={editLoading}
+                className='px-5 py-2 text-sm text-white transition-all bg-indigo-500 rounded hover:bg-indigo-600 disabled:opacity-60'
+              >
+                {editLoading ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                type='button'
+                onClick={closeEdit}
+                className='px-5 py-2 text-sm text-gray-600 transition-all border border-gray-300 rounded hover:bg-gray-100'
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
     </div>
   )
