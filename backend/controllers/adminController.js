@@ -318,7 +318,7 @@ const getAppointmentsByDoctor = async (req, res) => {
   }
 };
 
-// API to get all specialities (public)
+// API to get all specialities
 const getSpecialities = async (req, res) => {
   try {
     const specialities = await specialityModel.find({})
@@ -361,7 +361,37 @@ const addSpeciality = async (req, res) => {
 }
 
 
+// API for edit speciality
+const editSpeciality = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { speciality, channelingFee } = req.body
 
+    if (!speciality || !channelingFee) {
+      return res.json({ success: false, message: "Speciality name and channeling fee are required" })
+    }
 
+    const updateData = {
+      speciality,
+      channelingFee: Number(channelingFee)
+    }
 
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities }
+    if (req.file) {
+      updateData.image = `/uploads/${req.file.filename}`
+    }
+
+    const updated = await specialityModel.findByIdAndUpdate(id, updateData, { new: true })
+
+    if (!updated) {
+      return res.json({ success: false, message: "Speciality not found" })
+    }
+
+    res.json({ success: true, message: "Speciality Updated" })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality }
