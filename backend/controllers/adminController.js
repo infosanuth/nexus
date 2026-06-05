@@ -435,4 +435,15 @@ const addStaff = async (req, res) => {
   }
 }
 
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff }
+// API to get all staff
+const getStaff = async (req, res) => {
+  try {
+    const staff = await staffModel.find({}).select('-password')
+    res.json({ success: true, staff })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff }
