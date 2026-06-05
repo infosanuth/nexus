@@ -16,6 +16,7 @@ import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorProfile from './pages/Doctor/DoctorProfile';
 import DocAppointment from './pages/Admin/DocAppointment'
 import Specialities from './pages/Admin/Specialities'
+import Staff from './pages/Admin/Staff'
 
 
 
@@ -38,6 +39,7 @@ const App = () => {
           <Route path='/add-doctor' element={<AddDoctor />} />
           <Route path='/doctor-list' element={<DoctorsList />} />
           <Route path='/specialities' element={<Specialities />} />
+          <Route path='/staff' element={<Staff />} />
           {/* Doctor Route */}
           <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
           <Route path='/doctor-appointments' element={<DoctorAppointments />} />
