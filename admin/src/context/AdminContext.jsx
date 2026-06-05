@@ -14,6 +14,7 @@ const AdminContextProvider = (props) => {
     const [monthlyRevenue, setMonthlyRevenue] = useState([]);
     const [appointmentBySpeciallity, SetAppointmentBySpeciallity] = useState([]);
     const [specialities, setSpecialities] = useState([])
+    const [staff, setStaff] = useState([])
 
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL
@@ -138,6 +139,20 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    // Getting all staff (admins and receptionists)
+    const getAllStaff = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/staff', { headers: { aToken } })
+            if (data.success) {
+                setStaff(data.staff)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+        }
+    }
+
     // Getting all specialities data
     const getSpecialities = async () => {
         try {
@@ -164,7 +179,8 @@ const AdminContextProvider = (props) => {
         dashData, getDashData,
         monthlyRevenue, getMonthlyRevenue,
         appointmentBySpeciallity, SpecialtyPieChart,
-        specialities, getSpecialities
+        specialities, getSpecialities,
+        staff, getAllStaff
     }
 
     return (

@@ -1,14 +1,17 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { AdminContext } from '../../context/AdminContext'
 import { toast } from 'react-toastify'
 import axios from 'axios'
 import { UserRoundPlus, Eye, EyeOff } from 'lucide-react'
 
 const Staff = () => {
-  const { aToken, backendUrl } = useContext(AdminContext)
+  const { aToken, backendUrl, staff, getAllStaff } = useContext(AdminContext)
 
-  const [staff] = useState([])
+  useEffect(() => {
+    if (aToken) getAllStaff()
+  }, [aToken])
   const [showForm, setShowForm] = useState(false)
+
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -37,6 +40,7 @@ const Staff = () => {
       if (data.success) {
         toast.success(data.message)
         resetForm()
+        getAllStaff()
       } else {
         toast.error(data.message)
       }
