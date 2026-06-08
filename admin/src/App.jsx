@@ -5,7 +5,7 @@ import 'react-toastify/dist/ReactToastify.css'
 import { AdminContext } from './context/AdminContext'
 import Navbar from './components/Navbar'
 import Sidebar from './components/Sidebar'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import Dashboard from './pages/Admin/Dashboard'
 import AllApointments from './pages/Admin/AllApointments'
 import AddDoctor from './pages/Admin/AddDoctor'
@@ -17,6 +17,7 @@ import DoctorProfile from './pages/Doctor/DoctorProfile';
 import DocAppointment from './pages/Admin/DocAppointment'
 import Specialities from './pages/Admin/Specialities'
 import Staff from './pages/Admin/Staff'
+import { ReceptionContext } from './context/ReceptionContext'
 
 
 
@@ -24,16 +25,17 @@ const App = () => {
 
   const { aToken } = useContext(AdminContext)
   const { dToken } = useContext(DoctorContext)
+  const { rToken } = useContext(ReceptionContext)
 
-  return dToken || aToken ? (
+  return dToken || aToken || rToken ? (
     <div className='bg-[#F8F9FD]'>
       <ToastContainer />
       <Navbar />
       <div className='flex items-start'>
         <Sidebar />
         <Routes>
+          <Route path='/' element={<Navigate to={aToken ? '/admin-dashboard' : dToken ? '/doctor-dashboard' : '/admin-dashboard'} replace />} />
           {/* Admin Route */}
-          {/* <Route path='/' element={<></>} /> */}
           <Route path='/admin-dashboard' element={<Dashboard />} />
           <Route path='/all-appointments' element={<AllApointments />} />
           <Route path='/add-doctor' element={<AddDoctor />} />

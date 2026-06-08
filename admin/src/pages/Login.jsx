@@ -1,13 +1,11 @@
 import React, { useContext, useState } from 'react'
-import { assets } from '../assets/assets'
 import { AdminContext } from '../context/AdminContext'
+import { DoctorContext } from '../context/DoctorContext'
+import { ReceptionContext } from '../context/ReceptionContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import { DoctorContext } from '../context/DoctorContext'
 
 const Login = () => {
-
-  const [state, setState] = useState('Admin')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -15,60 +13,67 @@ const Login = () => {
   const { backendUrl } = useContext(DoctorContext)
   const { setAToken } = useContext(AdminContext)
   const { setDToken } = useContext(DoctorContext)
-
+  const { setRToken } = useContext(ReceptionContext)
 
   const onSubmitHandler = async (event) => {
-
     event.preventDefault()
 
     try {
+      const { data } = await axios.post(backendUrl + '/api/auth/login', { email, password })
 
-      if (state === 'Admin') {
+      if (!data.success) {
+        return toast.error(data.message)
+      }
 
-        const { data } = await axios.post(backendUrl + '/api/admin/login', { email, password })
-        if (data.success) {
-          localStorage.setItem('aToken', data.token)
-          setAToken(data.token);
-        } else {
-          toast.error(data.message)
-        }
+      const { token, role } = data
 
+      if (role === 'admin') {
+        localStorage.setItem('aToken', token)
+        setAToken(token)
+      } else if (role === 'doctor') {
+        localStorage.setItem('dToken', token)
+        setDToken(token)
+      } else if (role === 'receptionist') {
+        localStorage.setItem('rToken', token)
+        setRToken(token)
       } else {
-
-        const { data } = await axios.post(backendUrl + '/api/doctor/login', { email, password })
-        if (data.success) {
-          localStorage.setItem('dToken', data.token)
-          setDToken(data.token)
-          console.log(data.token)
-
-        } else {
-          toast.error(data.message)
-        }
+        toast.error('Unknown role. Contact administrator.')
       }
 
     } catch (error) {
-
+      toast.error(error.message)
     }
   }
 
   return (
     <form onSubmit={onSubmitHandler} className='min-h-[80vh] flex items-center'>
       <div className='flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-[#5E5E5E] text-sm shadow-lg'>
-        <p className='text-2xl font-semibold m-auto'><span className='text-[#5F6FFF]'>{state}</span> Login</p>
+        <p className='m-auto text-2xl font-semibold'>
+          <span className='text-[#5F6FFF]'>Staff</span> Login
+        </p>
         <div className='w-full'>
           <p>Email</p>
-          <input onChange={(e) => setEmail(e.target.value)} value={email} className='border border-[#DADADA] rounded w-full p-2 mt-1' type="email" required />
+          <input
+            onChange={(e) => setEmail(e.target.value)}
+            value={email}
+            className='border border-[#DADADA] rounded w-full p-2 mt-1'
+            type="email"
+            required
+          />
         </div>
         <div className='w-full'>
           <p>Password</p>
-          <input onChange={(e) => setPassword(e.target.value)} value={password} className='border border-[#DADADA] rounded w-full p-2 mt-1' type="password" required />
+          <input
+            onChange={(e) => setPassword(e.target.value)}
+            value={password}
+            className='border border-[#DADADA] rounded w-full p-2 mt-1'
+            type="password"
+            required
+          />
         </div>
-        <button className='bg-[#64748B] text-white w-full py-2 rounded-md text-base'>Login</button>
-        {
-          state === 'Admin'
-            ? <p>Doctor Login? <span className='text-[#5F6FFF] underline cursor-pointer' onClick={() => setState('Doctor')}>Click here</span> </p>
-            : <p>Admin Login? <span className='text-[#5F6FFF] underline cursor-pointer' onClick={() => setState('Admin')}>Click here</span> </p>
-        }
+        <button className='bg-[#5F6FFF] text-white w-full py-2 rounded-md text-base'>
+          Login
+        </button>
       </div>
     </form>
   )
