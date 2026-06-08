@@ -1,57 +1,16 @@
 import mongoose from "mongoose";
 
-const sessionSchema = new mongoose.Schema(
-    {
-        doctorId: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", required: true, },
-
-        doctorName: {
-            type: String,
-            required: true,
-        },
-
-        date: {
-            type: Date,
-            required: true,
-        },
-
-        startTime: {
-            type: String,
-            required: true,
-        },
-
-        endTime: {
-            type: String,
-        },
-
-        maxPatients: {
-            type: Number,
-            required: true,
-        },
-
-        bookedPatientsCount: {
-            type: Number,
-            default: 0,
-        },
-
-        status: {
-            type: String,
-            enum: ["active", "completed", "cancelled"],
-            default: "active",
-        },
-
-        appointments: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "appointment",
-            },
-        ],
-
-        createdBy: {
-            type: String,
-            enum: ["doctor", "reception"],
-            required: true,
-        },
-    },
+const sessionSchema = new mongoose.Schema({
+    doctorId: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", required: true, },
+    doctorName: { type: String, required: true },
+    date: { type: Date, required: true },
+    startTime: { type: String, required: true },
+    endTime: { type: String },
+    maxPatients: { type: Number, required: true },
+    bookedPatientsCount: { type: Number, default: 0 },
+    status: { type: String, enum: ["active", "cancelled"], default: "active" },
+    appointments: [{ type: mongoose.Schema.Types.ObjectId, ref: "appointment", },],
+},
     { timestamps: true }
 );
 
