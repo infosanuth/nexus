@@ -2,7 +2,6 @@ import validator from "validator"
 import bycrypt from 'bcrypt'
 import doctorModel from "../models/doctorModel.js"
 import appointmentModel from "../models/appointmentModel.js";
-import jwt from 'jsonwebtoken'
 import userModel from "../models/userModel.js";
 import specialityModel from "../models/specialityModel.js";
 import staffModel from "../models/staffModel.js";
@@ -68,50 +67,6 @@ const addDoctor = async (req, res) => {
     res.json({ success: false, message: error.message })
   }
 }
-
-// API for admin login
-const loginAdmin = async (req, res) => {
-  try {
-    const { email, password } = req.body
-
-    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-
-      const token = jwt.sign(email + password, process.env.JWT_SECRET)
-      res.json({ success: true, token })
-
-    } else {
-      res.json({ success: false, message: "Invalid credentials" })
-    }
-
-  } catch (error) {
-    console.log(error)
-    res.json({ success: false, message: error.message })
-  }
-}
-
-// const loginAdmin1 = async (req, res) => {
-//   try {
-//     const { email, password } = req.body
-
-//     // Parse admin users from .env
-//     const adminUsers = JSON.parse(process.env.ADMIN_USERS)
-
-//     // Check if provided credentials match any admin
-//     const isValid = adminUsers.find(
-//       (admin) => admin.email === email && admin.password === password
-//     )
-
-//     if (isValid) {
-//       const token = jwt.sign(email + password, process.env.JWT_SECRET)
-//       return res.json({ success: true, token })
-//     } else {
-//       return res.json({ success: false, message: "Invalid credentials" })
-//     }
-//   } catch (error) {
-//     console.error("Login error:", error.message)
-//     return res.json({ success: false, message: error.message })
-//   }
-// }
 
 
 // API to get all doctors list for admin panel
@@ -446,4 +401,4 @@ const getStaff = async (req, res) => {
   }
 }
 
-export { addDoctor, loginAdmin, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff }
+export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff }
