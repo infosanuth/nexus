@@ -435,6 +435,52 @@ const listAppointment = async (req, res) => {
     }
 }
 
+// API to cancel appointment
+const cancelAppointment = async (req, res) => {
+    try {
+
+        const { userId, appointmentId } = req.body
+        const appointmentData = await appointmentModel.findById(appointmentId)
+
+        // verify appointment user 
+        if (appointmentData.userId !== userId) {
+            return res.json({ success: false, message: 'Unauthorized action' })
+        }
+
+        await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
+
+        // releasing session slot, if this appointment belonged to a session
+        if (appointmentData.sessionId) {
+            await sessionModel.findByIdAndUpdate(appointmentData.sessionId, {
+                $pull: { appointments: appointmentData._id },
+                $inc: { bookedPatientsCount: -1 }
+            })
+        }
+
+        // releasing doctor slot
+        const { docId, slotDate, slotTime } = appointmentData
+
+        const doctorData = await doctorModel.findById(docId)
+
+        let slots_booked = doctorData.slots_booked
+
+        // slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime)
+
+        slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime);
+        if (slots_booked[slotDate].length === 0) {
+            delete slots_booked[slotDate];
+        }
+
+        await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+
+        res.json({ success: true, message: 'Appointment Cancelled' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 // API to make payment of appointment using payhere
 const paymentPayHere = async (req, res) => {
     try {
@@ -573,22 +619,8 @@ const rescheduleAppointment = async (req, res) => {
     }
 };
 
-const maximumAppointment = async (req, res) => {
-try {
-    // Count existing appointments for this user
-        const existingAppointmentsCount = await appointmentModel.countDocuments({ userId });
-
-        if (existingAppointmentsCount >= 3) {
-            return res.json({ success: false, message:'' });
-        }
-    
-} catch (error) {
-    console.error(error);
-}
-}
 
 
-
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, rescheduleAppointment }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, rescheduleAppointment }
 
        
