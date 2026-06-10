@@ -12,6 +12,7 @@ const DoctorContextProvider = (props) => {
     const [appointments, setAppointments] = useState([])
     const [dashData, setDashData] = useState(false)
     const [profileData, setProfileData] = useState(false)
+    const [sessions, setSessions] = useState([])
 
     // Getting Doctor appointment data from Database using API
     const getAppointments = async () => {
@@ -112,7 +113,7 @@ const DoctorContextProvider = (props) => {
     }
 
 
-    // Function to add a new session for the logged-in doctor
+    // Function to add a new session for doctor
     const addSession = async (sessionData) => {
         try {
 
@@ -133,6 +134,24 @@ const DoctorContextProvider = (props) => {
         }
     }
 
+    // Function to get sessions of doctor
+    const getSessions = async () => {
+        try {
+
+            const { data } = await axios.get(backendUrl + '/api/doctor/sessions', { headers: { dToken } })
+
+            if (data.success) {
+                setSessions(data.sessions)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
     const value = {
         dToken, setDToken,
         backendUrl,
@@ -140,7 +159,8 @@ const DoctorContextProvider = (props) => {
         completeAppointment, cancelAppointment,
         dashData, setDashData, getDashData,
         profileData, setProfileData, getProfileData,
-        addSession
+        addSession,
+        sessions, setSessions, getSessions
 
 
     }
