@@ -152,6 +152,25 @@ const DoctorContextProvider = (props) => {
         }
     }
 
+    // Function to delete an empty session
+    const deleteSession = async (sessionId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/doctor/delete-session', { sessionId }, { headers: { dToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getSessions()
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
     const value = {
         dToken, setDToken,
         backendUrl,
@@ -160,7 +179,7 @@ const DoctorContextProvider = (props) => {
         dashData, setDashData, getDashData,
         profileData, setProfileData, getProfileData,
         addSession,
-        sessions, setSessions, getSessions
+        sessions, setSessions, getSessions, deleteSession
 
 
     }
