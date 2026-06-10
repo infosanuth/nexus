@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import sessionModel from "../models/sessionModel.js";
 import crypto from 'crypto';
 import transporter from "../config/nodemailer.js";
 
@@ -306,7 +307,20 @@ const updateProfile = async (req, res) => {
 
 }
 
-// API to book appointment 
+// Helper to convert "hh:mm AM/PM" slot time to 24-hour "HH:MM" for session matching
+const convertTo24Hour = (time12h) => {
+    const [time, modifier] = time12h.split(' ')
+    let [hours, minutes] = time.split(':')
+    if (hours === '12') {
+        hours = '00'
+    }
+    if (modifier?.toUpperCase() === 'PM') {
+        hours = String(Number(hours) + 12)
+    }
+    return `${hours.padStart(2, '0')}:${minutes}`
+}
+
+// API to book appointment
 const bookAppointment = async (req, res) => {
 
     try {
@@ -322,17 +336,47 @@ const bookAppointment = async (req, res) => {
 
         let slots_booked = docData.slots_booked
 
-        // checking for slot availablity 
-        if (slots_booked[slotDate]) {
-            if (slots_booked[slotDate].includes(slotTime)) {
-                return res.json({ success: false, message: 'Doctor Not Available' })
+        // Find the active session (if any) this appointment falls into
+        const [day, month, year] = slotDate.split('_').map(Number)
+        const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
+        const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
+        const slotTime24 = convertTo24Hour(slotTime)
+
+        const sessionsOnDate = await sessionModel.find({
+            doctorId: docId,
+            status: 'active',
+            date: { $gte: startOfDay, $lte: endOfDay }
+        })
+
+        const matchedSession = sessionsOnDate.find(s =>
+            slotTime24 >= s.startTime && (!s.endTime || slotTime24 < s.endTime)
+        )
+
+        if (matchedSession) {
+            // Session capacity governs availability, multiple patients can share the same slot time
+            if (matchedSession.bookedPatientsCount >= matchedSession.maxPatients) {
+                return res.json({ success: false, message: 'Session is fully booked' })
             }
-            else {
+
+            if (!slots_booked[slotDate]) {
+                slots_booked[slotDate] = []
+            }
+            if (!slots_booked[slotDate].includes(slotTime)) {
                 slots_booked[slotDate].push(slotTime)
             }
         } else {
-            slots_booked[slotDate] = []
-            slots_booked[slotDate].push(slotTime)
+            // checking for slot availablity
+            if (slots_booked[slotDate]) {
+                if (slots_booked[slotDate].includes(slotTime)) {
+                    return res.json({ success: false, message: 'Doctor Not Available' })
+                }
+                else {
+                    slots_booked[slotDate].push(slotTime)
+                }
+            } else {
+                slots_booked[slotDate] = []
+                slots_booked[slotDate].push(slotTime)
+            }
         }
 
         const userData = await userModel.findById(userId).select("-password")
@@ -349,15 +393,26 @@ const bookAppointment = async (req, res) => {
             slotDate,
             date: Date.now()
         }
+
+        if (matchedSession) {
+            appointmentData.sessionId = matchedSession._id
+        }
+
         const newAppointment = new appointmentModel(appointmentData)
         await newAppointment.save()
+
+        if (matchedSession) {
+            matchedSession.appointments.push(newAppointment._id)
+            matchedSession.bookedPatientsCount += 1
+            await matchedSession.save()
+        }
 
         // save new slots data in docData
         await doctorModel.findByIdAndUpdate(docId, { slots_booked })
         // console.log(appointmentData.userData.name)
         console.log(`Your appointment with ${docData.name} is confirmed for ${slotDate} at ${slotTime}. Thank you!`)
         res.json({ success: true, message: 'Appointment Booked' })
-        
+
 
     } catch (error) {
         console.log(error)
@@ -373,45 +428,6 @@ const listAppointment = async (req, res) => {
         const appointments = await appointmentModel.find({ userId })
 
         res.json({ success: true, appointments })
-
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
-    }
-}
-
-
-// API to cancel appointment
-const cancelAppointment = async (req, res) => {
-    try {
-
-        const { userId, appointmentId } = req.body
-        const appointmentData = await appointmentModel.findById(appointmentId)
-
-        // verify appointment user 
-        if (appointmentData.userId !== userId) {
-            return res.json({ success: false, message: 'Unauthorized action' })
-        }
-
-        await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
-
-        // releasing doctor slot 
-        const { docId, slotDate, slotTime } = appointmentData
-
-        const doctorData = await doctorModel.findById(docId)
-
-        let slots_booked = doctorData.slots_booked
-
-        // slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime)
-
-        slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime);
-        if (slots_booked[slotDate].length === 0) {
-            delete slots_booked[slotDate];
-        }
-
-        await doctorModel.findByIdAndUpdate(docId, { slots_booked })
-
-        res.json({ success: true, message: 'Appointment Cancelled' })
 
     } catch (error) {
         console.log(error)
@@ -573,6 +589,6 @@ try {
 
 
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, rescheduleAppointment }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, rescheduleAppointment }
 
        
