@@ -199,4 +199,20 @@ const addSession = async (req, res) => {
     }
 }
 
-export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession }
+// API for doctor to get sessions
+const getSessions = async (req, res) => {
+    try {
+
+        const { docId } = req.body
+
+        const sessions = await sessionModel.find({ doctorId: docId }).sort({ date: 1, startTime: 1 })
+
+        res.json({ success: true, sessions })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions }
