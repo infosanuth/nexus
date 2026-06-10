@@ -215,4 +215,34 @@ const getSessions = async (req, res) => {
     }
 }
 
-export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions }
+// API for doctor to delete an empty session
+const deleteSession = async (req, res) => {
+    try {
+
+        const { docId, sessionId } = req.body
+
+        const session = await sessionModel.findById(sessionId)
+
+        if (!session) {
+            return res.json({ success: false, message: 'Session not found' })
+        }
+
+        if (session.doctorId.toString() !== docId) {
+            return res.json({ success: false, message: 'Not Authorized' })
+        }
+
+        if (session.bookedPatientsCount > 0 || session.appointments.length > 0) {
+            return res.json({ success: false, message: 'Cannot delete a session with booked patients' })
+        }
+
+        await sessionModel.findByIdAndDelete(sessionId)
+
+        res.json({ success: true, message: 'Session Deleted' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, deleteSession }
