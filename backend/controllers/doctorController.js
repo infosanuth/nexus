@@ -2,6 +2,7 @@ import doctorModel from "../models/doctorModel.js"
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"
 import appointmentModel from "../models/appointmentModel.js";
+import sessionModel from "../models/sessionModel.js";
 
 const changeAvailability = async (req, res) => {
     try {
@@ -152,4 +153,35 @@ const updateDoctorProfile = async (req, res) => {
 }
 
 
-export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile }
+// API for doctor to add a session for themself
+const addSession = async (req, res) => {
+    try {
+
+        const { docId, date, startTime, endTime, maxPatients } = req.body
+
+        const doctor = await doctorModel.findById(docId).select('name')
+        if (!doctor) {
+            return res.json({ success: false, message: 'Doctor not found' })
+        }
+
+        const sessionData = {
+            doctorId: docId,
+            doctorName: doctor.name,
+            date,
+            startTime,
+            endTime,
+            maxPatients
+        }
+
+        const newSession = new sessionModel(sessionData)
+        await newSession.save()
+
+        res.json({ success: true, message: 'Session Added' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession }
