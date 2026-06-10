@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import { assets } from '../assets/assets'
 import { DoctorContext } from '../context/DoctorContext'
-import { MessageSquareText, Calendar, Settings, Stethoscope, UserRoundPen, CalendarPlus } from 'lucide-react';
+import { MessageSquareText, Calendar, Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays } from 'lucide-react';
 
 
 const Sidebar = () => {
@@ -88,6 +88,11 @@ const Sidebar = () => {
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-add-session'}>
             <CalendarPlus />
             <p className='hidden md:block'>Add Session</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-sessions'}>
+            <CalendarDays />
+            <p className='hidden md:block'>My Sessions</p>
           </NavLink>
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-profile'}>
