@@ -112,13 +112,35 @@ const DoctorContextProvider = (props) => {
     }
 
 
+    // Function to add a new session for the logged-in doctor
+    const addSession = async (sessionData) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/doctor/add-session', sessionData, { headers: { dToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
     const value = {
         dToken, setDToken,
         backendUrl,
         appointments, setAppointments, getAppointments,
         completeAppointment, cancelAppointment,
         dashData, setDashData, getDashData,
-        profileData, setProfileData, getProfileData
+        profileData, setProfileData, getProfileData,
+        addSession
 
 
     }
