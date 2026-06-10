@@ -245,4 +245,26 @@ const deleteSession = async (req, res) => {
     }
 }
 
-export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, deleteSession }
+// API to get a doctor's available sessions for patient booking
+const getAvailableSessions = async (req, res) => {
+    try {
+
+        const { docId } = req.params
+
+        const todayStr = new Date().toLocaleDateString('en-CA')
+
+        const sessions = await sessionModel.find({
+            doctorId: docId,
+            status: 'active',
+            date: { $gte: new Date(todayStr) }
+        }).sort({ date: 1, startTime: 1 })
+
+        res.json({ success: true, sessions })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, deleteSession, getAvailableSessions }
