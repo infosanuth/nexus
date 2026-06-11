@@ -20,6 +20,7 @@ import DocAppointment from './pages/Admin/DocAppointment'
 import Specialities from './pages/Admin/Specialities'
 import Staff from './pages/Admin/Staff'
 import { ReceptionContext } from './context/ReceptionContext'
+import PatientCheckIn from './pages/Reception/PatientCheckIn'
 
 
 
@@ -36,7 +37,7 @@ const App = () => {
       <div className='flex items-start'>
         <Sidebar />
         <Routes>
-          <Route path='/' element={<Navigate to={aToken ? '/admin-dashboard' : dToken ? '/doctor-dashboard' : '/admin-dashboard'} replace />} />
+          <Route path='/' element={<Navigate to={aToken ? '/admin-dashboard' : dToken ? '/doctor-dashboard' : rToken ? '/reception-dashboard' : '/admin-dashboard'} replace />} />
           {/* Admin Route */}
           <Route path='/admin-dashboard' element={<Dashboard />} />
           <Route path='/all-appointments' element={<AllApointments />} />
@@ -51,6 +52,8 @@ const App = () => {
           <Route path='/doctor-add-session' element={<DoctorAddSession />} />
           <Route path='/doctor-sessions' element={<DoctorGetSession />} />
           <Route path='/appointments/:doctorId' element={<DocAppointment/>} />
+          {/* Reception Route */}
+          <Route path='/reception-dashboard' element={<PatientCheckIn />} />
         </Routes>
       </div>
     </div>
