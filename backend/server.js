@@ -8,6 +8,7 @@ import adminRouter from './routes/adminRoute.js'
 import doctorRouter from './routes/doctorRoute.js'
 import userRouter from './routes/userRoute.js'
 import loginRouter from './routes/loginRoute.js'
+import receptionRouter from './routes/receptionRoute.js'
 
 // app config
 const app = express()
@@ -23,6 +24,7 @@ app.use('/api/auth', loginRouter)
 app.use('/api/admin', adminRouter)
 app.use('/api/doctor',doctorRouter)
 app.use('/api/user',userRouter)
+app.use('/api/reception', receptionRouter)
 app.use('/uploads', express.static('uploads'));
 // app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')))
 
