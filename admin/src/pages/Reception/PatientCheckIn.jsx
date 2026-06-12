@@ -19,7 +19,7 @@ const formatSessionDate = (date) => {
 
 const PatientCheckIn = () => {
 
-  const { backendUrl, rToken } = useContext(ReceptionContext)
+  const { backendUrl, bookWalkInAppointment } = useContext(ReceptionContext)
 
   const [specialities, setSpecialities] = useState([])
   const [doctors, setDoctors] = useState([])
@@ -120,21 +120,16 @@ const PatientCheckIn = () => {
 
     setLoading(true)
     try {
-      const { data } = await axios.post(backendUrl + '/api/reception/book-appointment', {
+      const success = await bookWalkInAppointment({
         docId,
         sessionId,
         patientDetails: { name, age, gender, phoneNumber },
         payment
-      }, { headers: { rToken } })
+      })
 
-      if (data.success) {
-        toast.success(data.message)
+      if (success) {
         resetForm()
-      } else {
-        toast.error(data.message)
       }
-    } catch (error) {
-      toast.error(error.message)
     } finally {
       setLoading(false)
     }
