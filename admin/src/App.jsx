@@ -21,7 +21,7 @@ import Specialities from './pages/Admin/Specialities'
 import Staff from './pages/Admin/Staff'
 import { ReceptionContext } from './context/ReceptionContext'
 import PatientCheckIn from './pages/Reception/PatientCheckIn'
-
+import AllAppointmentForReception from './pages/Reception/AllAppointmentForReception'
 
 
 const App = () => {
@@ -54,6 +54,7 @@ const App = () => {
           <Route path='/appointments/:doctorId' element={<DocAppointment/>} />
           {/* Reception Route */}
           <Route path='/reception-patient-check-in' element={<PatientCheckIn />} />
+          <Route path='/reception-all-appointments' element={<AllAppointmentForReception />} />
         </Routes>
       </div>
     </div>
