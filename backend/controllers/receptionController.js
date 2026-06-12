@@ -98,4 +98,17 @@ const bookWalkInAppointment = async (req, res) => {
     }
 }
 
-export { bookWalkInAppointment }
+// API for reception to get all appointments
+const appointmentsReception = async (req, res) => {
+    try {
+
+        const appointments = await appointmentModel.find({})
+        res.json({ success: true, appointments })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { bookWalkInAppointment, appointmentsReception }
