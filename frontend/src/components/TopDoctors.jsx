@@ -14,7 +14,7 @@ const getDoctorCount = () => {
 const TopDoctors = () => {
 
   const navigate = useNavigate()
-  const {doctors} = useContext(AppContext)
+  const {doctors, backendUrl} = useContext(AppContext)
   const [doctorCount, setDoctorCount] = useState(getDoctorCount)
 
   useEffect(() => {
@@ -31,7 +31,7 @@ const TopDoctors = () => {
       style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
         {doctors.slice(0,doctorCount).map((item,index)=>(
             <div onClick={()=>{navigate(`/appointment/${item._id}`); scrollTo(0,0)}} className='flex flex-col items-center gap-2 p-5 text-center transition-all duration-300 bg-white border border-gray-200 cursor-pointer rounded-2xl hover:-translate-y-1 hover:shadow-lg' key={index}>
-                <img src={`http://localhost:4000${item.image}`} alt={item.name} className='object-cover w-24 h-24 rounded-full ring-4 ring-blue-50 bg-blue-50' />
+                <img src={`${backendUrl}${item.image}`} alt={item.name} className='object-cover w-24 h-24 rounded-full ring-4 ring-blue-50 bg-blue-50' />
                 {item.gender && (
                   <span className={`rounded-full px-2 py-1 text-xs font-medium ${item.gender.toLowerCase() === 'female' ? 'bg-pink-50 text-pink-600' : 'bg-blue-50 text-blue-600'}`}>
                     {item.gender}
