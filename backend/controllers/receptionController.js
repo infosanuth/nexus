@@ -111,4 +111,17 @@ const appointmentsReception = async (req, res) => {
     }
 }
 
-export { bookWalkInAppointment, appointmentsReception }
+// API for reception to get all doctor sessions
+const sessionsReception = async (req, res) => {
+    try {
+
+        const sessions = await sessionModel.find({}).sort({ date: 1, startTime: 1 })
+        res.json({ success: true, sessions })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { bookWalkInAppointment, appointmentsReception, sessionsReception }
