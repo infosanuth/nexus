@@ -9,8 +9,9 @@ const ReceptionContextProvider = (props) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL
     const [rToken, setRToken] = useState(localStorage.getItem('rToken') ? localStorage.getItem('rToken') : '')
     const [appointments, setAppointments] = useState([])
+    const [sessions, setSessions] = useState([])
 
-    // Function to get all appointments for reception using API
+    // Function to get all appointments for reception
     const getAppointments = async () => {
         try {
 
@@ -28,7 +29,7 @@ const ReceptionContextProvider = (props) => {
         }
     }
 
-    // Function to book a walk-in appointment for reception using API
+    // Function to book a walk-in appointment for reception
     const bookWalkInAppointment = async (appointmentData) => {
         try {
 
@@ -49,10 +50,29 @@ const ReceptionContextProvider = (props) => {
         }
     }
 
+    // Function to get all doctor sessions
+    const getSessions = async () => {
+        try {
+
+            const { data } = await axios.get(backendUrl + '/api/reception/sessions', { headers: { rToken } })
+
+            if (data.success) {
+                setSessions(data.sessions)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
     const value = {
         backendUrl,
         rToken, setRToken,
         appointments, setAppointments, getAppointments,
+        sessions, setSessions, getSessions,
         bookWalkInAppointment,
     }
 
