@@ -22,6 +22,7 @@ import Staff from './pages/Admin/Staff'
 import { ReceptionContext } from './context/ReceptionContext'
 import PatientCheckIn from './pages/Reception/PatientCheckIn'
 import AllAppointmentForReception from './pages/Reception/AllAppointmentForReception'
+import ReceptionSessions from './pages/Reception/SessionsForReception'
 
 
 const App = () => {
@@ -55,6 +56,7 @@ const App = () => {
           {/* Reception Route */}
           <Route path='/reception-patient-check-in' element={<PatientCheckIn />} />
           <Route path='/reception-all-appointments' element={<AllAppointmentForReception />} />
+          <Route path='/reception-sessions' element={<ReceptionSessions />} />
         </Routes>
       </div>
     </div>
