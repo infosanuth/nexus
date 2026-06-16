@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { ReceptionContext } from '../../context/ReceptionContext'
 
 const convertTo12Hour = (time24) => {
@@ -21,6 +21,7 @@ const todayUTC = () => {
 const SessionsForReception = () => {
 
   const { rToken, sessions, getSessions } = useContext(ReceptionContext)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (rToken) {
@@ -30,10 +31,23 @@ const SessionsForReception = () => {
 
   const today = todayUTC()
 
+  const filtered = search.trim()
+    ? sessions.filter((s) => s.doctorName.toLowerCase().includes(search.trim().toLowerCase()))
+    : sessions
+
   return (
     <div className='w-full max-w-6xl m-5'>
 
-      <p className='mb-3 text-lg font-medium'>Doctor Sessions</p>
+      <div className='flex items-center justify-between mb-3'>
+        <p className='text-lg font-medium'>Doctor Sessions</p>
+        <input
+          type='text'
+          placeholder='Search by doctor name...'
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className='border rounded px-3 py-1.5 text-sm w-64 focus:outline-none focus:border-primary'
+        />
+      </div>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
 
@@ -49,10 +63,10 @@ const SessionsForReception = () => {
           <p>Status</p>
         </div>
 
-        {sessions.length === 0 ? (
+        {filtered.length === 0 ? (
           <p className='py-6 text-center text-gray-400'>No sessions found</p>
         ) : (
-          sessions.map((item, index) => {
+          filtered.map((item, index) => {
             const available = item.maxPatients - item.bookedPatientsCount
             const isFull = available <= 0
             const sessionDay = new Date(item.date).setUTCHours(0, 0, 0, 0)
