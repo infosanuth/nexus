@@ -1,4 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
+import { CalendarDays, Search, X, RefreshCw } from 'lucide-react'
 import { ReceptionContext } from '../../context/ReceptionContext'
 
 const convertTo12Hour = (time24) => {
@@ -18,41 +19,80 @@ const todayUTC = () => {
   return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
 }
 
-const DATE_OPTIONS = [
-  { label: 'All Dates', value: 'all' },
+const dateInputToUTC = (val) => {
+  const [y, m, d] = val.split('-').map(Number)
+  return Date.UTC(y, m - 1, d)
+}
+
+const QUICK_OPTIONS = [
+  { label: 'All', value: 'all' },
   { label: 'Today', value: 'today' },
   { label: 'Upcoming', value: 'upcoming' },
-  { label: 'Past', value: 'past' },
 ]
 
 const STATUS_OPTIONS = [
-  { label: 'All Status', value: 'all' },
-  { label: 'Active', value: 'active' },
+  { label: 'All', value: 'all' },
   { label: 'Available', value: 'available' },
   { label: 'Cancelled', value: 'cancelled' },
 ]
+
+const StatusBadge = ({ item, isPast }) => {
+  const isFull = item.bookedPatientsCount >= item.maxPatients
+  if (item.status === 'cancelled')
+    return <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-red-50 text-red-500 border border-red-200'>Cancelled</span>
+  if (isPast)
+    return <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-500 border border-gray-200'>Past</span>
+  if (isFull)
+    return <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-orange-50 text-orange-500 border border-orange-200'>Full</span>
+  return <span className='inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-50 text-green-600 border border-green-200'>Active</span>
+}
+
 
 const SessionsForReception = () => {
 
   const { rToken, sessions, getSessions } = useContext(ReceptionContext)
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('all')
+  const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [refreshing, setRefreshing] = useState(false)
+  const dateInputRef = useRef(null)
 
   useEffect(() => {
-    if (rToken) {
-      getSessions()
-    }
+    if (rToken) getSessions()
   }, [rToken])
 
   const today = todayUTC()
 
-  const isFiltered = search.trim() || dateFilter !== 'all' || statusFilter !== 'all'
+  const handleQuickPill = (value) => {
+    setDateFilter(value)
+    setSpecificDate('')
+  }
+
+  const handleDateInput = (e) => {
+    setSpecificDate(e.target.value)
+    setDateFilter('all')
+  }
+
+  const clearSpecificDate = () => {
+    setSpecificDate('')
+    if (dateInputRef.current) dateInputRef.current.value = ''
+  }
+
+  const isFiltered = search.trim() || dateFilter !== 'all' || specificDate || statusFilter !== 'all'
 
   const resetFilters = () => {
     setSearch('')
     setDateFilter('all')
+    setSpecificDate('')
     setStatusFilter('all')
+    if (dateInputRef.current) dateInputRef.current.value = ''
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await getSessions()
+    setRefreshing(false)
   }
 
   const filtered = sessions.filter((s) => {
@@ -62,9 +102,13 @@ const SessionsForReception = () => {
 
     if (search.trim() && !s.doctorName.toLowerCase().includes(search.trim().toLowerCase())) return false
 
-    if (dateFilter === 'today' && sessionDay !== today) return false
-    if (dateFilter === 'upcoming' && sessionDay < today) return false
-    if (dateFilter === 'past' && !isPast) return false
+    if (specificDate) {
+      if (sessionDay !== dateInputToUTC(specificDate)) return false
+    } else {
+      if (dateFilter === 'today' && sessionDay !== today) return false
+      if (dateFilter === 'upcoming' && sessionDay < today) return false
+      if (dateFilter === 'past' && !isPast) return false
+    }
 
     if (statusFilter === 'cancelled' && s.status !== 'cancelled') return false
     if (statusFilter === 'active' && (s.status === 'cancelled' || isPast || isFull)) return false
@@ -74,124 +118,175 @@ const SessionsForReception = () => {
   })
 
   return (
-    <div className='w-full max-w-6xl m-5'>
+    <div className='flex flex-col w-full max-w-6xl gap-4 m-5'>
 
-      {/* Title + Search */}
-      <div className='flex items-center justify-between mb-3'>
-        <p className='text-lg font-medium'>Doctor Sessions</p>
-        <input
-          type='text'
-          placeholder='Search by doctor name...'
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className='border rounded px-3 py-1.5 text-sm w-64 focus:outline-none focus:border-primary'
-        />
+      {/* Header */}
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-3'>
+          <h1 className='text-xl font-semibold text-gray-800'>Doctor Sessions</h1>
+          <span className='text-xs font-medium bg-primary/10 text-primary px-2.5 py-0.5 rounded-full'>
+            {filtered.length} {filtered.length === 1 ? 'session' : 'sessions'}
+          </span>
+        </div>
+        <button
+          onClick={handleRefresh}
+          title='Refresh'
+          className='flex items-center gap-1.5 text-xs text-gray-500 border border-gray-200 rounded-lg px-3 py-1.5 hover:border-primary hover:text-primary transition-colors'
+        >
+          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          Refresh
+        </button>
       </div>
 
-      {/* Filters row */}
-      <div className='flex flex-wrap items-center gap-3 mb-3'>
-        <div className='flex items-center gap-2'>
-          <label className='text-sm text-gray-500'>Date:</label>
-          <div className='flex gap-1'>
-            {DATE_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setDateFilter(opt.value)}
-                className={`px-3 py-1 rounded-full text-xs border transition-colors ${
-                  dateFilter === opt.value
-                    ? 'bg-primary text-white border-primary'
-                    : 'border-gray-300 text-gray-600 hover:border-primary'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
+      {/* Filter bar */}
+      <div className='flex flex-wrap items-center px-5 py-3 bg-white border border-gray-200 shadow-sm rounded-xl gap-x-3 gap-y-3'>
+
+        {/* Search */}
+        <div className='relative w-96 shrink-0'>
+          <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
+          <input
+            type='text'
+            placeholder='Search doctor...'
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className='w-full py-2 pl-8 pr-8 text-sm transition-colors border border-gray-200 rounded-lg focus:outline-none focus:border-primary'
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors'>
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
+        <div className='hidden w-px h-5 bg-gray-200 lg:block' />
+
+        {/* Date pills + calendar */}
+        <div className='flex items-center gap-1.5'>
+          <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider mr-1'>Date</span>
+          {QUICK_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => handleQuickPill(opt.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                !specificDate && dateFilter === opt.value
+                  ? 'bg-primary/10 text-primary border-primary/30'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+
+          {/* Calendar icon button */}
+          <div className='relative flex items-center ml-0.5'>
+            <button
+              type='button'
+              onClick={() => dateInputRef.current?.showPicker()}
+              title='Pick a specific date'
+              className={`p-1.5 rounded-lg border transition-colors ${
+                specificDate
+                  ? 'border-primary/30 text-primary bg-primary/10'
+                  : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+              }`}
+            >
+              <CalendarDays size={14} />
+            </button>
+            <input
+              ref={dateInputRef}
+              type='date'
+              value={specificDate}
+              onChange={handleDateInput}
+              className='absolute w-0 h-0 opacity-0 pointer-events-none'
+            />
+            {specificDate && (
+              <span className='ml-2 flex items-center gap-1 text-xs text-primary border border-primary/30 bg-primary/10 rounded-lg px-2.5 py-1 font-medium'>
+                {new Date(specificDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                <button onClick={clearSpecificDate} className='transition-colors hover:text-red-400'>
+                  <X size={11} />
+                </button>
+              </span>
+            )}
           </div>
         </div>
 
-        <div className='flex items-center gap-2'>
-          <label className='text-sm text-gray-500'>Status:</label>
-          <div className='flex gap-1'>
-            {STATUS_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => setStatusFilter(opt.value)}
-                className={`px-3 py-1 rounded-full text-xs border transition-colors ${
-                  statusFilter === opt.value
-                    ? 'bg-primary text-white border-primary'
-                    : 'border-gray-300 text-gray-600 hover:border-primary'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+        <div className='hidden w-px h-5 bg-gray-200 lg:block' />
+
+        {/* Status pills */}
+        <div className='flex items-center gap-1.5'>
+          <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider mr-1'>Status</span>
+          {STATUS_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                statusFilter === opt.value
+                  ? 'bg-primary/10 text-primary border-primary/30'
+                  : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
 
         {isFiltered && (
           <button
             onClick={resetFilters}
-            className='ml-auto text-xs text-gray-400 hover:text-red-400 underline'
+            className='flex items-center gap-1 ml-auto text-xs text-gray-400 transition-colors hover:text-red-400'
           >
-            Clear filters
+            <X size={12} /> Clear
           </button>
         )}
       </div>
 
-      <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
+      {/* Table */}
+      <div className='overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl'>
 
-        {/* Header */}
-        <div className='max-sm:hidden grid grid-cols-[0.5fr_2fr_2fr_2fr_1fr_1fr_1fr_1fr] gap-1 py-3 px-6 border-b font-medium text-gray-700'>
-          <p>#</p>
-          <p>Doctor</p>
-          <p>Date</p>
-          <p>Time</p>
-          <p>Max</p>
-          <p>Booked</p>
-          <p>Available</p>
-          <p>Status</p>
+        {/* Table header */}
+        <div className='max-sm:hidden grid grid-cols-[0.4fr_2fr_2fr_2fr_2.5fr_1fr] gap-2 py-3 px-6 bg-gray-50 border-b border-gray-200'>
+          <p className='text-xs font-semibold tracking-wide text-gray-400 uppercase'>#</p>
+          <p className='text-xs font-semibold tracking-wide text-gray-400 uppercase'>Doctor</p>
+          <p className='text-xs font-semibold tracking-wide text-gray-400 uppercase'>Date</p>
+          <p className='text-xs font-semibold tracking-wide text-gray-400 uppercase'>Time</p>
+          <p className='text-xs font-semibold tracking-wide text-gray-400 uppercase'>Booked / Max</p>
+          <p className='text-xs font-semibold tracking-wide text-gray-400 uppercase'>Status</p>
         </div>
 
-        {filtered.length === 0 ? (
-          <p className='py-6 text-center text-gray-400'>No sessions found</p>
-        ) : (
-          filtered.map((item, index) => {
-            const available = item.maxPatients - item.bookedPatientsCount
-            const isFull = available <= 0
-            const sessionDay = new Date(item.date).setUTCHours(0, 0, 0, 0)
-            const isPast = sessionDay < today
+        <div className='max-h-[60vh] overflow-y-auto'>
+          {filtered.length === 0 ? (
+            <div className='flex flex-col items-center justify-center gap-3 py-16 text-gray-400'>
+              <CalendarDays size={36} className='text-gray-200' />
+              <p className='text-sm'>No sessions found</p>
+              {isFiltered && (
+                <button onClick={resetFilters} className='text-xs underline text-primary'>
+                  Clear filters
+                </button>
+              )}
+            </div>
+          ) : (
+            filtered.map((item, index) => {
+              const sessionDay = new Date(item.date).setUTCHours(0, 0, 0, 0)
+              const isPast = sessionDay < today
 
-            return (
-              <div
-                key={item._id}
-                className='flex flex-wrap justify-between max-sm:gap-2 sm:grid grid-cols-[0.5fr_2fr_2fr_2fr_1fr_1fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50'
-              >
-                <p className='max-sm:hidden'>{index + 1}</p>
-                <p className='font-medium text-gray-700'>{item.doctorName}</p>
-                <p>{formatSessionDate(item.date)}</p>
-                <p>
-                  {convertTo12Hour(item.startTime)}
-                  {item.endTime ? ` – ${convertTo12Hour(item.endTime)}` : ''}
-                </p>
-                <p>{item.maxPatients}</p>
-                <p>{item.bookedPatientsCount}</p>
-                <p className={isFull ? 'text-red-500 font-medium' : 'text-green-600 font-medium'}>
-                  {isFull ? 'Full' : available}
-                </p>
-                <p>
-                  {item.status === 'cancelled'
-                    ? <span className='text-xs font-medium text-red-400'>Cancelled</span>
-                    : isPast
-                      ? <span className='text-xs font-medium text-gray-400'>Past</span>
-                      : isFull
-                        ? <span className='text-xs font-medium text-orange-500'>Full</span>
-                        : <span className='text-xs font-medium text-green-500'>Active</span>
-                  }
-                </p>
-              </div>
-            )
-          })
-        )}
+              return (
+                <div
+                  key={item._id}
+                  className='max-sm:flex max-sm:flex-col max-sm:gap-1 sm:grid grid-cols-[0.4fr_2fr_2fr_2fr_2.5fr_1fr] gap-2 items-center py-3.5 px-6 border-b border-gray-100 hover:bg-gray-50 transition-colors last:border-b-0'
+                >
+                  <p className='text-xs text-gray-300 max-sm:hidden'>{index + 1}</p>
+                  <p className='text-sm font-medium text-gray-700'>{item.doctorName}</p>
+                  <p className='text-sm text-gray-500'>{formatSessionDate(item.date)}</p>
+                  <p className='text-sm text-gray-500'>
+                    {convertTo12Hour(item.startTime)}
+                    {item.endTime ? <><br /><span className='text-xs text-gray-400'>{convertTo12Hour(item.endTime)}</span></> : ''}
+                  </p>
+                  <p className='text-sm text-gray-500 tabular-nums'>{item.bookedPatientsCount} / {item.maxPatients}</p>
+                  <StatusBadge item={item} isPast={isPast} />
+                </div>
+              )
+            })
+          )}
+        </div>
       </div>
     </div>
   )
