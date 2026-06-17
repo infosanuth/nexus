@@ -68,12 +68,34 @@ const ReceptionContextProvider = (props) => {
         }
     }
 
+    // Function to add a new session for a doctor
+    const addSession = async (sessionData) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/reception/add-session', sessionData, { headers: { rToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
     const value = {
         backendUrl,
         rToken, setRToken,
         appointments, setAppointments, getAppointments,
         sessions, setSessions, getSessions,
         bookWalkInAppointment,
+        addSession,
     }
 
     return (
