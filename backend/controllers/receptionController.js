@@ -124,4 +124,54 @@ const sessionsReception = async (req, res) => {
     }
 }
 
-export { bookWalkInAppointment, appointmentsReception, sessionsReception }
+// API for reception to add a session for a doctor
+const addSessionReception = async (req, res) => {
+    try {
+
+        const { docId, date, startTime, endTime, maxPatients } = req.body
+
+        if (!docId || !date || !startTime || !maxPatients) {
+            return res.json({ success: false, message: 'Missing Details' })
+        }
+
+        const now = new Date()
+        const todayStr = now.toLocaleDateString('en-CA')
+        if (date < todayStr) {
+            return res.json({ success: false, message: 'Cannot add a session for a past date' })
+        }
+
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+        if (date === todayStr && startTime < currentTime) {
+            return res.json({ success: false, message: 'Cannot add a session for a past time' })
+        }
+
+        if (endTime && endTime <= startTime) {
+            return res.json({ success: false, message: 'End time must be after start time' })
+        }
+
+        const doctor = await doctorModel.findById(docId).select('name')
+        if (!doctor) {
+            return res.json({ success: false, message: 'Doctor not found' })
+        }
+
+        const sessionData = {
+            doctorId: docId,
+            doctorName: doctor.name,
+            date,
+            startTime,
+            endTime,
+            maxPatients
+        }
+
+        const newSession = new sessionModel(sessionData)
+        await newSession.save()
+
+        res.json({ success: true, message: 'Session Added' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception }
