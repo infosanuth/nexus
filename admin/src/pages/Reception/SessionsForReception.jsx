@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import { CalendarDays, Search, X, RefreshCw } from 'lucide-react'
+import { CalendarDays, Search, X, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ReceptionContext } from '../../context/ReceptionContext'
 
 const convertTo12Hour = (time24) => {
@@ -56,6 +56,8 @@ const SessionsForReception = () => {
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [refreshing, setRefreshing] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 10
   const dateInputRef = useRef(null)
 
   useEffect(() => {
@@ -67,16 +69,19 @@ const SessionsForReception = () => {
   const handleQuickPill = (value) => {
     setDateFilter(value)
     setSpecificDate('')
+    setPage(1)
   }
 
   const handleDateInput = (e) => {
     setSpecificDate(e.target.value)
     setDateFilter('all')
+    setPage(1)
   }
 
   const clearSpecificDate = () => {
     setSpecificDate('')
     if (dateInputRef.current) dateInputRef.current.value = ''
+    setPage(1)
   }
 
   const isFiltered = search.trim() || dateFilter !== 'all' || specificDate || statusFilter !== 'all'
@@ -86,6 +91,7 @@ const SessionsForReception = () => {
     setDateFilter('all')
     setSpecificDate('')
     setStatusFilter('all')
+    setPage(1)
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
@@ -94,6 +100,8 @@ const SessionsForReception = () => {
     await getSessions()
     setRefreshing(false)
   }
+
+  useEffect(() => { setPage(1) }, [search, statusFilter])
 
   const filtered = sessions.filter((s) => {
     const sessionDay = new Date(s.date).setUTCHours(0, 0, 0, 0)
@@ -116,6 +124,10 @@ const SessionsForReception = () => {
 
     return true
   })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   return (
     <div className='flex flex-col w-full max-w-6xl gap-4 m-5'>
@@ -252,7 +264,7 @@ const SessionsForReception = () => {
           <p className='text-xs font-semibold tracking-wide text-gray-400 uppercase'>Status</p>
         </div>
 
-        <div className='max-h-[60vh] overflow-y-auto'>
+        <div>
           {filtered.length === 0 ? (
             <div className='flex flex-col items-center justify-center gap-3 py-16 text-gray-400'>
               <CalendarDays size={36} className='text-gray-200' />
@@ -264,16 +276,17 @@ const SessionsForReception = () => {
               )}
             </div>
           ) : (
-            filtered.map((item, index) => {
+            paginated.map((item, index) => {
               const sessionDay = new Date(item.date).setUTCHours(0, 0, 0, 0)
               const isPast = sessionDay < today
+              const rowNumber = (safePage - 1) * PAGE_SIZE + index + 1
 
               return (
                 <div
                   key={item._id}
                   className='max-sm:flex max-sm:flex-col max-sm:gap-1 sm:grid grid-cols-[0.4fr_2fr_2fr_2fr_2.5fr_1fr] gap-2 items-center py-3.5 px-6 border-b border-gray-100 hover:bg-gray-50 transition-colors last:border-b-0'
                 >
-                  <p className='text-xs text-gray-300 max-sm:hidden'>{index + 1}</p>
+                  <p className='text-xs text-gray-300 max-sm:hidden'>{rowNumber}</p>
                   <p className='text-sm font-medium text-gray-700'>{item.doctorName}</p>
                   <p className='text-sm text-gray-500'>{formatSessionDate(item.date)}</p>
                   <p className='text-sm text-gray-500'>
@@ -287,6 +300,57 @@ const SessionsForReception = () => {
             })
           )}
         </div>
+
+        {/* Pagination */}
+        {filtered.length > PAGE_SIZE && (
+          <div className='flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50'>
+            <p className='text-xs text-gray-400'>
+              Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+            </p>
+            <div className='flex items-center gap-1'>
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className='p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                .reduce((acc, p, i, arr) => {
+                  if (i > 0 && p - arr[i - 1] > 1) acc.push('…')
+                  acc.push(p)
+                  return acc
+                }, [])
+                .map((p, i) =>
+                  p === '…' ? (
+                    <span key={`ellipsis-${i}`} className='px-1 text-xs text-gray-400'>…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`min-w-[28px] h-7 rounded-lg text-xs font-medium border transition-colors ${
+                        safePage === p
+                          ? 'bg-primary text-white border-primary'
+                          : 'border-gray-200 text-gray-500 hover:border-primary hover:text-primary'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                className='p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:border-primary hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed transition-colors'
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
