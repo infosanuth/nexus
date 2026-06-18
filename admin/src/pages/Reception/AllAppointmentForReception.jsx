@@ -73,7 +73,7 @@ const AllAppointmentForReception = () => {
               <p>{item.userData?.name || 'N/A'}</p>
               <p>{item.userData?.phoneNumber || item.userData?.phone || '-'}</p>
               <p>{item.docData?.name || 'N/A'}</p>
-              <p>{item.userData?.isWalkIn ? 'Walk-in' : 'Online'}</p>
+              <p>{item.isWalkIn ? 'Walk-in' : 'Online'}</p>
               <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
               <p>{currency}{item.amount}</p>
               <p className={item.payment ? 'text-green-600' : 'text-red-500'}>
