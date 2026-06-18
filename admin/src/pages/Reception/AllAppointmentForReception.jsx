@@ -20,7 +20,9 @@ const AllAppointmentForReception = () => {
     const term = search.trim().toLowerCase()
     return (
       item.userData?.name?.toLowerCase().includes(term) ||
-      item.docData?.name?.toLowerCase().includes(term)
+      item.docData?.name?.toLowerCase().includes(term) ||
+      item.userData?.phoneNumber?.toLowerCase().includes(term) ||
+      item.userData?.phone?.toLowerCase().includes(term)
     )
   })
 
@@ -33,7 +35,7 @@ const AllAppointmentForReception = () => {
           <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
           <input
             type='text'
-            placeholder='Search by patient or doctor...'
+            placeholder='Search by patient, doctor, or phone...'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className='w-full py-1.5 pl-8 pr-8 text-sm border rounded focus:outline-none focus:border-primary'
