@@ -13,6 +13,7 @@ const appointmentSchema = new mongoose.Schema({
     reSchedule : {type: Boolean, default: false },
     payment: { type: Boolean, default: false },
     isCompleted: { type: Boolean, default: false },
+    isWalkIn: { type: Boolean, default: false },
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "session", default: null }
 })
 

@@ -78,6 +78,7 @@ const bookWalkInAppointment = async (req, res) => {
             amount: docData.fees,
             date: Date.now(),
             payment: payment === true,
+            isWalkIn: true,
             sessionId: session._id
         }
 
