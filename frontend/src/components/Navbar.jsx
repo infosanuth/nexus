@@ -79,7 +79,13 @@ const Navbar = () => {
         {
           token && userData
             ? <div className='relative flex items-center gap-2 cursor-pointer group'>
-              <img className='w-8 rounded-full' src={`${backendUrl}${userData.image}`} alt="" />
+              {
+                userData.image && userData.image.startsWith('/uploads/')
+                  ? <img className='w-8 h-8 rounded-full object-cover' src={`${backendUrl}${userData.image}`} alt="" />
+                  : <div className='w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold uppercase'>
+                    {userData.name?.charAt(0)}
+                  </div>
+              }
               <img className='w-2.5' src={assets.dropdown_icon} alt="" />
               <div className='absolute top-0 right-0 z-20 hidden text-base font-medium text-gray-600 pt-14 group-hover:block'>
 
