@@ -15,6 +15,12 @@ const Navbar = () => {
 
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
+  const [avatarError, setAvatarError] = useState(false)
+
+  useEffect(() => {
+    setAvatarError(false)
+  }, [userData?.image])
+
   // const logout = () => {
   //   localStorage.removeItem('token')
   //   setToken(false)
@@ -80,8 +86,8 @@ const Navbar = () => {
           token && userData
             ? <div className='relative flex items-center gap-2 cursor-pointer group'>
               {
-                userData.image && userData.image.startsWith('/uploads/')
-                  ? <img className='w-8 h-8 rounded-full object-cover' src={`${backendUrl}${userData.image}`} alt="" />
+                userData.image && userData.image.startsWith('/uploads/') && !avatarError
+                  ? <img className='w-8 h-8 rounded-full object-cover' src={`${backendUrl}${userData.image}`} onError={() => setAvatarError(true)} alt="" />
                   : <div className='w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold uppercase'>
                     {userData.name?.charAt(0)}
                   </div>
