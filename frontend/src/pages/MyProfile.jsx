@@ -2,7 +2,6 @@ import React, { useContext, useState, useEffect, } from 'react'
 import { AppContext } from '../context/AppContext'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import { assets } from '../assets/assets'
 
 const MyProfile = () => {
 
@@ -23,6 +22,8 @@ const MyProfile = () => {
   const profileImageSrc = userData?.image && userData.image.startsWith('/uploads/') && !imgError
     ? `${backendUrl}${userData.image}`
     : defaultProfileImage
+
+  const hasProfileImage = Boolean(image) || (userData?.image && userData.image.startsWith('/uploads/') && !imgError)
 
   // Function to update user profile data using API
   const updateUserProfileData = async () => {
@@ -65,12 +66,11 @@ const MyProfile = () => {
         isEdit
           ? <label htmlFor='image'>
             <div className='inline-block relative cursor-pointer'>
-              <img className='w-36 rounded opacity-75' src={image ? URL.createObjectURL(image) : profileImageSrc} onError={() => !image && setImgError(true)} alt="" />
-              <img className='w-10 absolute bottom-12 right-12' src={image ? '' : assets.upload_icon} alt="" />
+              <img className={`w-36 h-36 rounded object-cover ${hasProfileImage ? 'opacity-75' : ''}`} src={image ? URL.createObjectURL(image) : profileImageSrc} onError={() => !image && setImgError(true)} alt="" />
             </div>
             <input onChange={(e) => setImage(e.target.files[0])} type="file" id="image" hidden />
           </label>
-          : <img className='w-36 rounded' src={profileImageSrc} onError={() => setImgError(true)} alt="" />
+          : <img className='w-36 h-36 rounded object-cover' src={profileImageSrc} onError={() => setImgError(true)} alt="" />
       }
 
       {
