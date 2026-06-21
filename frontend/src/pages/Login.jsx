@@ -31,9 +31,7 @@ const Login = () => {
         const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password, phoneNumber })
 
         if (data.success) {
-          localStorage.setItem('token', data.token)
-          setToken(data.token)
-          navigate('/email-veify')
+          navigate('/email-veify', { state: { email } })
         } else {
           toast.error(data.message)
         }
@@ -56,7 +54,7 @@ const Login = () => {
     }
   }
   useEffect(() => {
-    if (token && state === 'Login') {
+    if (token) {
       navigate('/')
     }
   }, [token])

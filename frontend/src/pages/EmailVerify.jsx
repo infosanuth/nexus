@@ -1,7 +1,6 @@
-import React from 'react'
-import { useContext } from 'react'
+import React, { useContext, useEffect } from 'react'
 import { AppContext } from '../context/AppContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
@@ -9,9 +8,17 @@ const EmailVerify = () => {
 
   const inputRefs = React.useRef([])
 
-  const { token, backendUrl } = useContext(AppContext)
+  const { backendUrl, setToken } = useContext(AppContext)
 
   const navigate = useNavigate()
+  const location = useLocation()
+  const email = location.state?.email
+
+  useEffect(() => {
+    if (!email) {
+      navigate('/login')
+    }
+  }, [email])
 
   const handleInput = (e, index) => {
     if (e.target.value.length > 0 && index < inputRefs.current.length - 1) {
@@ -42,10 +49,12 @@ const EmailVerify = () => {
       const otpArray = inputRefs.current.map(e => e.value)
       const otp = otpArray.join('')
 
-      const { data } = await axios.post(backendUrl + '/api/user/verify-account', { otp}, { headers: { token } });
+      const { data } = await axios.post(backendUrl + '/api/user/verify-account', { email, otp });
 
       if (data.success) {
         toast.success(data.message)
+        localStorage.setItem('token', data.token)
+        setToken(data.token)
         navigate('/')
       } else {
         toast.error(data.message)
