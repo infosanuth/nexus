@@ -101,6 +101,14 @@ const Navbar = () => {
             <NavLink onClick={() => setshowMenu(false)} to='/doctors'><p className='inline-block px-2 py-2 rounded'>ALL DOCTORS</p></NavLink>
             <NavLink onClick={() => setshowMenu(false)} to='/about'><p className='inline-block px-2 py-2 rounded'>ABOUT</p></NavLink>
             <NavLink onClick={() => setshowMenu(false)} to='/contact'><p className='inline-block px-2 py-2 rounded'>CONTACT</p></NavLink>
+            {
+              token && userData &&
+              <>
+                <NavLink onClick={() => setshowMenu(false)} to='my-profile'><p className='inline-block px-2 py-2 rounded'>MY PROFILE</p></NavLink>
+                <NavLink onClick={() => setshowMenu(false)} to='my-appointment'><p className='inline-block px-2 py-2 rounded'>MY APPOINTMENTS</p></NavLink>
+                <p onClick={() => { setshowMenu(false); logout(); }} className='inline-block px-2 py-2 rounded cursor-pointer'>LOGOUT</p>
+              </>
+            }
           </ul>
         </div>
 
