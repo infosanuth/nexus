@@ -8,6 +8,24 @@ import sessionModel from "../models/sessionModel.js";
 import crypto from 'crypto';
 import transporter from "../config/nodemailer.js";
 
+// Generates an OTP, saves it on the user, and emails it for account verification
+const sendAccountVerificationOtp = async (user) => {
+    const otp = String(Math.floor(100000 + Math.random() * 900000))
+    user.verifyOtp = otp;
+    user.verifyOtpExpireAt = Date.now() + 60 * 1000;
+
+    await user.save()
+
+    const mailOptions = {
+        from: process.env.SENDER_EMAIL,
+        to: user.email,
+        subject: 'Account Verification OTP',
+        text: `Your OTP is ${otp}. Verify your account using this OTP.`
+    }
+    await transporter.sendMail(mailOptions)
+    console.log(mailOptions)
+}
+
 // API to register user
 const registerUser = async (req, res) => {
 
@@ -50,15 +68,8 @@ const registerUser = async (req, res) => {
         const user = await newUser.save()
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' }) // expiresIn
 
-        // Sending welcome email
-        const mailOptions = {
-            from: process.env.SENDER_EMAIL,
-            to: email,
-            subject: 'Your account has been created',
-            text: `Welcome to Nexus Hospital website. Your account has been created with email id: ${email}`
-        }
-        // await transporter.sendMail(mailOptions)
-
+        // Sending OTP so the email can be validated right away
+        await sendAccountVerificationOtp(user)
 
         res.json({ success: true, token })
     } catch (error) {
@@ -105,21 +116,7 @@ const sendVerifyOtp = async (req, res) => {
             return res.json({ success: false, message: "Account has been already verified" })
         }
 
-        const otp = String(Math.floor(100000 + Math.random() * 900000))
-        user.verifyOtp = otp;
-        user.verifyOtpExpireAt = Date.now() + 60 * 1000;
-
-        await user.save()
-
-        // Sending otp to email
-        const mailOptions = {
-            from: process.env.SENDER_EMAIL,
-            to: user.email,
-            subject: 'Account Verification OTP',
-            text: `Your OTP is ${otp}. Verify your account using this OTP.`
-        }
-        // await transporter.sendMail(mailOptions)
-        console.log(mailOptions)
+        await sendAccountVerificationOtp(user)
 
         return res.json({ success: true, message: "OTP sent to your email" })
 
