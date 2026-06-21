@@ -7,7 +7,7 @@ const Navbar = () => {
 
   const navigate = useNavigate();
 
-  const { token, setToken, userData, backendUrl} = useContext(AppContext)
+  const { token, setToken, userData, backendUrl } = useContext(AppContext)
 
   const [showMenu, setshowMenu] = useState(false)
 
@@ -37,7 +37,13 @@ const Navbar = () => {
     navigate('/');
   };
 
-  
+
+
+  const avatarContent = userData?.image && userData.image.startsWith('/uploads/') && !avatarError
+    ? <img className='object-cover w-8 h-8 rounded-full' src={`${backendUrl}${userData.image}`} onError={() => setAvatarError(true)} alt="" />
+    : <div className='flex items-center justify-center w-8 h-8 font-semibold text-white uppercase bg-blue-500 rounded-full'>
+      {userData?.name?.charAt(0)}
+    </div>
 
   return (
     <div className='flex items-center justify-between py-1 mb-5 text-sm border-b border-b-gray-400'>  {/* py-4 */}
@@ -64,13 +70,7 @@ const Navbar = () => {
         {
           token && userData
             ? <div className='relative items-center hidden gap-2 cursor-pointer group md:flex'>
-              {
-                userData.image && userData.image.startsWith('/uploads/') && !avatarError
-                  ? <img className='object-cover w-8 h-8 rounded-full' src={`${backendUrl}${userData.image}`} onError={() => setAvatarError(true)} alt="" />
-                  : <div className='flex items-center justify-center w-8 h-8 font-semibold text-white uppercase bg-blue-500 rounded-full'>
-                    {userData.name?.charAt(0)}
-                  </div>
-              }
+              {avatarContent}
               <img className='w-2.5' src={assets.dropdown_icon} alt="" />
               <div className='absolute top-0 right-0 z-20 hidden text-base font-medium text-gray-600 pt-14 group-hover:block'>
 
@@ -85,7 +85,11 @@ const Navbar = () => {
             </div>
             : <button onClick={() => navigate('/login')} className='hidden px-8 py-3 font-light text-white rounded-full bg-[#64748B] md:block'>Create account</button>
         }
-        <img onClick={() => setshowMenu(true)} className='w-6 md:hidden' src={assets.menu_icon} alt="" />
+        {
+          token && userData
+            ? <div onClick={() => setshowMenu(true)} className='cursor-pointer md:hidden'>{avatarContent}</div>
+            : <img onClick={() => setshowMenu(true)} className='w-6 md:hidden' src={assets.menu_icon} alt="" />
+        }
         {/* Mobile Menu*/}
         <div className={` ${showMenu ? 'fixed w-full' : 'h-0 w-0'} md:hidden right-0 top-0 bottom-0 z-20 overflow-hidden bg-white transition-all`}>
           <div className='flex items-center justify-between px-5 py-6'>
