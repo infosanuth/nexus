@@ -2,8 +2,6 @@ import React, { useContext, useEffect, useState } from 'react'
 import { assets } from '../assets/assets'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { AppContext } from '../context/AppContext';
-import { toast } from 'react-toastify';
-import axios from 'axios';
 
 const Navbar = () => {
 
@@ -28,25 +26,6 @@ const Navbar = () => {
   //   navigate('/')
   // }
 
-  const sendVerificationOtp = async () => {
-    try {
-         const { data } = await axios.post(backendUrl + '/api/user/send-verify-otp', {}, {headers: { token }});
-
-     
-      if (data.success) {
-        navigate('/email-veify')
-        toast.success(data.message)
-      } else {
-        toast.error(data.message)
-        console.log(data.message)
-      }
-
-    } catch (error) {
-      console.log(error)
-      toast.error(error.message)
-    }
-  }
-
   const logout = () => {
     setShowLogoutDialog(true); // only show the dialog
   };
@@ -62,7 +41,7 @@ const Navbar = () => {
 
   return (
     <div className='flex items-center justify-between py-1 mb-5 text-sm border-b border-b-gray-400'>  {/* py-4 */}
-      <img onClick={() => navigate('/')} className='cursor-pointer w-44 -ml-2' src={assets.logo} alt="" /> {/*Margin left edited*/}
+      <img onClick={() => navigate('/')} className='-ml-2 cursor-pointer w-44' src={assets.logo} alt="" /> {/*Margin left edited*/}
       <ul className='items-start hidden gap-5 font-medium md:flex'>
         <NavLink to='/'>
           <li className='py-1'>HOME</li>
@@ -87,19 +66,15 @@ const Navbar = () => {
             ? <div className='relative items-center hidden gap-2 cursor-pointer group md:flex'>
               {
                 userData.image && userData.image.startsWith('/uploads/') && !avatarError
-                  ? <img className='w-8 h-8 rounded-full object-cover' src={`${backendUrl}${userData.image}`} onError={() => setAvatarError(true)} alt="" />
-                  : <div className='w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold uppercase'>
+                  ? <img className='object-cover w-8 h-8 rounded-full' src={`${backendUrl}${userData.image}`} onError={() => setAvatarError(true)} alt="" />
+                  : <div className='flex items-center justify-center w-8 h-8 font-semibold text-white uppercase bg-blue-500 rounded-full'>
                     {userData.name?.charAt(0)}
                   </div>
               }
               <img className='w-2.5' src={assets.dropdown_icon} alt="" />
               <div className='absolute top-0 right-0 z-20 hidden text-base font-medium text-gray-600 pt-14 group-hover:block'>
 
-                <div className='flex flex-col gap-4 p-4 rounded min-w-48 bg-stone-100 mr-4'>
-
-                  {!userData.isAccountVerified &&
-                    <p onClick={sendVerificationOtp} className='cursor-pointer hover:text-black'>Verify Email</p>
-                  }
+                <div className='flex flex-col gap-4 p-4 mr-4 rounded min-w-48 bg-stone-100'>
 
                   <p onClick={() => navigate('my-profile')} className='cursor-pointer hover:text-black'>My Profile</p>
                   <p onClick={() => navigate('my-appointment')} className='cursor-pointer hover:text-black'>My Appointments</p>
@@ -117,11 +92,11 @@ const Navbar = () => {
             <img className='w-36' src={assets.logo} alt="" />
             <img className='w-7' onClick={() => setshowMenu(false)} src={assets.cross_icon} alt="" />
           </div>
-          <ul className='flex flex-col items-center gap-2 mt-5 px-5 text-lg font-medium'>
-            <NavLink onClick={() => setshowMenu(false)} to=''><p className='px-2 py-2 rounded inline-block'>HOME</p></NavLink>
-            <NavLink onClick={() => setshowMenu(false)} to='/doctors'><p className='px-2 py-2 rounded inline-block'>ALL DOCTORS</p></NavLink>
-            <NavLink onClick={() => setshowMenu(false)} to='/about'><p className='px-2 py-2 rounded inline-block'>ABOUT</p></NavLink>
-            <NavLink onClick={() => setshowMenu(false)} to='/contact'><p className='px-2 py-2 rounded inline-block'>CONTACT</p></NavLink>
+          <ul className='flex flex-col items-center gap-2 px-5 mt-5 text-lg font-medium'>
+            <NavLink onClick={() => setshowMenu(false)} to=''><p className='inline-block px-2 py-2 rounded'>HOME</p></NavLink>
+            <NavLink onClick={() => setshowMenu(false)} to='/doctors'><p className='inline-block px-2 py-2 rounded'>ALL DOCTORS</p></NavLink>
+            <NavLink onClick={() => setshowMenu(false)} to='/about'><p className='inline-block px-2 py-2 rounded'>ABOUT</p></NavLink>
+            <NavLink onClick={() => setshowMenu(false)} to='/contact'><p className='inline-block px-2 py-2 rounded'>CONTACT</p></NavLink>
           </ul>
         </div>
 
@@ -129,19 +104,19 @@ const Navbar = () => {
 
       {/* Logout Confirmation Dialog */}
       {showLogoutDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="bg-white rounded-lg shadow-lg p-6 w-[300px]">
-            <h2 className="text-lg font-semibold mb-4">Are you sure you want to logout?</h2>
+            <h2 className="mb-4 text-lg font-semibold">Are you sure you want to logout?</h2>
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setShowLogoutDialog(false)}
-                className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+                className="px-4 py-2 text-gray-800 bg-gray-300 rounded hover:bg-gray-400"
               >
                 No
               </button>
               <button
                 onClick={confirmLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                className="px-4 py-2 text-white bg-red-600 rounded hover:bg-red-700"
               >
                 Yes
               </button>

@@ -9,8 +9,7 @@ const EmailVerify = () => {
 
   const inputRefs = React.useRef([])
 
-  const {token, backendUrl, userData, setUserData } = useContext(AppContext)
-  const userId = userData._id;
+  const { token, backendUrl } = useContext(AppContext)
 
   const navigate = useNavigate()
 
@@ -60,20 +59,20 @@ const EmailVerify = () => {
 
   return (
     <div className='flex items-center justify-center min-h-screen bg-white'>
-      <form onSubmit={onSubmitHandler} className='bg-slate-200 p-8 rounded-lg w-96 text-sm'>
-        <h1 className='text-2xl font-semibold text-center mb-4'>Email Verify OTP</h1>
-        <p className='text-center mb-6 text-blue-800'>Enter the 6-digit code sent to your email id.</p>
+      <form onSubmit={onSubmitHandler} className='p-8 text-sm rounded-lg bg-slate-200 w-96'>
+        <h1 className='mb-4 text-2xl font-semibold text-center'>Email Verify OTP</h1>
+        <p className='mb-6 text-center text-blue-800'>Enter the 6-digit code sent to your email id.</p>
 
         <div className='flex justify-between mb-8' onPaste={handlePaste}>
           {Array(6).fill(0).map((_, index) => (
-            <input type='text' maxLength='1' key={index} required className='w-12 h-12 bg-slate-400 text-black text-center text-xl rounded-md'
+            <input type='text' maxLength='1' key={index} required className='w-12 h-12 text-xl text-center text-black rounded-md bg-slate-400'
               ref={e => inputRefs.current[index] = e}
               onInput={(e) => handleInput(e, index)}
               onKeyDown={(e) => handleKeyDown(e, index)} />
           ))}
 
         </div>
-        <button className='w-full py-3 border border-slate-600 rounded-full'>Vefify email</button>
+        <button className='w-full py-3 border rounded-full border-slate-600'>Verify Email</button>
       </form>
     </div>
   )

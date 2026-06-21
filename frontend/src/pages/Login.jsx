@@ -33,6 +33,7 @@ const Login = () => {
         if (data.success) {
           localStorage.setItem('token', data.token)
           setToken(data.token)
+          navigate('/email-veify')
         } else {
           toast.error(data.message)
         }
@@ -55,7 +56,7 @@ const Login = () => {
     }
   }
   useEffect(() => {
-    if (token) {
+    if (token && state === 'Login') {
       navigate('/')
     }
   }, [token])
@@ -69,29 +70,29 @@ const Login = () => {
           state === "Sign Up" &&
           <div className='w-full'>
             <p>Full Name</p>
-            <input className='border border-zinc-300 rounded w-full p-2 mt-1' type="text" onChange={(e) => setName(e.target.value)} value={name} required />
+            <input className='w-full p-2 mt-1 border rounded border-zinc-300' type="text" onChange={(e) => setName(e.target.value)} value={name} required />
             <p>Phone Number</p>
-            <input className='border border-zinc-300 rounded w-full p-2 mt-1' type="text" onChange={(e) => setPhoneNumber(e.target.value)} value={phoneNumber} required />
+            <input className='w-full p-2 mt-1 border rounded border-zinc-300' type="text" onChange={(e) => setPhoneNumber(e.target.value)} value={phoneNumber} required />
           </div>
         }
         <div className='w-full'>
           <p>Email</p>
-          <input className='border border-zinc-300 rounded w-full p-2 mt-1' type="email" onChange={(e) => setEmail(e.target.value)} value={email} required />
+          <input className='w-full p-2 mt-1 border rounded border-zinc-300' type="email" onChange={(e) => setEmail(e.target.value)} value={email} required />
         </div>
         <div className='w-full'>
           <p>Password</p>
-          <input className='border border-zinc-300 rounded w-full p-2 mt-1' type="password" onChange={(e) => setPassword(e.target.value)} value={password} required />
+          <input className='w-full p-2 mt-1 border rounded border-zinc-300' type="password" onChange={(e) => setPassword(e.target.value)} value={password} required />
         </div>
 
         {state === "Login" && 
-          <p onClick={() => navigate('/reset-password')} className='text-primary underline cursor-pointer'>Forgot password?</p>
+          <p onClick={() => navigate('/reset-password')} className='underline cursor-pointer text-primary'>Forgot password?</p>
         }
 
         <button type='submit' className='bg-[#64748B] text-white w-full py-2 rounded-md text-base'>{state === 'Sign Up' ? "Create Account" : "Login"}</button>
         {
           state === "Sign Up"
-            ? <p>Already have an account? <span onClick={() => setState('Login')} className='text-primary underline cursor-pointer'>Login here</span> </p>
-            : <p>Create an new account? <span onClick={() => setState('Sign Up')} className='text-primary underline cursor-pointer'>Click here</span> </p>
+            ? <p>Already have an account? <span onClick={() => setState('Login')} className='underline cursor-pointer text-primary'>Login here</span> </p>
+            : <p>Create an new account? <span onClick={() => setState('Sign Up')} className='underline cursor-pointer text-primary'>Click here</span> </p>
         }
       </div>
     </form>
