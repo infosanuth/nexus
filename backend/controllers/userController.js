@@ -2,6 +2,7 @@ import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
+import pendingUserModel from "../models/pendingUserModel.js";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import sessionModel from "../models/sessionModel.js";
@@ -53,25 +54,27 @@ const registerUser = async (req, res) => {
         if (phoneNumber[0] !== '0' || phoneNumber[1] !== '7') {
             return res.json({ success: false, message: "Enter valid phone number" });
         }
+
+        // an already-verified account with this email/phone exists, refuse to overwrite it
+        const existingUser = await userModel.findOne({ $or: [{ email }, { phoneNumber }] })
+        if (existingUser) {
+            return res.json({ success: false, message: "Email or phone number already registered" })
+        }
+
         // hashing user password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt)
 
-        const userData = {
-            name,
-            email,
-            phoneNumber,
-            password: hashedPassword,
-        }
+        // hold the signup as pending until the OTP is confirmed; re-submitting refreshes it
+        const pendingUser = await pendingUserModel.findOneAndUpdate(
+            { email },
+            { name, email, phoneNumber, password: hashedPassword },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        )
 
-        const newUser = new userModel(userData)
-        const user = await newUser.save()
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' }) // expiresIn
+        await sendAccountVerificationOtp(pendingUser)
 
-        // Sending OTP so the email can be validated right away
-        await sendAccountVerificationOtp(user)
-
-        res.json({ success: true, token })
+        res.json({ success: true, email })
     } catch (error) {
         console.log(error)
         res.json({ success: false, message: error.message });
@@ -105,18 +108,18 @@ const loginUser = async (req, res) => {
 
 }
 
-// User verification otp send to the user's email
+// Resend the verification OTP for a pending (not-yet-created) signup
 const sendVerifyOtp = async (req, res) => {
 
     try {
-        const { userId } = req.body
-        const user = await userModel.findById(userId)
+        const { email } = req.body
+        const pendingUser = await pendingUserModel.findOne({ email })
 
-        if (user.isAccountVerified) {
-            return res.json({ success: false, message: "Account has been already verified" })
+        if (!pendingUser) {
+            return res.json({ success: false, message: "No pending signup found for this email" })
         }
 
-        await sendAccountVerificationOtp(user)
+        await sendAccountVerificationOtp(pendingUser)
 
         return res.json({ success: true, message: "OTP sent to your email" })
 
@@ -126,40 +129,44 @@ const sendVerifyOtp = async (req, res) => {
         res.json({ success: false, message: error.message })
     }
 }
-// Email verification using the OTP
+// Confirms the OTP for a pending signup, then creates the real account
 const verifyEmail = async (req, res) => {
     try {
 
-        const { userId, otp } = req.body
+        const { email, otp } = req.body
 
-        if (!userId || !otp) {
+        if (!email || !otp) {
             return res.json({ success: false, message: "Missing Details" })
         }
 
-        const user = await userModel.findById(userId)
+        const pendingUser = await pendingUserModel.findOne({ email })
 
-        if (!user) {
-            return res.json({ success: false, message: "User not found" })
+        if (!pendingUser) {
+            return res.json({ success: false, message: "No pending signup found for this email" })
         }
 
-        if (user.verifyOtp === '' || user.verifyOtp !== otp) {
+        if (pendingUser.verifyOtp === '' || pendingUser.verifyOtp !== otp) {
             return res.json({ success: false, message: "Invalid OTP" })
         }
 
-        if (user.verifyOtpExpireAt < Date.now()) {
+        if (pendingUser.verifyOtpExpireAt < Date.now()) {
             return res.json({ success: false, message: "OTP Expired" })
         }
-        if (user.verifyOtp !== otp) {
-            return res.json({ success: false, message: "Invalid OTP" })
-        }
 
-        user.isAccountVerified = true;
-        user.verifyOtp = '';
-        user.verifyOtpExpireAt = 0;
+        const newUser = new userModel({
+            name: pendingUser.name,
+            email: pendingUser.email,
+            phoneNumber: pendingUser.phoneNumber,
+            password: pendingUser.password,
+            isAccountVerified: true,
+        })
+        const user = await newUser.save()
 
-        await user.save()
+        await pendingUserModel.deleteOne({ email })
 
-        return res.json({ success: true, message: "Email verified successfully" })
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' })
+
+        return res.json({ success: true, message: "Email verified successfully", token })
 
     } catch (error) {
         console.log(error)
