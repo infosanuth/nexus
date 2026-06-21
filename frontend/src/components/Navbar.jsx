@@ -84,7 +84,7 @@ const Navbar = () => {
       <div className='flex items-center gap-4'>
         {
           token && userData
-            ? <div className='relative flex items-center gap-2 cursor-pointer group'>
+            ? <div className='relative items-center hidden gap-2 cursor-pointer group md:flex'>
               {
                 userData.image && userData.image.startsWith('/uploads/') && !avatarError
                   ? <img className='w-8 h-8 rounded-full object-cover' src={`${backendUrl}${userData.image}`} onError={() => setAvatarError(true)} alt="" />

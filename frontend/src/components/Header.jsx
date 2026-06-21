@@ -6,8 +6,8 @@ const Header = () => {
     <div className='flex flex-col md:flex-row  bg-[#64748B] rounded-lg px-6 md:px-10 lg:px-20'>
 
       {/* Left Side */}
-      <div className='md:w-1/2 flex flex-col items-start justify-center gap-4 py-10 m-auto md:py-[10vw] md:mb-[-30px]'>
-        <p className='text-2xl font-semibold text-white md:text-4xl lg:text-5xl md:leading-tight lg:leading-tight'>
+      <div className='md:w-1/2 flex flex-col items-center md:items-start justify-center gap-4 py-10 m-auto md:py-[10vw] md:mb-[-30px]'>
+        <p className='text-2xl font-semibold text-center text-white md:text-4xl md:text-left lg:text-5xl md:leading-tight lg:leading-tight'>
         Book Appointment <br /> With Trusted Doctors
         </p>
         <div className='flex flex-col items-center gap-3 text-sm font-light text-white md:flex-row'>
