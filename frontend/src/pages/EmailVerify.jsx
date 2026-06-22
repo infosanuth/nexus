@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { AppContext } from '../context/AppContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -14,11 +14,39 @@ const EmailVerify = () => {
   const location = useLocation()
   const email = location.state?.email
 
+  const [secondsLeft, setSecondsLeft] = useState(60)
+  const [isResending, setIsResending] = useState(false)
+
   useEffect(() => {
     if (!email) {
       navigate('/login')
     }
   }, [email])
+
+  useEffect(() => {
+    if (secondsLeft <= 0) return
+    const timer = setInterval(() => setSecondsLeft(prev => prev - 1), 1000)
+    return () => clearInterval(timer)
+  }, [secondsLeft <= 0])
+
+  const handleResendOtp = async () => {
+    try {
+      setIsResending(true)
+      const { data } = await axios.post(backendUrl + '/api/user/send-verify-otp', { email });
+      if (data.success) {
+        toast.success(data.message)
+        inputRefs.current.forEach(input => { if (input) input.value = '' })
+        inputRefs.current[0]?.focus()
+        setSecondsLeft(60)
+      } else {
+        toast.error(data.message)
+      }
+    } catch (error) {
+      toast.error(error.message)
+    } finally {
+      setIsResending(false)
+    }
+  }
 
   const handleInput = (e, index) => {
     if (e.target.value.length > 0 && index < inputRefs.current.length - 1) {
@@ -70,7 +98,17 @@ const EmailVerify = () => {
     <div className='flex items-center justify-center min-h-screen bg-white'>
       <form onSubmit={onSubmitHandler} className='p-8 text-sm rounded-lg bg-slate-200 w-96'>
         <h1 className='mb-4 text-2xl font-semibold text-center'>Email Verify OTP</h1>
-        <p className='mb-6 text-center text-blue-800'>Enter the 6-digit code sent to your email id.</p>
+        <p className='mb-1 text-center text-blue-800'>Enter the 6-digit code sent to your email id.</p>
+        {
+          secondsLeft > 0
+            ? <p className='mb-6 text-xs text-center text-red-600'>This OTP will expire in {secondsLeft} second{secondsLeft !== 1 ? 's' : ''}.</p>
+            : <p className='mb-6 text-xs text-center text-red-600'>
+              OTP expired.{' '}
+              <span onClick={isResending ? undefined : handleResendOtp} className='underline cursor-pointer'>
+                {isResending ? 'Resending...' : 'Resend OTP'}
+              </span>
+            </p>
+        }
 
         <div className='flex justify-between mb-8' onPaste={handlePaste}>
           {Array(6).fill(0).map((_, index) => (
