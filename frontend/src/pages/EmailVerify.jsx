@@ -120,6 +120,9 @@ const EmailVerify = () => {
 
         </div>
         <button className='w-full py-3 border rounded-full border-slate-600'>Verify Email</button>
+        <button type='button' disabled={isResending} onClick={handleResendOtp} className='w-full py-3 mt-3 border rounded-full border-slate-600 disabled:opacity-50'>
+          {isResending ? 'Resending...' : 'Resend OTP'}
+        </button>
       </form>
     </div>
   )
