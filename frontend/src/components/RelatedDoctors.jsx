@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { AppContext } from '../context/AppContext'
 import { useNavigate } from 'react-router-dom'
+import { assets } from '../assets/assets'
 
 const RelatedDoctors = ({ docId, speciality }) => {
 
@@ -24,19 +25,15 @@ const RelatedDoctors = ({ docId, speciality }) => {
       <div className='w-full grid grid-cols-auto gap-4 pt-5 gap-y-6 px-3 sm:px-0'
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
         {relDoc.slice(0, 5).map((item, index) => (
-          <div onClick={() => { navigate(`/appointment/${item._id}`); scrollTo(0, 0) }} className='border border-blue-200 rounded-xl overflow-hidden cursor-pointer hover:translate-y-[-10px] transition-all duration-500' key={index}>
-            <img className='bg-blue-50' src={`${backendUrl}${item.image}`} alt="" />
-            <div className='p-4'>
-              {/* <div className='flex items-center gap-2 text-sm text-center text-green-500'>
-                        <p className='w-2 h-2 bg-green-500 rounded-full'></p><p>Available</p>
-                    </div> */}
-              <div className='flex items-center gap-2 text-sm text-center'>
-                {item.available && <div className='flex items-center  text-green-500 gap-2 text-sm text-center'> <p className='w-2 h-2 bg-green-500  rounded-full'></p><p>Available</p></div>}
-                {!item.available && <div className='flex items-center text-gray-600 gap-2 text-sm text-center'> <p className='w-2 h-2 bg-gray-600   rounded-full'></p><p>Unavailable</p></div>}
-              </div>
-              <p className='text-gray-900 text-lg font-medium'>{item.name}</p>
-              <p className='text-gray-600 text-sm'>{item.speciality}</p>
-            </div>
+          <div onClick={() => { navigate(`/appointment/${item._id}`); scrollTo(0, 0) }} className='flex flex-col items-center justify-center gap-2 p-5 text-center transition-all duration-300 bg-white border border-gray-200 cursor-pointer rounded-2xl min-h-[260px] hover:-translate-y-1 hover:shadow-lg' key={index}>
+            <img src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor_pastel} alt={item.name} className='object-cover w-24 h-24 rounded-full ring-4 ring-blue-50 bg-blue-50' />
+            {item.gender && (
+              <p className={`text-xs font-medium ${item.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-blue-600'}`}>
+                {item.gender}
+              </p>
+            )}
+            <p className='mt-6 font-semibold text-gray-900'>{item.name}</p>
+            <p className='text-sm text-gray-500'>{item.speciality}</p>
           </div>
         ))}
       </div>
