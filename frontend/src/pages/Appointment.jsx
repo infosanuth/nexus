@@ -28,7 +28,7 @@ const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 const Appointment = () => {
 
   const { docId } = useParams()
-  const { doctors, currencySymbol, backendUrl, token, getDoctorsData } = useContext(AppContext)
+  const { doctors, specialities, currencySymbol, backendUrl, token, getDoctorsData } = useContext(AppContext)
 
   const [docInfo, setDocInfo] = useState(null)
   const [sessions, setSessions] = useState([])
@@ -149,6 +149,8 @@ const Appointment = () => {
     .sort((a, b) => a.startTime.localeCompare(b.startTime))
     .slice(0, 3)
 
+  const hospitalCharge = specialities.find(item => item.speciality === docInfo?.speciality)?.channelingFee ?? 0
+
 
   return docInfo && (
     <div>
@@ -164,32 +166,38 @@ const Appointment = () => {
           )}
         </div>
 
-        <div className='flex-1 border border-gray-400 rounded-lg p-8 py-7  bg-white mx-2 sm:mx-0 mt-[-80px] sm:mt-0'>
-          {/* Doc Info : name, degree, experience*/}
-          <p className='flex items-center gap-2 text-2xl font-medium text-gray-900'>
+        <div className='flex-1 border border-gray-200 rounded-lg p-6 sm:p-8 bg-white mx-2 sm:mx-0 mt-[-80px] sm:mt-0 shadow-sm'>
+          {/* Name */}
+          <p className='flex items-center gap-2 text-2xl font-semibold text-gray-900'>
             {docInfo.name}
             <img className='w-5' src={assets.verified_icon} alt="" />
           </p>
-          <div className='flex items-center gap-2 text-sm mt-1 text-gray-600'>
-            <p>{docInfo.degree} - {docInfo.speciality}</p>
+
+          {/* Speciality */}
+          <p className='text-sm font-medium text-primary mt-1'>{docInfo.speciality}</p>
+
+          {/* Degree & experience */}
+          <div className='flex items-center gap-2 text-sm mt-2 text-gray-600'>
+            <p>{docInfo.degree}</p>
             <button className='py-0.5 px-2 border text-xs rounded-full'>{docInfo.experience}</button>
           </div>
 
-          {/* Doctor About */}
-          <div>
-            <p className='flex items-center gap-1 text-sm font-medium text-gray-900 mt-3'>
-              About <img src={assets.info_icon} alt="" />
-            </p>
-            <p className='text-sm text-gray-500 max-w-[700px] mt-1'>{docInfo.about}</p>
+          {/* Practising hospital & registration */}
+          <div className='flex flex-col gap-1 mt-3 text-sm text-gray-600'>
+            <p>Practising Government Hospitals - Teaching Hospital Karapitiya</p>
+            <p>Registration - D108215</p>
           </div>
-          <p className='text-gray-600 font-medium mt-4'>
-            Appointment fee: <span className='text-gray-600'>{currencySymbol}{docInfo.fees}</span>
-          </p>
+
+          {/* Fees */}
+          <div className='flex flex-col gap-1 mt-4 text-sm text-gray-700'>
+            <p>Doctor Fee - {currencySymbol}{docInfo.fees}</p>
+            <p>Hospital Charges - {currencySymbol}{hospitalCharge}</p>
+          </div>
         </div>
       </div>
 
       {/* Available sessions */}
-      <div className='sm:ml-72 sm:pl-4 mt-6'>
+      <div className='mt-6'>
         <p className='text-lg font-semibold text-gray-800 mb-4'>Available Sessions</p>
 
         {sessions.length === 0
