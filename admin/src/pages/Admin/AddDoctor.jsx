@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react'
-import { assets, governmentHospitals } from '../../assets/assets'
+import { assets, Hospitals } from '../../assets/assets'
 import { AdminContext } from '../../context/AdminContext'
 import { toast } from 'react-toastify'
 import axios from 'axios'
@@ -177,7 +177,7 @@ const AddDoctor = () => {
               <p>Practising Government Hospital (Optional)</p>
               <select onChange={(e) => setGovernmentHospital(e.target.value)} value={governmentHospital} className='border rounded px-3 py-2'>
                 <option value="">Not Applicable</option>
-                {governmentHospitals.map(hospital => (
+                {Hospitals.map(hospital => (
                   <option key={hospital} value={hospital}>{hospital}</option>
                 ))}
               </select>

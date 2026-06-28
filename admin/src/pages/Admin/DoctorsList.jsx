@@ -5,7 +5,8 @@ import html2pdf from 'html2pdf.js'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import {useState } from 'react'
+import { useState } from 'react'
+import { assets } from '../../assets/assets'
 
 const getPageSize = () => {
   const w = window.innerWidth
@@ -17,7 +18,7 @@ const getPageSize = () => {
 
 const DoctorsList = () => {
 
-  const { doctors, aToken, getAllDoctors, changeAvailability } = useContext(AdminContext)
+  const { doctors, aToken, getAllDoctors, changeAvailability, backendUrl } = useContext(AdminContext)
 
   const [appointments, setAppointments] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -68,8 +69,6 @@ const DoctorsList = () => {
     html2pdf(element)
   }
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL
-
   const getAppointmentsByDoctor = async (docId) => {
     try {
       const { data } = await axios.post(backendUrl + '/api/admin/appointments-doctor', { docId }, { headers: { aToken } }
@@ -89,24 +88,31 @@ const DoctorsList = () => {
 
 
   return (
-    <div>
+    <div className='flex-1 w-full'>
       <div className='m-5'>
         <h1 className='text-lg font-medium'>All Doctors</h1>
 
-        <div className='flex flex-wrap w-full gap-4 pt-5 gap-y-6'>
+        <div className='grid w-full gap-4 pt-5 gap-y-6' style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {paginatedDoctors.map((item, index) => (
             <div
-              className='border border-indigo-200 rounded-xl max-w-56 overflow-hidden cursor-pointer group hover:translate-y-[-10px] transition-all duration-500'
+              className='flex flex-col items-center justify-center gap-2 p-5 text-center transition-all duration-300 bg-white border border-gray-200 cursor-pointer rounded-2xl min-h-[260px] hover:-translate-y-1 hover:shadow-lg'
               key={index}
             >
-              <img className='bg-indigo-50' src={`http://localhost:4000${item.image}`} alt={item.name} />
-              <div className='p-4'>
-                <p className='text-lg font-medium text-neutral-800'>{item.name}</p>
-                <p className='text-sm text-zinc-600'>{item.speciality}</p>
-                <div className='flex items-center gap-1 mt-2 text-sm'>
-                  <input className="accent-blue-600" onChange={() => changeAvailability(item._id)} type="checkbox" checked={item.available} />
-                  <p>Available</p>
-                </div>
+              <img
+                src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor}
+                alt={item.name}
+                className='object-cover w-24 h-24 rounded-full ring-4 ring-blue-50 bg-blue-50'
+              />
+              {item.gender && (
+                <p className={`text-xs font-medium ${item.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-blue-600'}`}>
+                  {item.gender}
+                </p>
+              )}
+              <p className='mt-6 font-semibold text-gray-900'>{item.name}</p>
+              <p className='text-sm text-gray-500'>{item.speciality}</p>
+              <div className='flex items-center gap-1 mt-2 text-sm'>
+                <input className="accent-blue-600" onChange={() => changeAvailability(item._id)} type="checkbox" checked={item.available} />
+                <p>Available</p>
               </div>
             </div>
           ))}
