@@ -11,13 +11,13 @@ const addDoctor = async (req, res) => {
 
   try {
 
-    const { name, email, password, speciality, degree, experience, about, fees, address } = req.body
+    const { name, email, password, gender, registrationNumber, speciality, degree, experience, about, fees, address, governmentHospital } = req.body
     const imageFile = req.file
 
-    // console.log({ name, email, password, speciality, degree, experience, about, fees, address },imageFile);
+    // console.log({ name, email, password, gender, registrationNumber, speciality, degree, experience, about, fees, address },imageFile);
 
     // Checking for all data to add doctor
-    if (!name || !email || !password || !speciality || !degree || !experience || !about) {
+    if (!name || !email || !password || !gender || !registrationNumber || !speciality || !degree || !experience) {
       return res.json({ success: false, message: "Missing Details" })
     }
 
@@ -36,23 +36,23 @@ const addDoctor = async (req, res) => {
     const salt = await bycrypt.genSalt(10)
     const hashedPassword = await bycrypt.hash(password, salt)
 
-    // let imageUrl = "";   initialize variable
-    // Use local image path (uploaded by multer)
-    const imagePath = `/uploads/${req.file.filename}` // e.g., "uploads/1710000000-dr.jpg"
-
-
+    // Use local image path (uploaded by multer), if a file was provided
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : "" // e.g., "uploads/1710000000-dr.jpg"
 
     const doctorData = {
       name,
       email,
       image: imagePath,
       password: hashedPassword,
+      gender,
+      registrationNumber,
       speciality,
       degree,
       experience,
       about,
       fees,
       address: JSON.parse(address),
+      governmentHospital: governmentHospital || "",
       date: Date.now()
     }
 
