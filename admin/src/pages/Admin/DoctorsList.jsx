@@ -1,6 +1,6 @@
 import React, { useContext, useEffect } from 'react'
 import { AdminContext } from '../../context/AdminContext'
-import { ClipboardMinus } from 'lucide-react';
+import { ClipboardMinus, Pencil } from 'lucide-react';
 import html2pdf from 'html2pdf.js'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -98,11 +98,19 @@ const DoctorsList = () => {
               className='flex flex-col items-center justify-center gap-2 p-5 text-center transition-all duration-300 bg-white border border-gray-200 cursor-pointer rounded-2xl min-h-[260px] hover:-translate-y-1 hover:shadow-lg'
               key={index}
             >
-              <img
-                src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor}
-                alt={item.name}
-                className='object-cover w-24 h-24 rounded-full ring-4 ring-blue-50 bg-blue-50'
-              />
+              <div
+                className='relative group cursor-pointer'
+                onClick={() => navigate(`/edit-doctor/${item._id}`)}
+              >
+                <img
+                  src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor}
+                  alt={item.name}
+                  className='object-cover w-24 h-24 rounded-full ring-4 ring-blue-50 bg-blue-50'
+                />
+                <div className='absolute inset-0 flex items-center justify-center transition-opacity bg-black/40 rounded-full opacity-0 group-hover:opacity-100'>
+                  <Pencil size={18} className='text-white' />
+                </div>
+              </div>
               {item.gender && (
                 <p className={`text-xs font-medium ${item.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-blue-600'}`}>
                   {item.gender}
