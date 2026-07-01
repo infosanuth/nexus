@@ -414,5 +414,36 @@ const getDoctorById = async (req, res) => {
   }
 }
 
+// API to update a doctor's profile by admin
+const updateDoctorById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { name, speciality, gender, experience, fees, degree, address, about, governmentHospital } = req.body
 
-export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, getDoctorById }
+    const updateData = {
+      name,
+      speciality,
+      gender,
+      experience,
+      fees: Number(fees),
+      degree,
+      address: JSON.parse(address),
+      about,
+      governmentHospital: governmentHospital || ''
+    }
+
+    if (req.file) {
+      updateData.image = `/uploads/${req.file.filename}`
+    }
+
+    const updated = await doctorModel.findByIdAndUpdate(id, updateData, { new: true }).select('-password')
+    if (!updated) return res.json({ success: false, message: 'Doctor not found' })
+
+    res.json({ success: true, message: 'Doctor profile updated', doctor: updated })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, getDoctorById, updateDoctorById }
