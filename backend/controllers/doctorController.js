@@ -140,9 +140,23 @@ const doctorProfile = async (req, res) => {
 const updateDoctorProfile = async (req, res) => {
     try {
 
-        const { docId, fees, address, available } = req.body
+        const { docId, name, email, experience, governmentHospital, address, about, available } = req.body
 
-        await doctorModel.findByIdAndUpdate(docId, { fees, address, available })
+        const updateData = {
+            name,
+            email,
+            experience,
+            governmentHospital: governmentHospital || '',
+            address: JSON.parse(address),
+            about,
+            available
+        }
+
+        if (req.file) {
+            updateData.image = `/uploads/${req.file.filename}`
+        }
+
+        await doctorModel.findByIdAndUpdate(docId, updateData)
 
         res.json({ success: true, message: 'Profile Updated' })
 
