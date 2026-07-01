@@ -418,10 +418,12 @@ const getDoctorById = async (req, res) => {
 const updateDoctorById = async (req, res) => {
   try {
     const { id } = req.params
-    const { name, speciality, gender, experience, fees, degree, address, about, governmentHospital } = req.body
+    const { name, email, registrationNumber, speciality, gender, experience, fees, degree, address, about, governmentHospital } = req.body
 
     const updateData = {
       name,
+      email,
+      registrationNumber,
       speciality,
       gender,
       experience,
