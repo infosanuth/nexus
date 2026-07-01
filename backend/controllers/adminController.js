@@ -401,4 +401,18 @@ const getStaff = async (req, res) => {
   }
 }
 
-export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff }
+// API to get a single doctor by ID (for admin edit form)
+const getDoctorById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const doctor = await doctorModel.findById(id).select('-password')
+    if (!doctor) return res.json({ success: false, message: 'Doctor not found' })
+    res.json({ success: true, doctor })
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+
+export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, getDoctorById }
