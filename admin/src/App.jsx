@@ -10,6 +10,7 @@ import Dashboard from './pages/Admin/Dashboard'
 import AllApointments from './pages/Admin/AllApointments'
 import AddDoctor from './pages/Admin/AddDoctor'
 import DoctorsList from './pages/Admin/DoctorsList'
+import EditDoctorProfile from './pages/Admin/EditDoctorProfile'
 import { DoctorContext } from './context/DoctorContext'
 import DoctorAppointments from './pages/Doctor/DoctorAppointments';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
@@ -45,6 +46,7 @@ const App = () => {
           <Route path='/all-appointments' element={<AllApointments />} />
           <Route path='/add-doctor' element={<AddDoctor />} />
           <Route path='/doctor-list' element={<DoctorsList />} />
+          <Route path='/edit-doctor/:id' element={<EditDoctorProfile />} />
           <Route path='/specialities' element={<Specialities />} />
           <Route path='/staff' element={<Staff />} />
           {/* Doctor Route */}
