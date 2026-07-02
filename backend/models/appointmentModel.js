@@ -14,7 +14,8 @@ const appointmentSchema = new mongoose.Schema({
     payment: { type: Boolean, default: false },
     isCompleted: { type: Boolean, default: false },
     isWalkIn: { type: Boolean, default: false },
-    sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "session", default: null }
+    sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "session", default: null },
+    tokenNumber: { type: Number, default: null }
 })
 
 const appointmentModel = mongoose.models.appointment || mongoose.model("appointment", appointmentSchema)

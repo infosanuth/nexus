@@ -387,6 +387,15 @@ const bookAppointment = async (req, res) => {
 
         delete docData.slots_booked
 
+        // Calculate token number for this slot/session
+        let tokenNumber
+        if (matchedSession) {
+            tokenNumber = matchedSession.bookedPatientsCount + 1
+        } else {
+            const existingCount = await appointmentModel.countDocuments({ docId, slotDate, slotTime, cancelled: false })
+            tokenNumber = existingCount + 1
+        }
+
         const appointmentData = {
             userId,
             docId,
@@ -395,7 +404,8 @@ const bookAppointment = async (req, res) => {
             amount: docData.fees,
             slotTime,
             slotDate,
-            date: Date.now()
+            date: Date.now(),
+            tokenNumber
         }
 
         if (matchedSession) {
