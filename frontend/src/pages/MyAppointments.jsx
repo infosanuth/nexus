@@ -197,23 +197,27 @@ const MyAppointments = () => {
         {appointments.map((item, index) => (
           <div key={index} className='grid grid-cols-[1fr_2fr] gap-4 sm:flex sm:gap-6 py-4 border-b'>
             <div>
-              <img className='w-36 bg-[#EAEFFF]' src={item.docData.image ? `${backendUrl}${item.docData.image}` : assets.default_doctor_pastel} alt="" />
+              {item.docData.image
+                ? <img className='w-36 bg-[#EAEFFF]' src={`${backendUrl}${item.docData.image}`} alt='' />
+                : <div className='w-36 bg-[#EAEFFF] flex items-center justify-center' style={{aspectRatio:'1/1'}}>
+                    <img className='w-24 h-24' src={assets.default_doctor_pastel} alt='' />
+                  </div>
+              }
             </div>
-            <div className='flex-1 text-sm text-[#5E5E5E]'>
-              <p className='text-[#262626] text-base font-semibold'>{item.docData.name}</p>
+            <div className='flex-1 text-sm text-[#5E5E5E] flex flex-col justify-center gap-1.5'>
+              <p className='text-[#262626] text-base font-semibold mb-3'>{item.docData.name}</p>
               <p>{item.docData.speciality}</p>
-              <p className='text-[#464646] font-medium mt-1'>Address:</p>
-              <p className=''>{item.docData.address.line1}</p>
-              <p className=''>{item.docData.address.line2}</p>
-              <p className=' mt-1'><span className='text-sm text-[#3C3C3C] font-medium'>Date & Time:</span> {slotDateFormat(item.slotDate)} |  {item.slotTime}</p>
+              <p><span className='text-sm text-[#3C3C3C] font-medium'>Date & Time:</span> {slotDateFormat(item.slotDate)} | {item.slotTime}</p>
+              {item.tokenNumber && <p><span className='text-sm text-[#3C3C3C] font-medium'>Token No:</span> {item.tokenNumber}</p>}
+              <p><span className='text-sm text-[#3C3C3C] font-medium'>Ref:</span> APT-{item._id.slice(-6).toUpperCase()}</p>
             </div>
             <div></div>
-            <div className='flex flex-col gap-2 justify-end text-sm text-center'>
+            <div className='flex flex-col justify-end gap-2 text-sm text-center'>
               {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={(e) => { e.preventDefault(); setSelectedAppointmentId(item._id); setShowPaymentDialog(true); console.log('Button clicked for appointment ID:', item._id); }} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
 
               {/* {!item.cancelled && item.payment && !item.isCompleted && <button className='sm:min-w-48 py-2 border rounded text-[#696969]  bg-[#EAEFFF]'>Paid</button>} */}
 
-              {item.isCompleted && <button className='sm:min-w-48 py-2 border border-green-500 rounded text-green-500'>Completed</button>}
+              {item.isCompleted && <button className='py-2 text-green-500 border border-green-500 rounded sm:min-w-48'>Completed</button>}
               {/* {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => navigate(`/reschedule-appointment/${item.docData._id}`, {
                 state: {       
                   slotDate: item.slotDate,
@@ -242,16 +246,16 @@ const MyAppointments = () => {
 
 
               {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
-              {item.payment && <button className='sm:min-w-48 py-2 border border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
-              {item.cancelled && !item.isCompleted && <button className='sm:min-w-48 py-2 border border-red-500 rounded text-red-500'>Appointment cancelled</button>}
+              {item.payment && <button className='py-2 border sm:min-w-48 border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
+              {item.cancelled && !item.isCompleted && <button className='py-2 text-red-500 border border-red-500 rounded sm:min-w-48'>Appointment cancelled</button>}
 
             </div>
             {showPaymentDialog && (
-              <div className="fixed inset-0 bg-transparent  bg-opacity-20 flex items-center justify-center z-50">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-20">
                 <div className="bg-white rounded-lg shadow-lg p-6 w-[320px]">
 
-                  <h2 className="text-lg font-semibold mb-4 text-gray-800">Confirm Payment</h2>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <h2 className="mb-4 text-lg font-semibold text-gray-800">Confirm Payment</h2>
+                  <p className="mb-4 text-sm text-gray-600">
                     Are you sure you want to proceed with online payment?<br />
                     Once paid, you will <strong>not</strong> be able to reschedule or cancel this appointment.
                   </p>
@@ -261,13 +265,13 @@ const MyAppointments = () => {
                         setShowPaymentDialog(false);
                         setSelectedAppointmentId(null);
                       }}
-                      className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+                      className="px-4 py-2 text-gray-800 bg-gray-300 rounded hover:bg-gray-400"
                     >
                       No
                     </button>
                     <button
                       onClick={confirmPayOnline}
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                      className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
                     >
                       Yes, Pay Now
                     </button>
