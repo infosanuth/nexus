@@ -425,7 +425,7 @@ const bookAppointment = async (req, res) => {
         await doctorModel.findByIdAndUpdate(docId, { slots_booked })
         // console.log(appointmentData.userData.name)
         console.log(`Your appointment with ${docData.name} is confirmed for ${slotDate} at ${slotTime}. Thank you!`)
-        res.json({ success: true, message: 'Appointment Booked' })
+        res.json({ success: true, message: 'Appointment Booked', appointmentId: newAppointment._id })
 
 
     } catch (error) {

@@ -87,7 +87,7 @@ const Appointment = () => {
         toast.success(data.message)
         getDoctorsData()
         getDoctorSessions()
-        navigate('/my-appointment')
+        payForAppointment(data.appointmentId)
       } else {
         toast.error(data.message)
       }
@@ -95,6 +95,64 @@ const Appointment = () => {
     } catch (error) {
       console.log(error)
       toast.error(error.message)
+    }
+  }
+
+  // Opens the PayHere payment popup for the newly booked appointment
+  const payForAppointment = async (appointmentId) => {
+    try {
+
+      if (!window.payhere || typeof window.payhere.startPayment !== 'function') {
+        toast.error('PayHere SDK not loaded. Please try again later.')
+        navigate('/my-appointment')
+        return
+      }
+
+      const { data } = await axios.post(backendUrl + '/api/user/payment-payhere', { appointmentId }, { headers: { token } })
+
+      if (!data.success) {
+        toast.error(data.message)
+        navigate('/my-appointment')
+        return
+      }
+
+      const payment = data.paymentDetails
+
+      window.payhere.onCompleted = async function (orderId) {
+        toast.info('Payment completed. Verifying payment...')
+
+        try {
+          const { data } = await axios.post(backendUrl + '/api/user/verifyPayhere', { order_id: orderId, status_code: '2' }, { headers: { token } })
+
+          if (data.success) {
+            toast.success('Payment verified successfully!')
+          } else {
+            toast.error('Payment verification failed.')
+          }
+        } catch (error) {
+          console.error('PayHere verify error:', error)
+          toast.error('Error verifying payment.')
+        } finally {
+          navigate('/my-appointment')
+        }
+      }
+
+      window.payhere.onDismissed = function () {
+        toast.info('Payment was cancelled. You can pay later from My Appointments.')
+        navigate('/my-appointment')
+      }
+
+      window.payhere.onError = function (error) {
+        toast.error('Payment error: ' + error)
+        navigate('/my-appointment')
+      }
+
+      window.payhere.startPayment(payment)
+
+    } catch (error) {
+      console.log(error)
+      toast.error('Something went wrong: ' + error.message)
+      navigate('/my-appointment')
     }
   }
 
@@ -155,7 +213,7 @@ const Appointment = () => {
   return docInfo && (
     <div>
       {/* Doctors Details */}
-      <div className='flex flex-col sm:flex-row gap-4'>
+      <div className='flex flex-col gap-4 sm:flex-row'>
         <div className='w-full sm:max-w-72'>
           {docInfo.image ? (
             <img className='bg-[#64748B] w-full rounded-lg' src={`${backendUrl}${docInfo.image}`} alt="" />
@@ -174,10 +232,10 @@ const Appointment = () => {
           </p>
 
           {/* Speciality */}
-          <p className='text-sm font-medium text-primary mt-1'>{docInfo.speciality}</p>
+          <p className='mt-1 text-sm font-medium text-primary'>{docInfo.speciality}</p>
 
           {/* Degree & experience */}
-          <div className='flex items-center gap-2 text-sm mt-2 text-gray-600'>
+          <div className='flex items-center gap-2 mt-2 text-sm text-gray-600'>
             <p>{docInfo.degree}</p>
             <button className='py-0.5 px-2 border text-xs rounded-full'>{docInfo.experience}</button>
           </div>
@@ -198,14 +256,14 @@ const Appointment = () => {
 
       {/* Available sessions */}
       <div className='mt-6'>
-        <p className='text-lg font-semibold text-gray-800 mb-4'>Available Sessions</p>
+        <p className='mb-4 text-lg font-semibold text-gray-800'>Available Sessions</p>
 
         {sessions.length === 0
           ? <p className='text-sm text-gray-400'>No sessions available right now</p>
-          : <div className='flex flex-col md:flex-row gap-6'>
+          : <div className='flex flex-col gap-6 md:flex-row'>
 
             {/* Calendar */}
-            <div className='bg-white border border-blue-200 rounded-xl p-4 w-full md:w-72 shrink-0'>
+            <div className='w-full p-4 bg-white border border-blue-200 rounded-xl md:w-72 shrink-0'>
               <div className='flex items-center justify-between mb-3'>
                 <button
                   onClick={() => changeMonth(-1)}
@@ -219,13 +277,13 @@ const Appointment = () => {
                 </p>
                 <button
                   onClick={() => changeMonth(1)}
-                  className='w-7 h-7 flex items-center justify-center rounded-full text-gray-500 hover:bg-blue-50 cursor-pointer'
+                  className='flex items-center justify-center text-gray-500 rounded-full cursor-pointer w-7 h-7 hover:bg-blue-50'
                 >
                   ›
                 </button>
               </div>
 
-              <div className='grid grid-cols-7 gap-y-1 text-center text-xs text-gray-400 mb-1'>
+              <div className='grid grid-cols-7 mb-1 text-xs text-center text-gray-400 gap-y-1'>
                 {weekDays.map((d, i) => <p key={i}>{d}</p>)}
               </div>
 
@@ -263,12 +321,12 @@ const Appointment = () => {
             {/* Session times for the selected date */}
             <div className='flex-1'>
               {selectedDate &&
-                <p className='text-sm font-medium text-gray-800 mb-3'>
+                <p className='mb-3 text-sm font-medium text-gray-800'>
                   {selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
               }
 
-              <div className='grid grid-cols-3 gap-2 sm:gap-3 max-w-md'>
+              <div className='grid max-w-md grid-cols-3 gap-2 sm:gap-3'>
                 {sessionsForSelectedDate.map((item) => {
                   const availableSlots = item.maxPatients - item.bookedPatientsCount
                   const isFull = availableSlots <= 0
@@ -286,7 +344,7 @@ const Appointment = () => {
                             ? 'bg-primary text-white border-primary'
                             : 'border-gray-200 text-gray-600 hover:border-primary'}`}
                     >
-                      <p className='text-xs sm:text-sm font-medium leading-tight'>
+                      <p className='text-xs font-medium leading-tight sm:text-sm'>
                         {formatTime12(item.startTime)}{item.endTime ? ` - ${formatTime12(item.endTime)}` : ''}
                       </p>
                       <p className={`text-[10px] sm:text-xs ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
@@ -297,7 +355,7 @@ const Appointment = () => {
                 })}
               </div>
 
-              <button onClick={bookAppointment} className='bg-primary text-white text-sm font-light px-14 py-3 rounded-full mt-6'>Book an appointment</button>
+              <button onClick={bookAppointment} className='py-3 mt-6 text-sm font-light text-white rounded-full bg-primary px-14'>Book an appointment</button>
             </div>
           </div>
         }
