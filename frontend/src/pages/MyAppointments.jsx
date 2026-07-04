@@ -5,7 +5,26 @@ import { assets } from '../assets/assets'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 
+const PAYMENT_WINDOW_SECONDS = 10 * 60
+const formatMMSS = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
+// Shows the "pay within 10 minutes" warning and a live countdown for one appointment
+const PaymentBanner = ({ item }) => {
+  const getRemaining = () => Math.max(0, PAYMENT_WINDOW_SECONDS - Math.floor((Date.now() - item.date) / 1000))
+  const [seconds, setSeconds] = useState(getRemaining())
+
+  useEffect(() => {
+    const t = setInterval(() => setSeconds(getRemaining()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  return (
+    <div className='flex items-center justify-between gap-4 px-4 py-2 text-xs font-medium text-gray-700 bg-gray-50'>
+      <span>Complete payment within 10 minutes or this appointment will auto-cancel</span>
+      <span className={`font-mono font-semibold ${seconds <= 120 ? 'text-red-600' : 'text-gray-700'}`}>{formatMMSS(seconds)}</span>
+    </div>
+  )
+}
 
 const MyAppointments = () => {
 
@@ -195,7 +214,9 @@ const MyAppointments = () => {
       <p className='pb-3 mt-12 text-lg font-medium text-gray-600 border-b'>My appointments</p>
       <div className=''>
         {appointments.map((item, index) => (
-          <div key={index} className='grid grid-cols-[1fr_2fr] gap-4 sm:flex sm:gap-6 py-4 border-b'>
+          <div key={index} className='border-b'>
+            {!item.cancelled && !item.payment && !item.isCompleted && <PaymentBanner item={item} />}
+            <div className='grid grid-cols-[1fr_2fr] gap-4 sm:flex sm:gap-6 py-4'>
             <div>
               {item.docData.image
                 ? <img className='w-36 bg-[#EAEFFF]' src={`${backendUrl}${item.docData.image}`} alt='' />
@@ -219,7 +240,7 @@ const MyAppointments = () => {
 
               {item.isCompleted && <button className='py-2 text-green-500 border border-green-500 rounded sm:min-w-48'>Completed</button>}
               {/* {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => navigate(`/reschedule-appointment/${item.docData._id}`, {
-                state: {       
+                state: {
                   slotDate: item.slotDate,
                   slotTime: item.slotTime,
                   appointmentId: item._id
@@ -281,6 +302,7 @@ const MyAppointments = () => {
             )}
 
           </div>
+          </div>
         ))}
       </div>
     </div>
@@ -288,4 +310,3 @@ const MyAppointments = () => {
 }
 
 export default MyAppointments
-
