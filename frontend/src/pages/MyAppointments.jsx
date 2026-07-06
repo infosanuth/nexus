@@ -212,40 +212,41 @@ const MyAppointments = () => {
   return (
     <div>
       <p className='pb-3 mt-12 text-lg font-medium text-gray-600 border-b'>My appointments</p>
-      <div className=''>
+      <div className='flex flex-col gap-4 mt-4'>
         {appointments.map((item, index) => (
-          <div key={index} className='border-b'>
+          <div key={index} className='overflow-hidden bg-white border border-gray-200 rounded-lg'>
             {!item.cancelled && !item.payment && !item.isCompleted && <PaymentBanner item={item} />}
-            <div className='grid grid-cols-[1fr_2fr] gap-4 sm:flex sm:gap-6 py-4'>
-            <div>
+            <div className='flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5'>
+            <div className='flex items-center gap-4 sm:contents'>
+            <div className='shrink-0'>
               {item.docData.image
-                ? <img className='w-36 bg-[#EAEFFF]' src={`${backendUrl}${item.docData.image}`} alt='' />
-                : <div className='w-36 bg-[#EAEFFF] flex items-center justify-center' style={{aspectRatio:'1/1'}}>
-                    <img className='w-24 h-24' src={assets.default_doctor_pastel} alt='' />
+                ? <img className='object-cover w-24 h-24 rounded-md sm:w-32 sm:h-32 bg-[#EAEFFF]' src={`${backendUrl}${item.docData.image}`} alt='' />
+                : <div className='flex items-center justify-center w-24 h-24 rounded-md sm:w-32 sm:h-32 bg-[#EAEFFF]'>
+                    <img className='w-14 h-14 sm:w-20 sm:h-20' src={assets.default_doctor_pastel} alt='' />
                   </div>
               }
             </div>
-            <div className='flex-1 text-sm text-[#5E5E5E] flex flex-col justify-center gap-1.5'>
-              <p className='text-[#262626] text-base font-semibold mb-3'>{item.docData.name}</p>
-              <p>{item.docData.speciality}</p>
-              <p><span className='text-sm text-[#3C3C3C] font-medium'>Date & Time:</span> {slotDateFormat(item.slotDate)} | {item.slotTime}</p>
-              {item.tokenNumber && <p><span className='text-sm text-[#3C3C3C] font-medium'>Token No:</span> {item.tokenNumber}</p>}
-              <p><span className='text-sm text-[#3C3C3C] font-medium'>Ref:</span> APT-{item._id.slice(-6).toUpperCase()}</p>
+            <div className='flex-1 min-w-0 text-sm text-[#5E5E5E] flex flex-col justify-center gap-1'>
+              <p className='text-[#262626] text-base font-semibold truncate'>{item.docData.name}</p>
+              <p className='truncate'>{item.docData.speciality}</p>
+              <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Date & Time:</span> {slotDateFormat(item.slotDate)} | {item.slotTime}</p>
+              {item.tokenNumber && <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Token No:</span> {item.tokenNumber}</p>}
+              <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Ref :</span> APT-{item._id.slice(-6).toUpperCase()}</p>
             </div>
-            <div></div>
-            <div className='flex flex-col justify-end gap-2 text-sm text-center'>
-              {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={(e) => { e.preventDefault(); setSelectedAppointmentId(item._id); setShowPaymentDialog(true); console.log('Button clicked for appointment ID:', item._id); }} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
+            </div>
+            <div className='flex flex-col justify-center flex-shrink-0 gap-2 text-sm text-center sm:w-48'>
+              {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={(e) => { e.preventDefault(); setSelectedAppointmentId(item._id); setShowPaymentDialog(true); console.log('Button clicked for appointment ID:', item._id); }} className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
 
-              {/* {!item.cancelled && item.payment && !item.isCompleted && <button className='sm:min-w-48 py-2 border rounded text-[#696969]  bg-[#EAEFFF]'>Paid</button>} */}
+              {/* {!item.cancelled && item.payment && !item.isCompleted && <button className='w-full py-2 border rounded text-[#696969]  bg-[#EAEFFF]'>Paid</button>} */}
 
-              {item.isCompleted && <button className='py-2 text-green-500 border border-green-500 rounded sm:min-w-48'>Completed</button>}
+              {item.isCompleted && <button className='w-full py-2 text-green-500 border border-green-500 rounded'>Completed</button>}
               {/* {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => navigate(`/reschedule-appointment/${item.docData._id}`, {
                 state: {
                   slotDate: item.slotDate,
                   slotTime: item.slotTime,
                   appointmentId: item._id
                 }
-              })} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Reschedule Appointment</button>} */}
+              })} className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Reschedule Appointment</button>} */}
 
               {!item.cancelled && !item.payment && !item.isCompleted && (
                 <button
@@ -259,16 +260,16 @@ const MyAppointments = () => {
                       },
                     })
                   }
-                  className="text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300"
+                  className="w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300"
                 >
                   Reschedule Appointment
                 </button>
               )}
 
 
-              {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
-              {item.payment && <button className='py-2 border sm:min-w-48 border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
-              {item.cancelled && !item.isCompleted && <button className='py-2 text-red-500 border border-red-500 rounded sm:min-w-48'>Appointment cancelled</button>}
+              {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='w-full text-[#696969] py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
+              {item.payment && <button className='w-full py-2 border border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
+              {item.cancelled && !item.isCompleted && <button className='w-full py-2 text-red-500 border border-red-500 rounded'>Appointment cancelled</button>}
 
             </div>
             {showPaymentDialog && (
