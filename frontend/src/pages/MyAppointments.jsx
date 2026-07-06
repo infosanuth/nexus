@@ -211,7 +211,14 @@ const MyAppointments = () => {
 
   return (
     <div>
-      <p className='pb-3 mt-12 text-lg font-medium text-gray-600 border-b'>My appointments</p>
+      <div className='flex items-center justify-between pb-3 mt-12 border-b'>
+        <p className='text-lg font-medium text-gray-600'>My appointments</p>
+        <button
+          className='px-3 py-1 text-xs font-medium border rounded text-primary border-primary hover:bg-primary hover:text-white transition-colors'
+        >
+          Refund Request
+        </button>
+      </div>
       <div className='flex flex-col gap-4 mt-4'>
         {appointments.map((item, index) => (
           <div key={index} className='overflow-hidden bg-white border border-gray-200 rounded-lg'>
