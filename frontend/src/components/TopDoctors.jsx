@@ -32,9 +32,9 @@ const TopDoctors = () => {
       style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
         {doctors.slice(0,doctorCount).map((item,index)=>(
             <div onClick={()=>{navigate(`/appointment/${item._id}`); scrollTo(0,0)}} className='flex flex-col items-center justify-center gap-2 p-5 text-center transition-all duration-300 bg-white border border-gray-200 cursor-pointer rounded-2xl min-h-[260px] hover:-translate-y-1 hover:shadow-lg' key={index}>
-                <img src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor_pastel} alt={item.name} className='object-cover w-24 h-24 rounded-full ring-4 ring-blue-50 bg-blue-50' />
+                <img src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor_pastel} alt={item.name} className='object-cover w-24 h-24 rounded-full ring-4 ring-gray-100 bg-gray-100' />
                 {item.gender && (
-                  <p className={`text-xs font-medium ${item.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-blue-600'}`}>
+                  <p className='text-xs font-medium text-gray-600'>
                     {item.gender}
                   </p>
                 )}
@@ -43,7 +43,7 @@ const TopDoctors = () => {
             </div>
         ))}
       </div>
-      <button onClick={()=>{navigate('doctors'); scrollTo(0,0)}} className='px-12 py-3 mt-10 text-gray-600 rounded-full bg-blue-50'>more</button>
+      <button onClick={()=>{navigate('doctors'); scrollTo(0,0)}} className='px-12 py-3 mt-10 text-gray-600 rounded-full bg-gray-100'>more</button>
     </div>
   )
 }
