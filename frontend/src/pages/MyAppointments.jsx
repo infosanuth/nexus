@@ -213,11 +213,6 @@ const MyAppointments = () => {
     <div>
       <div className='flex items-center justify-between pb-3 mt-12 border-b'>
         <p className='text-lg font-medium text-gray-600'>My appointments</p>
-        <button
-          className='px-3 py-1 text-xs font-medium border rounded text-primary border-primary hover:bg-primary hover:text-white transition-colors'
-        >
-          Refund Request
-        </button>
       </div>
       <div className='flex flex-col gap-4 mt-4'>
         {appointments.map((item, index) => (
@@ -277,6 +272,11 @@ const MyAppointments = () => {
               {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='w-full text-[#696969] py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
               {item.payment && <button className='w-full py-2 border border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
               {item.cancelled && !item.isCompleted && <button className='w-full py-2 text-red-500 border border-red-500 rounded'>Appointment cancelled</button>}
+              {item.payment && item.cancelled && (
+                <button className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>
+                  Refund Request
+                </button>
+              )}
 
             </div>
             {showPaymentDialog && (
