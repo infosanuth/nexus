@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { AppContext } from '../context/AppContext'
 import { assets } from '../assets/assets'
 import axios from 'axios'
@@ -220,7 +220,7 @@ const MyAppointments = () => {
             {!item.cancelled && !item.payment && !item.isCompleted && <PaymentBanner item={item} />}
             {item.cancelled && item.payment && (
               <div className='px-4 py-2 text-xs font-medium text-left text-black bg-red-50'>
-                Your appointment was cancelled. Contact us.
+                Your appointment was cancelled. <Link to='/contact' className='underline hover:text-primary'>Contact us</Link>.
               </div>
             )}
             <div className='flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5'>
