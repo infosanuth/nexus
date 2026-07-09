@@ -218,6 +218,11 @@ const MyAppointments = () => {
         {appointments.map((item, index) => (
           <div key={index} className='overflow-hidden bg-white border border-gray-200 rounded-lg'>
             {!item.cancelled && !item.payment && !item.isCompleted && <PaymentBanner item={item} />}
+            {item.cancelled && item.payment && (
+              <div className='px-4 py-2 text-xs font-medium text-left text-black bg-red-50'>
+                Your appointment was cancelled. Contact us.
+              </div>
+            )}
             <div className='flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5'>
             <div className='flex items-center gap-4 sm:contents'>
             <div className='shrink-0'>
@@ -270,8 +275,8 @@ const MyAppointments = () => {
 
 
               {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='w-full text-[#696969] py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
-              {item.payment && <button className='w-full py-2 border border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
-              {item.cancelled && !item.isCompleted && <button className='w-full py-2 text-red-500 border border-red-500 rounded'>Appointment cancelled</button>}
+              {item.payment && !item.cancelled && <button className='w-full py-2 border border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
+              {item.cancelled && !item.isCompleted && !item.payment && <button className='w-full py-2 text-red-500 border border-red-500 rounded'>Appointment cancelled</button>}
               {item.payment && item.cancelled && (
                 <button className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>
                   Refund Request
