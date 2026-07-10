@@ -242,8 +242,8 @@ const Appointment = () => {
 
           {/* Practising hospital & registration */}
           <div className='flex flex-col gap-1 mt-3 text-sm text-gray-600'>
-            <p>Practising Government Hospitals - Teaching Hospital Karapitiya</p>
-            <p>Registration - D108215</p>
+            {docInfo.governmentHospital && <p>Practising Government Hospitals - {docInfo.governmentHospital}</p>}
+            <p>Registration - {docInfo.registrationNumber}</p>
           </div>
 
           {/* Fees */}
