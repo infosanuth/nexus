@@ -105,14 +105,14 @@ const DoctorsList = () => {
                 <img
                   src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor}
                   alt={item.name}
-                  className='object-cover w-24 h-24 rounded-full ring-4 ring-blue-50 bg-blue-50'
+                  className='object-cover w-24 h-24 rounded-full ring-4 ring-gray-100 bg-gray-100'
                 />
                 <div className='absolute inset-0 flex items-center justify-center transition-opacity bg-black/40 rounded-full opacity-0 group-hover:opacity-100'>
                   <Pencil size={18} className='text-white' />
                 </div>
               </div>
               {item.gender && (
-                <p className={`text-xs font-medium ${item.gender.toLowerCase() === 'female' ? 'text-pink-600' : 'text-blue-600'}`}>
+                <p className='text-xs font-medium text-gray-600'>
                   {item.gender}
                 </p>
               )}
