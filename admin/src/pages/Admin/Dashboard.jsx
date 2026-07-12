@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from "react";
 import { useContext } from 'react'
 import { assets } from '../../assets/assets'
 import { AppContext } from '../../context/AppContext'
-import { UserRoundPen, CalendarSearch, SquareUserRound, DollarSign, Users, Eye  } from 'lucide-react';
+import { UserRoundPen, CalendarSearch, SquareUserRound, DollarSign, Users } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { PieChart, Pie, Cell, Legend } from 'recharts';
 import { ClipboardMinus } from 'lucide-react';
@@ -102,15 +102,6 @@ const Dashboard = () => {
           <div>
             <p className='text-xl font-semibold text-gray-600'>26</p>
             <p className='text-sm text-gray-400'>Active Users</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 bg-white p-4 min-w-60 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200">
-          {/* <img className='w-14' src={assets.doctor_icon} alt="" /> */}
-          <Eye className='w-10 h-9 border border-sky-100- text-orange-500 bg-orange-100 rounded-xl p-1.5'/>
-          <div >
-            <p className='text-xl  font-semibold text-gray-600'>2.1 <span className='text-base'>k</span></p>
-            <p className='text-sm text-gray-400'>Page Views</p>
           </div>
         </div>
 
