@@ -89,6 +89,28 @@ const ReceptionContextProvider = (props) => {
         }
     }
 
+    // Function to request/process a refund for a cancelled, paid appointment
+    const requestRefund = async (appointmentId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/reception/request-refund', { appointmentId }, { headers: { rToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getAppointments()
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
     const value = {
         backendUrl,
         rToken, setRToken,
@@ -96,6 +118,7 @@ const ReceptionContextProvider = (props) => {
         sessions, setSessions, getSessions,
         bookWalkInAppointment,
         addSession,
+        requestRefund,
     }
 
     return (
