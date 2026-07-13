@@ -9,6 +9,7 @@ import doctorRouter from './routes/doctorRoute.js'
 import userRouter from './routes/userRoute.js'
 import loginRouter from './routes/loginRoute.js'
 import receptionRouter from './routes/receptionRoute.js'
+import { payhereNotify } from './controllers/userController.js'
 
 // app config
 const app = express()
@@ -17,6 +18,7 @@ connectDB()
 
 // middlewares
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 app.use(cors())
 
 // api endpoint
@@ -25,6 +27,7 @@ app.use('/api/admin', adminRouter)
 app.use('/api/doctor',doctorRouter)
 app.use('/api/user',userRouter)
 app.use('/api/reception', receptionRouter)
+app.post('/api/payhere-notify', payhereNotify)
 app.use('/uploads', express.static('uploads'));
 // app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')))
 
