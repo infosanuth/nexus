@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import doctorModel from "../models/doctorModel.js";
 import sessionModel from "../models/sessionModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import { refundPayHerePayment, getPayHerePaymentIdByOrderId } from "../middleware/payhere.js";
 
 // Helper to convert a 24-hour "HH:MM" session start time to a 12-hour "h:mm AM/PM" slot time
 const convertTo12Hour = (time24) => {
@@ -175,4 +176,49 @@ const addSessionReception = async (req, res) => {
     }
 }
 
-export { bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception }
+// API for reception to request and process a refund for a cancelled, paid appointment
+const requestRefund = async (req, res) => {
+    try {
+
+        const { appointmentId } = req.body
+        const appointmentData = await appointmentModel.findById(appointmentId)
+
+        if (!appointmentData) {
+            return res.json({ success: false, message: 'Appointment not found' })
+        }
+        if (!appointmentData.cancelled) {
+            return res.json({ success: false, message: 'Only cancelled appointments can be refunded' })
+        }
+        if (!appointmentData.payment) {
+            return res.json({ success: false, message: 'Appointment was not paid, nothing to refund' })
+        }
+        if (appointmentData.refund) {
+            return res.json({ success: false, message: 'Refund already requested for this appointment' })
+        }
+
+        await appointmentModel.findByIdAndUpdate(appointmentId, { refund: true })
+
+        try {
+            // The notify webhook (which normally captures this) can't reach a local dev
+            // server, so fall back to looking the payment_id up directly if it's missing.
+            let payherePaymentId = appointmentData.payherePaymentId
+            if (!payherePaymentId) {
+                payherePaymentId = await getPayHerePaymentIdByOrderId(appointmentId)
+                await appointmentModel.findByIdAndUpdate(appointmentId, { payherePaymentId })
+            }
+
+            await refundPayHerePayment(payherePaymentId, `Refund for appointment ${appointmentId}`)
+            await appointmentModel.findByIdAndUpdate(appointmentId, { refundPayment: true })
+            res.json({ success: true, message: 'Refund processed successfully' })
+        } catch (refundError) {
+            console.log(refundError)
+            res.json({ success: false, message: `Refund requested, but PayHere processing failed: ${refundError.message}` })
+        }
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception, requestRefund }
