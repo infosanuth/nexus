@@ -575,6 +575,36 @@ const verifyPayhere = async (req, res) => {
     }
 };
 
+// IPN webhook PayHere calls server-to-server after a payment. This is the only place
+// the real PayHere payment_id is available, which the refund API requires later.
+const payhereNotify = async (req, res) => {
+    try {
+        const { order_id, payment_id, payhere_amount, payhere_currency, status_code, md5sig } = req.body;
+
+        const merchant_id = process.env.PAYHERE_MERCHANT_ID;
+        const merchant_secret = process.env.PAYHERE_MERCHANT_SECRET;
+        const secretHash = crypto.createHash('md5').update(merchant_secret).digest('hex').toUpperCase();
+
+        const localMd5sig = crypto.createHash('md5')
+            .update(merchant_id + order_id + payhere_amount + payhere_currency + status_code + secretHash)
+            .digest('hex').toUpperCase();
+
+        if (localMd5sig !== md5sig) {
+            return res.status(400).send('Invalid signature');
+        }
+
+        if (status_code === '2') {
+            await appointmentModel.findByIdAndUpdate(order_id, { payment: true, payherePaymentId: payment_id });
+        }
+
+        res.status(200).send('OK');
+
+    } catch (error) {
+        console.error("PayHere Notify Error:", error);
+        res.status(500).send('Error');
+    }
+};
+
 
 const rescheduleAppointment = async (req, res) => {
     try {
@@ -635,6 +665,6 @@ const rescheduleAppointment = async (req, res) => {
 
 
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, rescheduleAppointment }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, rescheduleAppointment }
 
        
