@@ -6,6 +6,7 @@ import pendingUserModel from "../models/pendingUserModel.js";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import sessionModel from "../models/sessionModel.js";
+import specialityModel from "../models/specialityModel.js";
 import crypto from 'crypto';
 import transporter from "../config/nodemailer.js";
 
@@ -387,6 +388,8 @@ const bookAppointment = async (req, res) => {
 
         delete docData.slots_booked
 
+        const hospitalCharge = (await specialityModel.findOne({ speciality: docData.speciality }))?.channelingFee ?? 0
+
         // Calculate token number for this slot/session
         let tokenNumber
         if (matchedSession) {
@@ -401,7 +404,7 @@ const bookAppointment = async (req, res) => {
             docId,
             userData,
             docData,
-            amount: docData.fees,
+            amount: docData.fees + hospitalCharge,
             slotTime,
             slotDate,
             date: Date.now(),
