@@ -215,6 +215,9 @@ const MyAppointments = () => {
         <p className='text-lg font-medium text-gray-600'>My appointments</p>
       </div>
       <div className='flex flex-col gap-4 mt-4'>
+        {appointments.length === 0 && (
+          <p className='py-6 text-center text-gray-400'>No appointments available.</p>
+        )}
         {appointments.map((item, index) => (
           <div key={index} className='overflow-hidden bg-white border border-gray-200 rounded-lg'>
             {!item.cancelled && !item.payment && !item.isCompleted && <PaymentBanner item={item} />}
