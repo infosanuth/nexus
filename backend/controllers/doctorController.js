@@ -18,9 +18,58 @@ const changeAvailability = async (req, res) => {
     }
 }
 
+const SCORE_WEIGHT_POPULARITY = 0.40
+const SCORE_WEIGHT_RELIABILITY = 0.35
+const SCORE_WEIGHT_EXPERIENCE = 0.25
+
+const CANCEL_RATE_PRIOR_CANCELLED = 1
+const CANCEL_RATE_PRIOR_TOTAL = 5
+
 const doctorList = async (req, res) => {
     try {
-        const doctors = await doctorModel.find({}).select(['-password', '-email'])
+        const doctors = await doctorModel.find({}).select(['-password', '-email']).lean()
+
+        const normalize = (value, min, max) => (max === min ? 1 : (value - min) / (max - min))
+
+        const specialityGroups = {}
+        doctors.forEach(doc => {
+            if (!specialityGroups[doc.speciality]) specialityGroups[doc.speciality] = []
+            specialityGroups[doc.speciality].push(doc)
+        })
+
+        const scoreById = new Map()
+
+        Object.values(specialityGroups).forEach(group => {
+            const experienceYears = group.map(doc => parseInt(doc.experience, 10) || 0)
+            const appointmentCounts = group.map(doc => doc.totalAppointments || 0)
+
+            const minAppointments = Math.min(...appointmentCounts)
+            const maxAppointments = Math.max(...appointmentCounts)
+            const minExperience = Math.min(...experienceYears)
+            const maxExperience = Math.max(...experienceYears)
+
+            group.forEach((doc, i) => {
+                const totalAppointments = doc.totalAppointments || 0
+                const cancelAppointments = doc.cancelAppointments || 0
+
+                const popularityScore = normalize(totalAppointments, minAppointments, maxAppointments)
+
+                const cancellationRate = (cancelAppointments + CANCEL_RATE_PRIOR_CANCELLED) /
+                    (totalAppointments + cancelAppointments + CANCEL_RATE_PRIOR_TOTAL)
+                const reliabilityScore = 1 - cancellationRate
+
+                const experienceScore = normalize(experienceYears[i], minExperience, maxExperience)
+
+                const score = SCORE_WEIGHT_POPULARITY * popularityScore +
+                    SCORE_WEIGHT_RELIABILITY * reliabilityScore +
+                    SCORE_WEIGHT_EXPERIENCE * experienceScore
+
+                scoreById.set(doc._id.toString(), score)
+            })
+        })
+
+        doctors.sort((a, b) => scoreById.get(b._id.toString()) - scoreById.get(a._id.toString()))
+
         res.json({ success: true, doctors })
     } catch (error) {
         console.log(error)
