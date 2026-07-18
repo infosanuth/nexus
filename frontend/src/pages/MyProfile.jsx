@@ -28,8 +28,16 @@ const MyProfile = () => {
   // Function to update user profile data using API
   const updateUserProfileData = async () => {
 
-    if (userData.dob && userData.dob > new Date().toISOString().split('T')[0]) {
+    const today = new Date().toISOString().split('T')[0]
+    const minDob = new Date(new Date().setFullYear(new Date().getFullYear() - 120)).toISOString().split('T')[0]
+
+    if (userData.dob && userData.dob > today) {
       toast.error('Date of birth cannot be in the future')
+      return
+    }
+
+    if (userData.dob && userData.dob < minDob) {
+      toast.error('Invalid date of birth. Maximum allowed age is 120 years')
       return
     }
 
@@ -126,7 +134,7 @@ const MyProfile = () => {
           <p className='font-medium'>Birthday:</p>
           {
             isEdit
-              ? <input className='max-w-28 bg-gray-100' type="date" onChange={(e) => setUserData(prev => ({ ...prev, dob: e.target.value }))} value={userData.dob} />
+              ? <input className='max-w-28 bg-gray-100' type="date" max={new Date().toISOString().split('T')[0]} min={new Date(new Date().setFullYear(new Date().getFullYear() - 120)).toISOString().split('T')[0]} onChange={(e) => setUserData(prev => ({ ...prev, dob: e.target.value }))} value={userData.dob} />
               : <p className='text-gray-400'>{userData.dob}</p>
           }
         </div>
