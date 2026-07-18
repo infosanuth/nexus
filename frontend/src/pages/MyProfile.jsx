@@ -28,6 +28,11 @@ const MyProfile = () => {
   // Function to update user profile data using API
   const updateUserProfileData = async () => {
 
+    if (userData.dob && userData.dob > new Date().toISOString().split('T')[0]) {
+      toast.error('Date of birth cannot be in the future')
+      return
+    }
+
     try {
 
       const formData = new FormData();
