@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const pendingUserSchema = new mongoose.Schema({
+const userRegistrationSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -10,6 +10,6 @@ const pendingUserSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now, expires: 900 }, // auto-deleted if never verified within 15 minutes
 })
 
-const pendingUserModel = mongoose.models.pendingUser || mongoose.model('pendingUser', pendingUserSchema)
+const userRegistrationModel = mongoose.models.userRegistration || mongoose.model('userRegistration', userRegistrationSchema, 'userRegistration')
 
-export default pendingUserModel
+export default userRegistrationModel

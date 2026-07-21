@@ -2,7 +2,7 @@ import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
-import pendingUserModel from "../models/pendingUserModel.js";
+import userRegistrationModel from "../models/userRegistrationModel.js";
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import sessionModel from "../models/sessionModel.js";
@@ -67,13 +67,13 @@ const registerUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt)
 
         // hold the signup as pending until the OTP is confirmed; re-submitting refreshes it
-        const pendingUser = await pendingUserModel.findOneAndUpdate(
+        const userRegistration = await userRegistrationModel.findOneAndUpdate(
             { email },
             { name, email, phoneNumber, password: hashedPassword },
             { upsert: true, new: true, setDefaultsOnInsert: true }
         )
 
-        await sendAccountVerificationOtp(pendingUser)
+        await sendAccountVerificationOtp(userRegistration)
 
         res.json({ success: true, email })
     } catch (error) {
@@ -114,13 +114,13 @@ const sendVerifyOtp = async (req, res) => {
 
     try {
         const { email } = req.body
-        const pendingUser = await pendingUserModel.findOne({ email })
+        const userRegistration = await userRegistrationModel.findOne({ email })
 
-        if (!pendingUser) {
+        if (!userRegistration) {
             return res.json({ success: false, message: "No pending signup found for this email" })
         }
 
-        await sendAccountVerificationOtp(pendingUser)
+        await sendAccountVerificationOtp(userRegistration)
 
         return res.json({ success: true, message: "OTP sent to your email" })
 
@@ -140,30 +140,30 @@ const verifyEmail = async (req, res) => {
             return res.json({ success: false, message: "Missing Details" })
         }
 
-        const pendingUser = await pendingUserModel.findOne({ email })
+        const userRegistration = await userRegistrationModel.findOne({ email })
 
-        if (!pendingUser) {
+        if (!userRegistration) {
             return res.json({ success: false, message: "No pending signup found for this email" })
         }
 
-        if (pendingUser.verifyOtp === '' || pendingUser.verifyOtp !== otp) {
+        if (userRegistration.verifyOtp === '' || userRegistration.verifyOtp !== otp) {
             return res.json({ success: false, message: "Invalid OTP" })
         }
 
-        if (pendingUser.verifyOtpExpireAt < Date.now()) {
+        if (userRegistration.verifyOtpExpireAt < Date.now()) {
             return res.json({ success: false, message: "OTP Expired" })
         }
 
         const newUser = new userModel({
-            name: pendingUser.name,
-            email: pendingUser.email,
-            phoneNumber: pendingUser.phoneNumber,
-            password: pendingUser.password,
+            name: userRegistration.name,
+            email: userRegistration.email,
+            phoneNumber: userRegistration.phoneNumber,
+            password: userRegistration.password,
             isAccountVerified: true,
         })
         const user = await newUser.save()
 
-        await pendingUserModel.deleteOne({ email })
+        await userRegistrationModel.deleteOne({ email })
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' })
 
