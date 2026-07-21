@@ -9,6 +9,7 @@ import sessionModel from "../models/sessionModel.js";
 import specialityModel from "../models/specialityModel.js";
 import crypto from 'crypto';
 import transporter from "../config/nodemailer.js";
+import { sendSMS } from "../config/twilio.js";
 
 // Generates an OTP, saves it on the user, and emails it for account verification
 const sendAccountVerificationOtp = async (user) => {
@@ -426,8 +427,7 @@ const bookAppointment = async (req, res) => {
 
         // save new slots data in docData
         await doctorModel.findByIdAndUpdate(docId, { slots_booked })
-        // console.log(appointmentData.userData.name)
-        console.log(`Your appointment with ${docData.name} is confirmed for ${slotDate} at ${slotTime}. Thank you!`)
+
         res.json({ success: true, message: 'Appointment Booked', appointmentId: newAppointment._id })
 
 
@@ -569,7 +569,14 @@ const verifyPayhere = async (req, res) => {
     try {
         const { order_id } = req.body;
 
-        await appointmentModel.findByIdAndUpdate(order_id, { payment: true });
+        const appointmentData = await appointmentModel.findByIdAndUpdate(order_id, { payment: true });
+
+        try {
+            await sendSMS(appointmentData.userData.phoneNumber, `Your appointment with ${appointmentData.docData.name} is confirmed for ${appointmentData.slotDate.replace(/_/g, '-')} at ${appointmentData.slotTime}. Thank you!`)
+        } catch (smsError) {
+            console.log('Failed to send appointment confirmation SMS:', smsError.message)
+        }
+
         res.json({ success: true, message: "Payment Successful" })
 
     } catch (error) {
