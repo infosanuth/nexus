@@ -572,7 +572,8 @@ const verifyPayhere = async (req, res) => {
         const appointmentData = await appointmentModel.findByIdAndUpdate(order_id, { payment: true });
 
         try {
-            await sendSMS(appointmentData.userData.phoneNumber, `Your appointment with ${appointmentData.docData.name} is confirmed for ${appointmentData.slotDate.replace(/_/g, '-')} at ${appointmentData.slotTime}. Thank you!`)
+            // await sendSMS(appointmentData.userData.phoneNumber, `Your appointment with ${appointmentData.docData.name} is confirmed for ${appointmentData.slotDate.replace(/_/g, '-')} at ${appointmentData.slotTime}. Thank you!`)
+            console.log(`Your appointment with ${appointmentData.docData.name} is confirmed for ${appointmentData.slotDate.replace(/_/g, '-')} at ${appointmentData.slotTime}. Thank you!`)
         } catch (smsError) {
             console.log('Failed to send appointment confirmation SMS:', smsError.message)
         }
@@ -608,6 +609,7 @@ const payhereNotify = async (req, res) => {
         }
 
         res.status(200).send('OK');
+        
 
     } catch (error) {
         console.error("PayHere Notify Error:", error);

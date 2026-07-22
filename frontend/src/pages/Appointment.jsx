@@ -35,6 +35,7 @@ const Appointment = () => {
   const [selectedDate, setSelectedDate] = useState(null)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [selectedSessionId, setSelectedSessionId] = useState('')
+  const [showBookingDialog, setShowBookingDialog] = useState(false)
 
   const navigate = useNavigate()
 
@@ -63,8 +64,7 @@ const Appointment = () => {
     }
   }
 
-  const bookAppointment = async () => {
-
+  const handleBookClick = () => {
     if (!token) {
       toast.warning('Login to book an appointment')
       return navigate('/login')
@@ -73,6 +73,17 @@ const Appointment = () => {
     if (!selectedSessionId) {
       return toast.error('Please choose a session')
     }
+
+    // setShowBookingDialog(true)
+    bookAppointment()
+  }
+
+  const confirmBooking = () => {
+    setShowBookingDialog(false)
+    bookAppointment()
+  }
+
+  const bookAppointment = async () => {
 
     const session = sessions.find(item => item._id === selectedSessionId)
 
@@ -84,7 +95,7 @@ const Appointment = () => {
 
       const { data } = await axios.post(backendUrl + '/api/user/book-appointment', { docId, slotDate, slotTime }, { headers: { token } })
       if (data.success) {
-        toast.success(data.message)
+        // toast.success(data.message)
         getDoctorsData()
         getDoctorSessions()
         payForAppointment(data.appointmentId)
@@ -355,7 +366,7 @@ const Appointment = () => {
                 })}
               </div>
 
-              <button onClick={bookAppointment} className='py-3 mt-6 text-sm font-light text-white rounded-full bg-primary px-14'>Book an appointment</button>
+              <button onClick={handleBookClick} className='py-3 mt-6 text-sm font-light text-white rounded-full bg-primary px-14'>Book an appointment</button>
             </div>
           </div>
         }
@@ -364,6 +375,32 @@ const Appointment = () => {
       {/* Listing Related Doctors */}
       <RelatedDoctors docId={docId} speciality={docInfo.speciality} />
 
+      {/* {showBookingDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-[320px]">
+
+            <h2 className="mb-4 text-lg font-semibold text-gray-800">Confirm Booking</h2>
+            <p className="mb-4 text-sm text-gray-600">
+              Are you sure you want to book this appointment?<br />
+              Once paid, you will <strong>not</strong> be able to cancel this appointment.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowBookingDialog(false)}
+                className="px-4 py-2 text-gray-800 bg-gray-300 rounded hover:bg-gray-400"
+              >
+                No
+              </button>
+              <button
+                onClick={confirmBooking}
+                className="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700"
+              >
+                Yes, Book Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )} */}
 
     </div>
   )

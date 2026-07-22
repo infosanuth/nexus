@@ -245,7 +245,13 @@ const MyAppointments = () => {
             </div>
             </div>
             <div className='flex flex-col justify-center flex-shrink-0 gap-2 text-sm text-center sm:w-48'>
-              {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={(e) => { e.preventDefault(); setSelectedAppointmentId(item._id); setShowPaymentDialog(true); console.log('Button clicked for appointment ID:', item._id); }} className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
+              {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={(e) => {
+                e.preventDefault();
+                // setSelectedAppointmentId(item._id);
+                // setShowPaymentDialog(true);
+                appointmentPayHere(item._id);
+                console.log('Button clicked for appointment ID:', item._id);
+              }} className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
 
               {/* {!item.cancelled && item.payment && !item.isCompleted && <button className='w-full py-2 border rounded text-[#696969]  bg-[#EAEFFF]'>Paid</button>} */}
 
@@ -287,14 +293,14 @@ const MyAppointments = () => {
               )}
 
             </div>
-            {showPaymentDialog && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent bg-opacity-20">
+            {/* {showPaymentDialog && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10">
                 <div className="bg-white rounded-lg shadow-lg p-6 w-[320px]">
 
                   <h2 className="mb-4 text-lg font-semibold text-gray-800">Confirm Payment</h2>
                   <p className="mb-4 text-sm text-gray-600">
                     Are you sure you want to proceed with online payment?<br />
-                    Once paid, you will <strong>not</strong> be able to reschedule or cancel this appointment.
+                    Once paid, you will <strong>not</strong> be able to cancel this appointment.
                   </p>
                   <div className="flex justify-end space-x-3">
                     <button
@@ -315,7 +321,7 @@ const MyAppointments = () => {
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
 
           </div>
           </div>
