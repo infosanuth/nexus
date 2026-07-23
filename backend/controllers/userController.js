@@ -498,6 +498,126 @@ const cancelAppointment = async (req, res) => {
     }
 }
 
+// API to reschedule appointment (same doctor, new date/time)
+const rescheduleAppointment = async (req, res) => {
+    try {
+
+        const { userId, appointmentId, slotDate: newSlotDate, slotTime: newSlotTime } = req.body
+
+        const appointmentData = await appointmentModel.findById(appointmentId)
+
+        if (!appointmentData) {
+            return res.json({ success: false, message: 'Appointment not found' })
+        }
+
+        // verify appointment user
+        if (appointmentData.userId !== userId) {
+            return res.json({ success: false, message: 'Unauthorized action' })
+        }
+
+        if (!appointmentData.payment || appointmentData.reSchedule || appointmentData.cancelled || appointmentData.isCompleted) {
+            return res.json({ success: false, message: 'This appointment cannot be rescheduled' })
+        }
+
+        const { docId, slotDate: oldSlotDate, slotTime: oldSlotTime, sessionId: oldSessionId } = appointmentData
+
+        if (oldSlotDate === newSlotDate && oldSlotTime === newSlotTime) {
+            return res.json({ success: false, message: 'Please select a different slot' })
+        }
+
+        const docData = await doctorModel.findById(docId)
+
+        if (!docData.available) {
+            return res.json({ success: false, message: 'Doctor Not Available' })
+        }
+
+        let slots_booked = docData.slots_booked
+
+        // Find the active session (if any) the new slot falls into
+        const [day, month, year] = newSlotDate.split('_').map(Number)
+        const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0)
+        const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999)
+        const slotTime24 = convertTo24Hour(newSlotTime)
+
+        const sessionsOnDate = await sessionModel.find({
+            doctorId: docId,
+            status: 'active',
+            date: { $gte: startOfDay, $lte: endOfDay }
+        })
+
+        const matchedSession = sessionsOnDate.find(s =>
+            slotTime24 >= s.startTime && (!s.endTime || slotTime24 < s.endTime)
+        )
+
+        if (matchedSession) {
+            // Session capacity governs availability, multiple patients can share the same slot time
+            if (matchedSession.bookedPatientsCount >= matchedSession.maxPatients) {
+                return res.json({ success: false, message: 'Session is fully booked' })
+            }
+
+            if (!slots_booked[newSlotDate]) {
+                slots_booked[newSlotDate] = []
+            }
+            if (!slots_booked[newSlotDate].includes(newSlotTime)) {
+                slots_booked[newSlotDate].push(newSlotTime)
+            }
+        } else {
+            // checking for slot availability
+            if (slots_booked[newSlotDate]?.includes(newSlotTime)) {
+                return res.json({ success: false, message: 'Doctor Not Available' })
+            }
+            if (!slots_booked[newSlotDate]) {
+                slots_booked[newSlotDate] = []
+            }
+            slots_booked[newSlotDate].push(newSlotTime)
+        }
+
+        // release the old slot
+        if (slots_booked[oldSlotDate]) {
+            slots_booked[oldSlotDate] = slots_booked[oldSlotDate].filter(t => t !== oldSlotTime)
+            if (slots_booked[oldSlotDate].length === 0) {
+                delete slots_booked[oldSlotDate]
+            }
+        }
+
+        await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+
+        // release the old session slot, if this appointment belonged to a session
+        if (oldSessionId) {
+            await sessionModel.findByIdAndUpdate(oldSessionId, {
+                $pull: { appointments: appointmentData._id },
+                $inc: { bookedPatientsCount: -1 }
+            })
+        }
+
+        // recalculate token number for the new slot/session
+        let tokenNumber
+        if (matchedSession) {
+            tokenNumber = matchedSession.bookedPatientsCount + 1
+            matchedSession.appointments.push(appointmentData._id)
+            matchedSession.bookedPatientsCount += 1
+            await matchedSession.save()
+        } else {
+            const existingCount = await appointmentModel.countDocuments({ docId, slotDate: newSlotDate, slotTime: newSlotTime, cancelled: false })
+            tokenNumber = existingCount + 1
+        }
+
+        appointmentData.slotDate = newSlotDate
+        appointmentData.slotTime = newSlotTime
+        appointmentData.sessionId = matchedSession ? matchedSession._id : null
+        appointmentData.tokenNumber = tokenNumber
+        appointmentData.reSchedule = true
+        await appointmentData.save()
+
+        res.json({ success: true, message: 'Appointment Rescheduled' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+
 // API to make payment of appointment using payhere
 const paymentPayHere = async (req, res) => {
     try {
@@ -618,6 +738,6 @@ const payhereNotify = async (req, res) => {
 };
 
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, rescheduleAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword }
 
        
