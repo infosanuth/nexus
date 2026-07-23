@@ -236,6 +236,22 @@ const MyAppointments = () => {
 
                 {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='w-full text-[#696969] py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
                 {item.payment && !item.cancelled && <button className='w-full py-2 border border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
+                {item.payment && !item.reSchedule && !item.cancelled && !item.isCompleted && (
+                  <button
+                    onClick={() =>
+                      navigate(`/reschedule-appointment/${item.docData._id}`, {
+                        state: {
+                          appointmentId: item._id,
+                          slotDate: item.slotDate,
+                          slotTime: item.slotTime,
+                        },
+                      })
+                    }
+                    className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'
+                  >
+                    Reschedule Appointment
+                  </button>
+                )}
                 {item.cancelled && !item.isCompleted && !item.payment && <button className='w-full py-2 text-red-500 border border-red-500 rounded'>Appointment cancelled</button>}
                 {item.payment && item.cancelled && (
                   <button className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>
