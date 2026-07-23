@@ -609,6 +609,13 @@ const rescheduleAppointment = async (req, res) => {
         appointmentData.reSchedule = true
         await appointmentData.save()
 
+        try {
+            // await sendSMS(appointmentData.userData.phoneNumber, `Your appointment with ${appointmentData.docData.name} has been rescheduled to ${newSlotDate.replace(/_/g, '-')} at ${newSlotTime}. Thank you!`)
+            console.log(`Your appointment with ${appointmentData.docData.name} has been rescheduled to ${newSlotDate.replace(/_/g, '-')} at ${newSlotTime}. Thank you!`)
+        } catch (smsError) {
+            console.log('Failed to send appointment reschedule SMS:', smsError.message)
+        }
+
         res.json({ success: true, message: 'Appointment Rescheduled' })
 
     } catch (error) {
