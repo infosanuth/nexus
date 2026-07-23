@@ -618,65 +618,6 @@ const payhereNotify = async (req, res) => {
 };
 
 
-const rescheduleAppointment = async (req, res) => {
-    try {
-        const { userId, appointmentId, newSlotDate, newSlotTime } = req.body;
-
-        // 1. Find the existing appointment
-        const appointment = await appointmentModel.findById(appointmentId);
-        if (!appointment) {
-            return res.json({ success: false, message: "Appointment not found" });
-        }
-
-        // 2. Ensure the user is authorized
-        if (appointment.userId.toString() !== userId) {
-            return res.json({ success: false, message: "Unauthorized action" });
-        }
-
-        const { docId, slotDate: oldDate, slotTime: oldTime } = appointment;
-
-        // 3. Fetch doctor
-        const doctor = await doctorModel.findById(docId);
-        if (!doctor) {
-            return res.json({ success: false, message: "Doctor not found" });
-        }
-
-        // 4. Remove old slot from booked list
-        if (doctor.slots_booked?.[oldDate]) {
-            doctor.slots_booked[oldDate] = doctor.slots_booked[oldDate].filter(t => t !== oldTime);
-            if (doctor.slots_booked[oldDate].length === 0) {
-                delete doctor.slots_booked[oldDate];
-            }
-        }
-
-        // 5. Check for double-booking in new slot
-        if (!doctor.slots_booked[newSlotDate]) {
-            doctor.slots_booked[newSlotDate] = [];
-        }
-        if (doctor.slots_booked[newSlotDate].includes(newSlotTime)) {
-            return res.json({ success: false, message: "Selected slot already booked" });
-        }
-
-        // 6. Add new slot to booked list
-        doctor.slots_booked[newSlotDate].push(newSlotTime);
-        await doctor.save();
-
-        // 7. Update the existing appointment with new slot and mark as rescheduled
-        appointment.slotDate = newSlotDate;
-        appointment.slotTime = newSlotTime;
-        appointment.reSchedule = true; // ✅ Mark as rescheduled
-        await appointment.save();
-
-        return res.json({ success: true, message: "Appointment rescheduled successfully" });
-
-    } catch (error) {
-        console.error("Reschedule Error:", error);
-        res.json({ success: false, message: error.message });
-    }
-};
-
-
-
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, rescheduleAppointment }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword }
 
        

@@ -46,21 +46,17 @@ const MyAppointments = () => {
     return dateArray[0] + " " + months[Number(dateArray[1])] + " " + dateArray[2]
   }
 
-  const handleReschedule = (appointmentId) => {
-    rescheduleAppointment(appointmentId, backendUrl, token);
-  };
-
   //Filter Appointments by Status
-//   const handleStatusFilter = (e) => {
-//   const filter = e.target.value;
-//   if (filter === "completed") {
-//     setAppointments(allAppointments.filter(a => a.isCompleted && !a.cancelled));
-//   } else if (filter === "cancelled") {
-//     setAppointments(allAppointments.filter(a => a.cancelled));
-//   } else {
-//     setAppointments(allAppointments);
-//   }
-// };
+  //   const handleStatusFilter = (e) => {
+  //   const filter = e.target.value;
+  //   if (filter === "completed") {
+  //     setAppointments(allAppointments.filter(a => a.isCompleted && !a.cancelled));
+  //   } else if (filter === "cancelled") {
+  //     setAppointments(allAppointments.filter(a => a.cancelled));
+  //   } else {
+  //     setAppointments(allAppointments);
+  //   }
+  // };
 
 
   // Getting User Appointments Data Using API
@@ -166,9 +162,10 @@ const MyAppointments = () => {
       console.log("Called startPayment");
 
 
-      // if(data.success){
+      // if (data.success) {
       //   console.log(data.paymentDetails)
       // }
+
     } catch (error) {
       console.log(error);
       toast.error("Something went wrong: " + error.message);
@@ -182,26 +179,6 @@ const MyAppointments = () => {
       setSelectedAppointmentId(null);
     }
   };
-
-  // const rescheduleAppointment = async (appointmentId, userId, newSlotDate, newSlotTime, backendUrl, token) => {
-  //   try {
-  //     const { data } = await axios.post(
-  //       backendUrl + "/api/user/reschedule-appointment",
-  //       { appointmentId, userId, newSlotDate, newSlotTime },
-  //       { headers: { token } }
-  //     );
-
-  //     if (data.success) {
-  //       toast.success(data.message || "Appointment rescheduled successfully");
-  //     } else {
-  //       toast.error(data.message || "Failed to reschedule appointment");
-  //     }
-  //   } catch (error) {
-  //     console.error("Reschedule error:", error);
-  //     toast.error("Failed to reschedule appointment");
-  //   }
-  // };
-
 
   useEffect(() => {
     if (token) {
@@ -227,73 +204,47 @@ const MyAppointments = () => {
               </div>
             )}
             <div className='flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5'>
-            <div className='flex items-center gap-4 sm:contents'>
-            <div className='shrink-0'>
-              {item.docData.image
-                ? <img className='object-cover w-24 h-24 rounded-md sm:w-32 sm:h-32 bg-[#EAEFFF]' src={`${backendUrl}${item.docData.image}`} alt='' />
-                : <div className='flex items-center justify-center w-24 h-24 rounded-md sm:w-32 sm:h-32 bg-[#EAEFFF]'>
-                    <img className='w-14 h-14 sm:w-20 sm:h-20' src={assets.default_doctor_pastel} alt='' />
-                  </div>
-              }
-            </div>
-            <div className='flex-1 min-w-0 text-sm text-[#5E5E5E] flex flex-col justify-center gap-1'>
-              <p className='text-[#262626] text-base font-semibold truncate'>{item.docData.name}</p>
-              <p className='truncate'>{item.docData.speciality}</p>
-              <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Date & Time:</span> {slotDateFormat(item.slotDate)} | {item.slotTime}</p>
-              {item.tokenNumber && <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Token No:</span> {item.tokenNumber}</p>}
-              <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Ref :</span> APT-{item._id.slice(-6).toUpperCase()}</p>
-            </div>
-            </div>
-            <div className='flex flex-col justify-center flex-shrink-0 gap-2 text-sm text-center sm:w-48'>
-              {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={(e) => {
-                e.preventDefault();
-                // setSelectedAppointmentId(item._id);
-                // setShowPaymentDialog(true);
-                appointmentPayHere(item._id);
-                console.log('Button clicked for appointment ID:', item._id);
-              }} className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
-
-              {/* {!item.cancelled && item.payment && !item.isCompleted && <button className='w-full py-2 border rounded text-[#696969]  bg-[#EAEFFF]'>Paid</button>} */}
-
-              {item.isCompleted && <button className='w-full py-2 text-green-500 border border-green-500 rounded'>Completed</button>}
-              {/* {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => navigate(`/reschedule-appointment/${item.docData._id}`, {
-                state: {
-                  slotDate: item.slotDate,
-                  slotTime: item.slotTime,
-                  appointmentId: item._id
-                }
-              })} className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Reschedule Appointment</button>} */}
-
-              {!item.cancelled && !item.payment && !item.isCompleted && (
-                <button
-                  onClick={() =>
-                    navigate(`/reschedule-appointment/${item.docData._id}`, {
-                      state: {
-                        appointmentId: item._id,
-                        slotDate: item.slotDate,
-                        slotTime: item.slotTime,
-                        userId: item.userId,
-                      },
-                    })
+              <div className='flex items-center gap-4 sm:contents'>
+                <div className='shrink-0'>
+                  {item.docData.image
+                    ? <img className='object-cover w-24 h-24 rounded-md sm:w-32 sm:h-32 bg-[#EAEFFF]' src={`${backendUrl}${item.docData.image}`} alt='' />
+                    : <div className='flex items-center justify-center w-24 h-24 rounded-md sm:w-32 sm:h-32 bg-[#EAEFFF]'>
+                      <img className='w-14 h-14 sm:w-20 sm:h-20' src={assets.default_doctor_pastel} alt='' />
+                    </div>
                   }
-                  className="w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300"
-                >
-                  Reschedule Appointment
-                </button>
-              )}
+                </div>
+                <div className='flex-1 min-w-0 text-sm text-[#5E5E5E] flex flex-col justify-center gap-1'>
+                  <p className='text-[#262626] text-base font-semibold truncate'>{item.docData.name}</p>
+                  <p className='truncate'>{item.docData.speciality}</p>
+                  <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Date & Time:</span> {slotDateFormat(item.slotDate)} | {item.slotTime}</p>
+                  {item.tokenNumber && <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Token No:</span> {item.tokenNumber}</p>}
+                  <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Ref :</span> APT-{item._id.slice(-6).toUpperCase()}</p>
+                </div>
+              </div>
+              <div className='flex flex-col justify-center flex-shrink-0 gap-2 text-sm text-center sm:w-48'>
+                {!item.cancelled && !item.payment && !item.isCompleted && payment !== item._id && <button onClick={(e) => {
+                  e.preventDefault();
+                  // setSelectedAppointmentId(item._id);
+                  // setShowPaymentDialog(true);
+                  appointmentPayHere(item._id);
+                  console.log('Button clicked for appointment ID:', item._id);
+                }} className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Pay Online</button>}
 
+                {/* {!item.cancelled && item.payment && !item.isCompleted && <button className='w-full py-2 border rounded text-[#696969]  bg-[#EAEFFF]'>Paid</button>} */}
 
-              {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='w-full text-[#696969] py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
-              {item.payment && !item.cancelled && <button className='w-full py-2 border border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
-              {item.cancelled && !item.isCompleted && !item.payment && <button className='w-full py-2 text-red-500 border border-red-500 rounded'>Appointment cancelled</button>}
-              {item.payment && item.cancelled && (
-                <button className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>
-                  Refund Request
-                </button>
-              )}
+                {item.isCompleted && <button className='w-full py-2 text-green-500 border border-green-500 rounded'>Completed</button>}
 
-            </div>
-            {/* {showPaymentDialog && (
+                {!item.cancelled && !item.payment && !item.isCompleted && <button onClick={() => cancelAppointment(item._id)} className='w-full text-[#696969] py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300'>Cancel appointment</button>}
+                {item.payment && !item.cancelled && <button className='w-full py-2 border border-stone-500 text-stone-500 bg-indigo-50'>paid</button>}
+                {item.cancelled && !item.isCompleted && !item.payment && <button className='w-full py-2 text-red-500 border border-red-500 rounded'>Appointment cancelled</button>}
+                {item.payment && item.cancelled && (
+                  <button className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>
+                    Refund Request
+                  </button>
+                )}
+
+              </div>
+              {/* {showPaymentDialog && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/10">
                 <div className="bg-white rounded-lg shadow-lg p-6 w-[320px]">
 
@@ -323,7 +274,7 @@ const MyAppointments = () => {
               </div>
             )} */}
 
-          </div>
+            </div>
           </div>
         ))}
       </div>
