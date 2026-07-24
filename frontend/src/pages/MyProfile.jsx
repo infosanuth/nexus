@@ -98,6 +98,8 @@ const MyProfile = () => {
         <div className='grid grid-cols-[1fr_3fr] gap-y-2.5 mt-3 text-neutral-700'>
           <p className='font-medium'>Email id:</p>
           <p className='text-blue-500'>{userData.email}</p>
+          <p className='font-medium'>NIC:</p>
+          <p className='text-gray-500'>{userData.nic}</p>
           <p className='font-medium'>Phone:</p>
           {
             isEdit
