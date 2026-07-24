@@ -29,6 +29,32 @@ const sendAccountVerificationOtp = async (user) => {
     console.log(mailOptions)
 }
 
+// Derives date of birth and gender from a Sri Lankan NIC (old: 10 chars, new: 12 digits)
+const getDobAndGenderFromNic = (nic) => {
+    let year
+    let dayCode
+
+    if (nic.length === 10) {
+        year = 1900 + Number(nic.substring(0, 2))
+        dayCode = Number(nic.substring(2, 5))
+    } else {
+        year = Number(nic.substring(0, 4))
+        dayCode = Number(nic.substring(4, 7))
+    }
+
+    let gender = "Male"
+    let dayOfYear = dayCode
+    if (dayCode > 500) {
+        gender = "Female"
+        dayOfYear = dayCode - 500
+    }
+
+    const dobDate = new Date(year, 0, dayOfYear)
+    const dob = `${dobDate.getFullYear()}-${String(dobDate.getMonth() + 1).padStart(2, '0')}-${String(dobDate.getDate()).padStart(2, '0')}`
+
+    return { dob, gender }
+}
+
 // API to register user
 const registerUser = async (req, res) => {
 
@@ -204,12 +230,16 @@ const verifyEmail = async (req, res) => {
             return res.json({ success: false, message: "OTP Expired" })
         }
 
+        const { dob, gender } = getDobAndGenderFromNic(userRegistration.nic)
+
         const newUser = new userModel({
             name: userRegistration.name,
             email: userRegistration.email,
             phoneNumber: userRegistration.phoneNumber,
             nic: userRegistration.nic,
             password: userRegistration.password,
+            dob,
+            gender,
             isAccountVerified: true,
         })
         const user = await newUser.save()
