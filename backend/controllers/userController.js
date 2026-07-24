@@ -40,9 +40,28 @@ const registerUser = async (req, res) => {
             return res.json({ success: false, message: 'Missing Details' })
         }
 
-        // validating NIC format (old: 9 digits + V/X, new: 12 digits)
-        if (!/^([0-9]{9}[vVxX]|[0-9]{12})$/.test(nic)) {
+        // validating NIC length (old format: 10 chars, new format: 12 chars)
+        if (nic.length < 10 || nic.length > 12) {
             return res.json({ success: false, message: "Enter valid NIC" })
+        }
+
+        // validating NIC format based on length
+        if (nic.length === 10) {
+            for (let i = 0; i < 9; i++) {
+                if (nic[i] < '0' || nic[i] > '9') {
+                    return res.json({ success: false, message: "Enter valid NIC" })
+                }
+            }
+            const lastChar = nic[9].toLowerCase()
+            if (lastChar !== 'v' && lastChar !== 'x') {
+                return res.json({ success: false, message: "Enter valid NIC" })
+            }
+        } else if (nic.length === 12) {
+            for (let i = 0; i < 12; i++) {
+                if (nic[i] < '0' || nic[i] > '9') {
+                    return res.json({ success: false, message: "Enter valid NIC" })
+                }
+            }
         }
 
         // validating email format

@@ -28,6 +28,11 @@ const Login = () => {
 
       if (state === 'Sign Up') {
 
+        if (nic.length < 10 || nic.length > 12) {
+          toast.error("Enter valid NIC")
+          return
+        }
+
         if (password.length < 8 || password.length > 20) {
           toast.error("Password must be 8-20 characters long")
           return
