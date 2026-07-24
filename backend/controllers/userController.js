@@ -50,9 +50,34 @@ const registerUser = async (req, res) => {
             return res.json({ success: false, message: "Please enter a valid email" })
         }
 
-        // validating strong password
-        if (password.length < 8) {
-            return res.json({ success: false, message: "Please enter a strong password" })
+        // validating password length
+        if (password.length < 8 || password.length > 20) {
+            return res.json({ success: false, message: "Password must be 8-20 characters long" })
+        }
+
+        // validating password has at least one digit
+        let hasDigit = false
+        for (let i = 0; i < password.length; i++) {
+            if (password[i] >= '0' && password[i] <= '9') {
+                hasDigit = true
+                break
+            }
+        }
+        if (!hasDigit) {
+            return res.json({ success: false, message: "Password must contain at least one digit" })
+        }
+
+        // validating password has at least one letter
+        let hasLetter = false
+        for (let i = 0; i < password.length; i++) {
+            const ch = password[i]
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+                hasLetter = true
+                break
+            }
+        }
+        if (!hasLetter) {
+            return res.json({ success: false, message: "Password must contain at least one letter" })
         }
         //validating mobile number
         if (phoneNumber.length != 10) {

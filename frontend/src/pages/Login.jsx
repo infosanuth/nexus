@@ -28,6 +28,36 @@ const Login = () => {
 
       if (state === 'Sign Up') {
 
+        if (password.length < 8 || password.length > 20) {
+          toast.error("Password must be 8-20 characters long")
+          return
+        }
+
+        let hasDigit = false
+        for (let i = 0; i < password.length; i++) {
+          if (password[i] >= '0' && password[i] <= '9') {
+            hasDigit = true
+            break
+          }
+        }
+        if (!hasDigit) {
+          toast.error("Password must contain at least one digit")
+          return
+        }
+
+        let hasLetter = false
+        for (let i = 0; i < password.length; i++) {
+          const ch = password[i]
+          if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+            hasLetter = true
+            break
+          }
+        }
+        if (!hasLetter) {
+          toast.error("Password must contain at least one letter")
+          return
+        }
+
         if (password !== confirmPassword) {
           toast.error("Passwords do not match")
           return
