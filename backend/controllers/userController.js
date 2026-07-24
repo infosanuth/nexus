@@ -33,11 +33,16 @@ const sendAccountVerificationOtp = async (user) => {
 const registerUser = async (req, res) => {
 
     try {
-        const { name, email, password, phoneNumber } = req.body;
+        const { name, email, password, phoneNumber, nic } = req.body;
 
         // checking for all data to register user
-        if (!name || !email || !password || !phoneNumber) {
+        if (!name || !email || !password || !phoneNumber || !nic) {
             return res.json({ success: false, message: 'Missing Details' })
+        }
+
+        // validating NIC format (old: 9 digits + V/X, new: 12 digits)
+        if (!/^([0-9]{9}[vVxX]|[0-9]{12})$/.test(nic)) {
+            return res.json({ success: false, message: "Enter valid NIC" })
         }
 
         // validating email format
@@ -57,10 +62,10 @@ const registerUser = async (req, res) => {
             return res.json({ success: false, message: "Enter valid phone number" });
         }
 
-        // an already-verified account with this email/phone exists, refuse to overwrite it
-        const existingUser = await userModel.findOne({ $or: [{ email }, { phoneNumber }] })
+        // an already-verified account with this email/phone/NIC exists, refuse to overwrite it
+        const existingUser = await userModel.findOne({ $or: [{ email }, { phoneNumber }, { nic }] })
         if (existingUser) {
-            return res.json({ success: false, message: "Email or phone number already registered" })
+            return res.json({ success: false, message: "Email, phone number or NIC already registered" })
         }
 
         // hashing user password
@@ -70,7 +75,7 @@ const registerUser = async (req, res) => {
         // hold the signup as pending until the OTP is confirmed; re-submitting refreshes it
         const userRegistration = await userRegistrationModel.findOneAndUpdate(
             { email },
-            { name, email, phoneNumber, password: hashedPassword },
+            { name, email, phoneNumber, nic, password: hashedPassword },
             { upsert: true, new: true, setDefaultsOnInsert: true }
         )
 
@@ -159,6 +164,7 @@ const verifyEmail = async (req, res) => {
             name: userRegistration.name,
             email: userRegistration.email,
             phoneNumber: userRegistration.phoneNumber,
+            nic: userRegistration.nic,
             password: userRegistration.password,
             isAccountVerified: true,
         })
