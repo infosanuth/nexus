@@ -10,6 +10,7 @@ const Login = () => {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [name, setName] = useState('')
   const [nic, setNic] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -25,9 +26,12 @@ const Login = () => {
 
       event.preventDefault()
 
-      // axios.defaults.withCredentials = true
-
       if (state === 'Sign Up') {
+
+        if (password !== confirmPassword) {
+          toast.error("Passwords do not match")
+          return
+        }
 
         const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password, phoneNumber, nic })
 
@@ -85,7 +89,14 @@ const Login = () => {
           <input className='w-full p-2 mt-1 border rounded border-zinc-300' type="password" onChange={(e) => setPassword(e.target.value)} value={password} required />
         </div>
 
-        {state === "Login" && 
+        {state === "Sign Up" &&
+          <div className='w-full'>
+            <p>Confirm Password</p>
+            <input className='w-full p-2 mt-1 border rounded border-zinc-300' type="password" onChange={(e) => setConfirmPassword(e.target.value)} value={confirmPassword} required />
+          </div>
+        }
+
+        {state === "Login" &&
           <p onClick={() => navigate('/reset-password')} className='underline cursor-pointer text-primary'>Forgot password?</p>
         }
 
