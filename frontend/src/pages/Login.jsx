@@ -11,6 +11,7 @@ const Login = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [nic, setNic] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
 
   const navigate = useNavigate()
@@ -28,7 +29,7 @@ const Login = () => {
 
       if (state === 'Sign Up') {
 
-        const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password, phoneNumber })
+        const { data } = await axios.post(backendUrl + '/api/user/register', { name, email, password, phoneNumber, nic })
 
         if (data.success) {
           navigate('/email-veify', { state: { email } })
@@ -69,6 +70,8 @@ const Login = () => {
           <div className='w-full'>
             <p>Full Name</p>
             <input className='w-full p-2 mt-1 border rounded border-zinc-300' type="text" onChange={(e) => setName(e.target.value)} value={name} required />
+            <p>NIC</p>
+            <input className='w-full p-2 mt-1 border rounded border-zinc-300' type="text" onChange={(e) => setNic(e.target.value)} value={nic} required />
             <p>Phone Number</p>
             <input className='w-full p-2 mt-1 border rounded border-zinc-300' type="text" onChange={(e) => setPhoneNumber(e.target.value)} value={phoneNumber} required />
           </div>
