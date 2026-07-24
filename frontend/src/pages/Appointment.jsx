@@ -36,6 +36,11 @@ const Appointment = () => {
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [selectedSessionId, setSelectedSessionId] = useState('')
   const [showBookingDialog, setShowBookingDialog] = useState(false)
+  const [showOtherPatientForm, setShowOtherPatientForm] = useState(false)
+  const [otherPatientName, setOtherPatientName] = useState('')
+  const [otherPatientDob, setOtherPatientDob] = useState('')
+  const [otherPatientGender, setOtherPatientGender] = useState('')
+  const [otherPatientPhone, setOtherPatientPhone] = useState('')
 
   const navigate = useNavigate()
 
@@ -366,7 +371,10 @@ const Appointment = () => {
                 })}
               </div>
 
-              <button onClick={handleBookClick} className='py-3 mt-6 text-sm font-light text-white rounded-full bg-primary px-14'>Book an appointment</button>
+              <div className='flex gap-3 mt-6'>
+                <button onClick={handleBookClick} className='py-3 text-sm font-light text-white rounded-full bg-primary px-14'>Book for Myself</button>
+                <button onClick={() => toast.info('Coming soon')} className='py-3 text-sm font-light border rounded-full border-primary text-primary px-14'>Book for Someone Else</button>
+              </div>
             </div>
           </div>
         }
