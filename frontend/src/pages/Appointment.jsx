@@ -373,7 +373,7 @@ const Appointment = () => {
 
               <div className='flex gap-3 mt-6'>
                 <button onClick={handleBookClick} className='py-3 text-sm font-light text-white rounded-full bg-primary px-14'>Book for Myself</button>
-                <button onClick={() => toast.info('Coming soon')} className='py-3 text-sm font-light border rounded-full border-primary text-primary px-14'>Book for Someone Else</button>
+                <button onClick={() => !selectedSessionId ? toast.error('Please choose a session') : toast.info('Coming soon')} className='py-3 text-sm font-light border rounded-full border-primary text-primary px-14'>Book for Someone Else</button>
               </div>
             </div>
           </div>
