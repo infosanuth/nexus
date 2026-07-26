@@ -288,8 +288,8 @@ const getSessions = async (req, res) => {
     }
 }
 
-// API for doctor to delete an empty session
-const deleteSession = async (req, res) => {
+// API for doctor to cancel a session (kept in the database, marked cancelled)
+const cancelSession = async (req, res) => {
     try {
 
         const { docId, sessionId } = req.body
@@ -305,12 +305,13 @@ const deleteSession = async (req, res) => {
         }
 
         if (session.bookedPatientsCount > 0 || session.appointments.length > 0) {
-            return res.json({ success: false, message: 'Cannot delete a session with booked patients' })
+            return res.json({ success: false, message: 'Cannot cancel a session with booked patients' })
         }
 
-        await sessionModel.findByIdAndDelete(sessionId)
+        session.status = 'cancelled'
+        await session.save()
 
-        res.json({ success: true, message: 'Session Deleted' })
+        res.json({ success: true, message: 'Session Cancelled' })
 
     } catch (error) {
         console.log(error)
@@ -340,4 +341,4 @@ const getAvailableSessions = async (req, res) => {
     }
 }
 
-export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, deleteSession, getAvailableSessions }
+export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, cancelSession, getAvailableSessions }
