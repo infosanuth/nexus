@@ -5,7 +5,7 @@ import { NavLink } from 'react-router-dom'
 import { assets } from '../assets/assets'
 import { DoctorContext } from '../context/DoctorContext'
 import { ReceptionContext } from '../context/ReceptionContext'
-import { MessageSquareText, Calendar, Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw } from 'lucide-react';
+import { MessageSquareText, Calendar, Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck } from 'lucide-react';
 
 
 const Sidebar = () => {
@@ -78,12 +78,12 @@ const Sidebar = () => {
       {
         dToken && <ul className='text-[#515151] mt-5'>
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-dashboard'}>
-            <img src={assets.home_icon} alt="" />
+            <LayoutDashboard />
             <p className='hidden md:block'>Dashboard</p>
           </NavLink>
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-appointments'}>
-            <img src={assets.appointment_icon} alt="" />
+            <ListCheck />
             <p className='hidden md:block'>Appointments</p>
           </NavLink>
 
@@ -94,7 +94,12 @@ const Sidebar = () => {
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-sessions'}>
             <CalendarDays />
-            <p className='hidden md:block'>My Sessions</p>
+            <p className='hidden md:block'>Session Schedule</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-session-history'}>
+            <History />
+            <p className='hidden md:block'>Session History</p>
           </NavLink>
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-profile'}>
@@ -118,7 +123,7 @@ const Sidebar = () => {
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-sessions'}>
             <CalendarDays />
-            <p className='hidden md:block'>Sessions</p>
+            <p className='hidden md:block'>Session Schedule</p>
           </NavLink>
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-add-sessions'}>
