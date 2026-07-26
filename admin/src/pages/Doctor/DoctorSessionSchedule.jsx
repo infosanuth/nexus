@@ -39,11 +39,24 @@ const DoctorSessionSchedule = () => {
   }, [dToken])
 
   const today = todayUTC()
-  const todayInputValue = new Date().toLocaleDateString('en-CA')
 
-  const handleQuickPill = (value) => { setDateFilter(value); setSpecificDate('') }
-  const handleDateInput = (e) => { setSpecificDate(e.target.value); setDateFilter('all') }
-  const clearSpecificDate = () => setSpecificDate('')
+  const now = new Date()
+  const todayInputValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+  const handleQuickPill = (value) => {
+    setDateFilter(value)
+    setSpecificDate('')
+  }
+
+  const handleDateInput = (e) => {
+    setSpecificDate(e.target.value)
+    setDateFilter('all')
+  }
+
+  const clearSpecificDate = () => {
+    setSpecificDate('')
+    if (dateInputRef.current) dateInputRef.current.value = ''
+  }
 
   const isFiltered = dateFilter !== 'all' || specificDate || statusFilter !== 'all'
 
@@ -51,6 +64,7 @@ const DoctorSessionSchedule = () => {
     setDateFilter('all')
     setSpecificDate('')
     setStatusFilter('all')
+    if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
   const upcomingSessions = sessions.filter((item) => {
@@ -106,7 +120,7 @@ const DoctorSessionSchedule = () => {
   return (
     <div className='w-full max-w-6xl m-5'>
 
-      <p className='mb-3 text-lg font-medium'>My Sessions</p>
+      <p className='mb-3 text-lg font-medium'>Session Schedule</p>
 
       <div className='flex flex-wrap items-center gap-3 px-5 py-3 mb-3 bg-white border rounded-xl'>
         <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Date</span>
@@ -224,7 +238,7 @@ const DoctorSessionSchedule = () => {
 
       {/* Pagination controls */}
       {totalPages > 1 && (
-        <div className='flex items-center justify-end gap-3 px-2 py-3'>
+        <div className='flex items-center justify-end gap-3 px-2 pt-4'>
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Prev</button>
           <span className='text-xs font-medium text-gray-400'>Page {page} of {totalPages}</span>
           <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Next</button>
