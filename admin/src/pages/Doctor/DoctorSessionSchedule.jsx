@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { DoctorContext } from '../../context/DoctorContext'
-import { Ban, CalendarDays, X } from 'lucide-react'
+import { Ban, CalendarDays, Download, X } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
 const todayUTC = () => {
   const now = new Date()
@@ -82,7 +83,32 @@ const DoctorSessionSchedule = () => {
     if (statusFilter !== 'all' && item.status !== statusFilter) return false
 
     return true
-  })
+  }).sort((a, b) => new Date(a.date) - new Date(b.date))
+
+  const handleExport = () => {
+    const header = ['Date', 'Start Time', 'End Time', 'Max Patients', 'Booked', 'Status']
+    const rows = upcomingSessions.map((item) => [
+      new Date(item.date).toLocaleDateString('en-GB'),
+      item.startTime,
+      item.endTime || '-',
+      item.maxPatients,
+      item.bookedPatientsCount,
+      item.status
+    ])
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
+    ws['!cols'] = [
+      { wch: 12 }, // Date
+      { wch: 12 }, // Start Time
+      { wch: 12 }, // End Time
+      { wch: 14 }, // Max Patients
+      { wch: 10 }, // Booked
+      { wch: 10 }, // Status
+    ]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Sessions')
+    XLSX.writeFile(wb, `session-schedule-${todayInputValue}.xlsx`)
+  }
 
   return (
     <div className='w-full max-w-6xl m-5'>
@@ -153,11 +179,18 @@ const DoctorSessionSchedule = () => {
         {isFiltered && (
           <button
             onClick={resetFilters}
-            className='flex items-center gap-1 ml-auto text-xs text-gray-400 transition-colors hover:text-red-400'
+            className='flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-red-400'
           >
             <X size={12} /> Clear
           </button>
         )}
+
+        <button
+          onClick={handleExport}
+          className='flex items-center gap-1.5 px-3 py-1.5 ml-auto text-xs font-medium text-gray-600 transition-colors border rounded-lg hover:border-gray-300 hover:text-gray-800'
+        >
+          <Download size={14} /> Export
+        </button>
       </div>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
@@ -166,10 +199,10 @@ const DoctorSessionSchedule = () => {
           <p>Date</p>
           <p>Start Time</p>
           <p>End Time</p>
-          <p>Max Patients</p>
-          <p>Booked</p>
+          <p className='text-center'>Max Patients</p>
+          <p className='text-center'>Booked</p>
           <p>Status</p>
-          <p>Action</p>
+          <p className='text-center'>Action</p>
         </div>
 
         {upcomingSessions.length === 0
@@ -180,14 +213,14 @@ const DoctorSessionSchedule = () => {
               <p>{new Date(item.date).toLocaleDateString('en-GB')}</p>
               <p>{item.startTime}</p>
               <p>{item.endTime || '-'}</p>
-              <p>{item.maxPatients}</p>
-              <p>{item.bookedPatientsCount}</p>
+              <p className='text-center'>{item.maxPatients}</p>
+              <p className='text-center'>{item.bookedPatientsCount}</p>
               <p className={`text-xs font-medium ${item.status === 'cancelled' ? 'text-red-500' : 'text-green-600'}`}>
                 {item.status}
               </p>
               {item.bookedPatientsCount > 0 || item.status === 'cancelled'
-                ? <p className='text-xs text-gray-400'>-</p>
-                : <Ban onClick={() => cancelSession(item._id)} title='Cancel session' className='w-4 text-red-500 cursor-pointer hover:text-red-700' />
+                ? <p className='text-xs text-center text-gray-400'>-</p>
+                : <Ban onClick={() => cancelSession(item._id)} title='Cancel session' className='w-4 mx-auto text-red-500 cursor-pointer hover:text-red-700' />
               }
             </div>
           ))
