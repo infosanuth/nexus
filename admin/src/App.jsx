@@ -37,11 +37,12 @@ const App = () => {
   const { rToken } = useContext(ReceptionContext)
 
   return dToken || aToken || rToken ? (
-    <div className='bg-[#F8F9FD]'>
+    <div className='bg-[#F8F9FD] h-screen flex flex-col'>
       <ToastContainer />
       <Navbar />
-      <div className='flex items-start'>
+      <div className='flex items-start flex-1 min-h-0'>
         <Sidebar />
+        <div className='flex-1 h-full overflow-y-auto'>
         <Routes>
           <Route path='/' element={<Navigate to={aToken ? '/admin-dashboard' : dToken ? '/doctor-dashboard' : rToken ? '/reception-patient-check-in' : '/admin-dashboard'} replace />} />
           {/* Admin Route */}
@@ -68,6 +69,7 @@ const App = () => {
           <Route path='/reception-add-sessions' element={<AddSessions />} />
           <Route path='/reception-refunds' element={<RefundsForReception />} />
         </Routes>
+        </div>
       </div>
     </div>
   ) : (

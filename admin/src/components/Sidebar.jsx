@@ -11,7 +11,7 @@ import { MessageSquareText, Calendar, Settings, Stethoscope, UserRoundPen, Calen
 const Sidebar = () => {
 
   const { aToken } = useContext(AdminContext)
-  const { dToken } = useContext(DoctorContext)
+  const { dToken, profileData, getProfileData, backendUrl } = useContext(DoctorContext)
   const { rToken } = useContext(ReceptionContext)
   const { getDashData, dashData } = useContext(AdminContext)
 
@@ -21,8 +21,18 @@ const Sidebar = () => {
     }
   }, [aToken])
 
+  useEffect(() => {
+    if (dToken) {
+      getProfileData()
+    }
+  }, [dToken])
+
+  const displayName = dToken ? (profileData.name || 'Doctor') : aToken ? 'Admin' : rToken ? 'Receptionist' : ''
+  const roleLabel = dToken ? 'Doctor' : aToken ? 'Admin' : rToken ? 'Reception' : ''
+
   return (
-    <div className='min-h-screen bg-white border-r'>
+    <div className='flex flex-col justify-between h-full bg-white border-r'>
+      <div className='overflow-y-auto'>
       {
         aToken && <ul className='text-[#515151] mt-5'>
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-dashboard'}>
@@ -137,6 +147,20 @@ const Sidebar = () => {
           </NavLink>
         </ul>
       }
+      </div>
+
+      {(aToken || dToken || rToken) && (
+        <div className='flex items-center gap-3 p-4 border-t'>
+          {dToken && profileData.image
+            ? <img src={`${backendUrl}${profileData.image}`} alt="" className='object-cover rounded-full w-9 h-9' />
+            : <div className='flex items-center justify-center text-sm font-semibold text-white rounded-full w-9 h-9 bg-primary'>{displayName.charAt(0).toUpperCase()}</div>
+          }
+          <div className='hidden md:block'>
+            <p className='text-sm font-medium text-gray-700'>{displayName}</p>
+            <p className='text-xs text-gray-400'>{roleLabel}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

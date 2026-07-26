@@ -89,7 +89,7 @@ const DoctorProfile = () => {
   if (!profileData) return null
 
   return (
-    <div className='flex flex-col gap-6 m-5'>
+    <div className='flex flex-col w-full max-w-2xl gap-6 m-5'>
 
       {/* Avatar + name header */}
       <div className='flex items-center gap-5'>
@@ -115,7 +115,7 @@ const DoctorProfile = () => {
         </div>
       </div>
 
-      <div className='bg-white border border-stone-100 rounded-xl p-8'>
+      <div className='p-8 bg-white border border-stone-100 rounded-xl'>
 
         {/* Read-only fields */}
         <div className='flex flex-wrap gap-6 pb-6 mb-6 border-b border-gray-100'>
@@ -140,36 +140,36 @@ const DoctorProfile = () => {
         {/* Editable fields */}
         <div className='flex flex-col gap-4 text-gray-600'>
 
-          <div className='flex flex-col lg:flex-row gap-6'>
-            <div className='flex flex-col gap-1 flex-1'>
+          <div className='flex flex-col gap-6 lg:flex-row'>
+            <div className='flex flex-col flex-1 gap-1'>
               <p className='text-sm'>Name</p>
               {isEdit
-                ? <input value={name} onChange={(e) => setName(e.target.value)} className='border rounded px-3 py-2 text-sm' type='text' required />
+                ? <input value={name} onChange={(e) => setName(e.target.value)} className='px-3 py-2 text-sm border rounded' type='text' required />
                 : <p className='text-sm text-gray-800'>{profileData.name}</p>}
             </div>
-            <div className='flex flex-col gap-1 flex-1'>
+            <div className='flex flex-col flex-1 gap-1'>
               <p className='text-sm'>Email</p>
               {isEdit
-                ? <input value={email} onChange={(e) => setEmail(e.target.value)} className='border rounded px-3 py-2 text-sm' type='email' required />
+                ? <input value={email} onChange={(e) => setEmail(e.target.value)} className='px-3 py-2 text-sm border rounded' type='email' required />
                 : <p className='text-sm text-gray-800'>{profileData.email}</p>}
             </div>
           </div>
 
-          <div className='flex flex-col lg:flex-row gap-6'>
-            <div className='flex flex-col gap-1 flex-1'>
+          <div className='flex flex-col gap-6 lg:flex-row'>
+            <div className='flex flex-col flex-1 gap-1'>
               <p className='text-sm'>Experience</p>
               {isEdit
-                ? <select value={experience} onChange={(e) => setExperience(e.target.value)} className='border rounded px-3 py-2 text-sm'>
+                ? <select value={experience} onChange={(e) => setExperience(e.target.value)} className='px-3 py-2 text-sm border rounded'>
                     {['1 Year','2 Year','3 Year','4 Year','5 Year','6 Year','7 Year','8 Year','9 Year','10 Year'].map(y => (
                       <option key={y} value={y}>{y}</option>
                     ))}
                   </select>
                 : <p className='text-sm text-gray-800'>{profileData.experience}</p>}
             </div>
-            <div className='flex flex-col gap-1 flex-1'>
+            <div className='flex flex-col flex-1 gap-1'>
               <p className='text-sm'>Practising Government Hospital</p>
               {isEdit
-                ? <select value={governmentHospital} onChange={(e) => setGovernmentHospital(e.target.value)} className='border rounded px-3 py-2 text-sm'>
+                ? <select value={governmentHospital} onChange={(e) => setGovernmentHospital(e.target.value)} className='px-3 py-2 text-sm border rounded'>
                     <option value=''>Not Applicable</option>
                     {Hospitals.map(h => <option key={h} value={h}>{h}</option>)}
                   </select>
@@ -181,8 +181,8 @@ const DoctorProfile = () => {
             <p className='text-sm'>Address</p>
             {isEdit ? (
               <div className='flex flex-col gap-2'>
-                <input value={address1} onChange={(e) => setAddress1(e.target.value)} className='border rounded px-3 py-2 text-sm' type='text' placeholder='Address line 1' />
-                <input value={address2} onChange={(e) => setAddress2(e.target.value)} className='border rounded px-3 py-2 text-sm' type='text' placeholder='Address line 2' />
+                <input value={address1} onChange={(e) => setAddress1(e.target.value)} className='px-3 py-2 text-sm border rounded' type='text' placeholder='Address line 1' />
+                <input value={address2} onChange={(e) => setAddress2(e.target.value)} className='px-3 py-2 text-sm border rounded' type='text' placeholder='Address line 2' />
               </div>
             ) : (
               <p className='text-sm text-gray-800'>{profileData.address?.line1}{profileData.address?.line2 ? `, ${profileData.address.line2}` : ''}</p>
@@ -192,8 +192,8 @@ const DoctorProfile = () => {
           <div className='flex flex-col gap-1'>
             <p className='text-sm'>About</p>
             {isEdit
-              ? <textarea value={about} onChange={(e) => setAbout(e.target.value)} className='border rounded px-3 py-2 text-sm' rows={4} placeholder='Write about yourself' />
-              : <p className='text-sm text-gray-800 max-w-2xl'>{profileData.about || '—'}</p>}
+              ? <textarea value={about} onChange={(e) => setAbout(e.target.value)} className='px-3 py-2 text-sm border rounded' rows={4} placeholder='Write about yourself' />
+              : <p className='max-w-2xl text-sm text-gray-800'>{profileData.about || '—'}</p>}
           </div>
 
           <div className='flex items-center gap-2'>
