@@ -16,7 +16,7 @@ import DoctorAppointments from './pages/Doctor/DoctorAppointments';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorProfile from './pages/Doctor/DoctorProfile';
 import DoctorAddSession from './pages/Doctor/DoctorAddSession';
-import DoctorGetSession from './pages/Doctor/DoctorGetSession';
+import DoctorSessionSchedule from './pages/Doctor/DoctorSessionSchedule';
 import DocAppointment from './pages/Admin/DocAppointment'
 import Specialities from './pages/Admin/Specialities'
 import Staff from './pages/Admin/Staff'
@@ -26,6 +26,7 @@ import AllAppointmentForReception from './pages/Reception/AllAppointmentForRecep
 import ReceptionSessions from './pages/Reception/SessionsForReception'
 import AddSessions from './pages/Reception/AddSessionsForReception'
 import RefundsForReception from './pages/Reception/RefundsForReception'
+import DoctorSessionHistory from './pages/Doctor/DoctorSessionHistory'
 
 
 const App = () => {
@@ -55,8 +56,9 @@ const App = () => {
           <Route path='/doctor-appointments' element={<DoctorAppointments />} />
           <Route path='/doctor-profile' element={<DoctorProfile />} />
           <Route path='/doctor-add-session' element={<DoctorAddSession />} />
-          <Route path='/doctor-sessions' element={<DoctorGetSession />} />
+          <Route path='/doctor-sessions' element={<DoctorSessionSchedule />} />
           <Route path='/appointments/:doctorId' element={<DocAppointment/>} />
+          <Route path='/doctor-session-history' element={<DoctorSessionHistory />} />
           {/* Reception Route */}
           <Route path='/reception-patient-check-in' element={<PatientCheckIn />} />
           <Route path='/reception-all-appointments' element={<AllAppointmentForReception />} />
