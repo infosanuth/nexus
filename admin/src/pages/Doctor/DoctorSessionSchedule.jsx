@@ -39,24 +39,11 @@ const DoctorSessionSchedule = () => {
   }, [dToken])
 
   const today = todayUTC()
+  const todayInputValue = new Date().toLocaleDateString('en-CA')
 
-  const now = new Date()
-  const todayInputValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-
-  const handleQuickPill = (value) => {
-    setDateFilter(value)
-    setSpecificDate('')
-  }
-
-  const handleDateInput = (e) => {
-    setSpecificDate(e.target.value)
-    setDateFilter('all')
-  }
-
-  const clearSpecificDate = () => {
-    setSpecificDate('')
-    if (dateInputRef.current) dateInputRef.current.value = ''
-  }
+  const handleQuickPill = (value) => { setDateFilter(value); setSpecificDate('') }
+  const handleDateInput = (e) => { setSpecificDate(e.target.value); setDateFilter('all') }
+  const clearSpecificDate = () => setSpecificDate('')
 
   const isFiltered = dateFilter !== 'all' || specificDate || statusFilter !== 'all'
 
@@ -64,7 +51,6 @@ const DoctorSessionSchedule = () => {
     setDateFilter('all')
     setSpecificDate('')
     setStatusFilter('all')
-    if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
   const upcomingSessions = sessions.filter((item) => {
@@ -109,6 +95,13 @@ const DoctorSessionSchedule = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Sessions')
     XLSX.writeFile(wb, `session-schedule-${todayInputValue}.xlsx`)
   }
+
+  // Pagination 
+  const PAGE_SIZE = 10
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(upcomingSessions.length / PAGE_SIZE))
+  const paginatedSessions = upcomingSessions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // End pagination 
 
   return (
     <div className='w-full max-w-6xl m-5'>
@@ -205,9 +198,11 @@ const DoctorSessionSchedule = () => {
           <p className='text-center'>Action</p>
         </div>
 
-        {upcomingSessions.length === 0
+        {paginatedSessions.length === 0
+        // {upcomingSessions.length === 0
           ? <p className='p-6 text-gray-500'>No sessions found</p>
-          : upcomingSessions.map((item, index) => (
+          : paginatedSessions.map((item, index) => (
+            // : upcomingSessions.map((item, index) => (
             <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1fr_1fr_1fr_1fr_1fr_0.5fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={item._id}>
               <p className='max-sm:hidden'>{index + 1}</p>
               <p>{new Date(item.date).toLocaleDateString('en-GB')}</p>
@@ -226,6 +221,15 @@ const DoctorSessionSchedule = () => {
           ))
         }
       </div>
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className='flex items-center justify-end gap-3 px-2 py-3'>
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Prev</button>
+          <span className='text-xs font-medium text-gray-400'>Page {page} of {totalPages}</span>
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Next</button>
+        </div>
+      )}
     </div>
   )
 }
