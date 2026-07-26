@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { DoctorContext } from '../../context/DoctorContext'
 import { Ban, CalendarDays, Download, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
@@ -27,6 +28,7 @@ const STATUS_OPTIONS = [
 const DoctorSessionSchedule = () => {
 
   const { dToken, sessions, getSessions, cancelSession } = useContext(DoctorContext)
+  const navigate = useNavigate()
   const [dateFilter, setDateFilter] = useState('all')
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -217,7 +219,7 @@ const DoctorSessionSchedule = () => {
           ? <p className='p-6 text-gray-500'>No sessions found</p>
           : paginatedSessions.map((item, index) => (
             // : upcomingSessions.map((item, index) => (
-            <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1fr_1fr_1fr_1fr_1fr_0.5fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={item._id}>
+            <div onClick={() => navigate(`/doctor-session-appointments/${item._id}`)} className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1fr_1fr_1fr_1fr_1fr_0.5fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50 cursor-pointer' key={item._id}>
               <p className='max-sm:hidden'>{index + 1}</p>
               <p>{new Date(item.date).toLocaleDateString('en-GB')}</p>
               <p>{item.startTime}</p>
