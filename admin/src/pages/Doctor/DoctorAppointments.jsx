@@ -1,7 +1,8 @@
 import React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useContext } from 'react'
-import { CalendarDays, Search, X } from 'lucide-react'
+import { CalendarDays, Download, Search, X } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { DoctorContext } from '../../context/DoctorContext'
 import { AppContext } from '../../context/AppContext'
 
@@ -76,6 +77,8 @@ const DoctorAppointments = () => {
   }
 
   const filteredAppointments = appointments.filter((item) => {
+    if (!item.payment) return false
+
     const itemDay = slotDateToUTC(item.slotDate)
 
     if (specificDate) {
@@ -94,6 +97,33 @@ const DoctorAppointments = () => {
 
     return true
   }).reverse()
+
+  const handleExport = () => {
+    const header = ['Ref', 'Patient', 'Age', 'Gender', 'Date', 'Time', 'Method']
+    const rows = filteredAppointments.map((item) => [
+      item.ref || '-',
+      item.userData.name,
+      item.userData.age || calculateAge(item.userData.dob),
+      item.userData.gender || 'Not Selected',
+      slotDateFormat(item.slotDate),
+      item.slotTime,
+      item.isWalkIn ? 'Walk-in' : 'Online'
+    ])
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
+    ws['!cols'] = [
+      { wch: 10 }, // Ref
+      { wch: 20 }, // Patient
+      { wch: 8 },  // Age
+      { wch: 12 }, // Gender
+      { wch: 14 }, // Date
+      { wch: 10 }, // Time
+      { wch: 10 }, // Method
+    ]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Appointments')
+    XLSX.writeFile(wb, `appointments-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
 
   // Pagination
   const PAGE_SIZE = 10
@@ -180,7 +210,14 @@ const DoctorAppointments = () => {
           </button>
         )}
 
-        <div className='relative w-56 ml-auto'>
+        <button
+          onClick={handleExport}
+          className='flex items-center gap-1.5 px-3 py-1.5 ml-auto text-xs font-medium text-gray-600 transition-colors border rounded-lg hover:border-gray-300 hover:text-gray-800'
+        >
+          <Download size={14} /> Export
+        </button>
+
+        <div className='relative w-56'>
           <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
           <input
             type='text'
