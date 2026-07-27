@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const appointmentSchema = new mongoose.Schema({
+    ref: { type: Number, unique: true, sparse: true, default: null },
     userId: { type: String, required: true },
     docId: { type: String, required: true },
     slotDate: { type: String, required: true },

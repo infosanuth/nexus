@@ -3,6 +3,7 @@ import doctorModel from "../models/doctorModel.js";
 import sessionModel from "../models/sessionModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import specialityModel from "../models/specialityModel.js";
+import generateAppointmentId from "../utils/generateAppointmentId.js";
 import { refundPayHerePayment, getPayHerePaymentIdByOrderId } from "../middleware/payhere.js";
 
 // Helper to convert a 24-hour "HH:MM" session start time to a 12-hour "h:mm AM/PM" slot time
@@ -67,6 +68,7 @@ const bookWalkInAppointment = async (req, res) => {
         const hospitalCharge = (await specialityModel.findOne({ speciality: docData.speciality }))?.channelingFee ?? 0
 
         const appointmentData = {
+            ref: await generateAppointmentId(),
             userId: `walkin-${new mongoose.Types.ObjectId()}`,
             docId,
             slotDate,

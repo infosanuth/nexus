@@ -7,6 +7,7 @@ import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import sessionModel from "../models/sessionModel.js";
 import specialityModel from "../models/specialityModel.js";
+import generateAppointmentId from "../utils/generateAppointmentId.js";
 import crypto from 'crypto';
 import transporter from "../config/nodemailer.js";
 import { sendSMS } from "../config/twilio.js";
@@ -481,6 +482,7 @@ const bookAppointment = async (req, res) => {
         }
 
         const appointmentData = {
+            ref: await generateAppointmentId(),
             userId,
             docId,
             userData,
