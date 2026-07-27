@@ -96,6 +96,35 @@ const Appointment = () => {
     setShowOtherPatientForm(true)
   }
 
+  const handlePayForOther = () => {
+    const trimmedName = otherPatientName.trim()
+
+    if (trimmedName.length < 8 || trimmedName.length > 20) {
+      return toast.error('Patient name must be 8-20 characters long')
+    }
+
+    const trimmedPhone = otherPatientPhone.trim()
+
+    if (trimmedPhone.length !== 10 || trimmedPhone[0] !== '0' || trimmedPhone[1] !== '7') {
+      return toast.error('Enter a valid phone number')
+    }
+
+    let isAllDigits = true
+    for (let i = 0; i < trimmedPhone.length; i++) {
+      if (trimmedPhone[i] < '0' || trimmedPhone[i] > '9') {
+        isAllDigits = false
+        break
+      }
+    }
+    if (!isAllDigits) {
+      return toast.error('Enter a valid phone number')
+    }
+
+    if (!otherPatientAge || Number(otherPatientAge) <= 0) {
+      return toast.error('Age must be a positive number')
+    }
+  }
+
   const confirmBooking = () => {
     setShowBookingDialog(false)
     bookAppointment()
@@ -295,7 +324,7 @@ const Appointment = () => {
             ? <div className='max-w-md'>
               <button
                 onClick={() => setShowOtherPatientForm(false)}
-                className='flex items-center w-fit gap-3 px-5 py-3 text-sm font-medium bg-white border rounded-lg border-primary text-primary'
+                className='flex items-center gap-3 px-5 py-3 text-sm font-medium bg-white border rounded-lg w-fit border-primary text-primary'
               >
                 <img className='w-3 rotate-180' src={assets.arrow_icon} alt="" />
                 {selectedDate &&
@@ -363,7 +392,10 @@ const Appointment = () => {
                   </div>
                 </div>
 
-                <button className='w-full py-3 mt-6 text-sm font-medium text-white transition-colors rounded-full bg-primary hover:bg-primary/90'>
+                <button
+                  onClick={handlePayForOther}
+                  className='w-full py-3 mt-6 text-sm font-medium text-white transition-colors rounded-full bg-primary hover:bg-primary/90'
+                >
                   Pay
                 </button>
               </div>
