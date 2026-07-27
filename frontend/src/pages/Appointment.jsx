@@ -38,7 +38,7 @@ const Appointment = () => {
   const [showBookingDialog, setShowBookingDialog] = useState(false)
   const [showOtherPatientForm, setShowOtherPatientForm] = useState(false)
   const [otherPatientName, setOtherPatientName] = useState('')
-  const [otherPatientDob, setOtherPatientDob] = useState('')
+  const [otherPatientAge, setOtherPatientAge] = useState('')
   const [otherPatientGender, setOtherPatientGender] = useState('')
   const [otherPatientPhone, setOtherPatientPhone] = useState('')
 
@@ -308,6 +308,54 @@ const Appointment = () => {
                   </>
                 }
               </button>
+
+              <div className='flex flex-col gap-3 mt-6'>
+                <div className='w-full'>
+                  <p className='mb-1 text-sm text-gray-600'>Patient Name</p>
+                  <input
+                    type='text'
+                    value={otherPatientName}
+                    onChange={(e) => setOtherPatientName(e.target.value)}
+                    className='w-full p-2 border rounded border-zinc-300'
+                  />
+                </div>
+
+                <div className='w-full'>
+                  <p className='mb-1 text-sm text-gray-600'>Phone Number</p>
+                  <input
+                    type='tel'
+                    value={otherPatientPhone}
+                    onChange={(e) => setOtherPatientPhone(e.target.value)}
+                    className='w-full p-2 border rounded border-zinc-300'
+                  />
+                </div>
+
+                <div className='flex gap-3'>
+                  <div className='w-1/2'>
+                    <p className='mb-1 text-sm text-gray-600'>Age</p>
+                    <input
+                      type='number'
+                      min='0'
+                      value={otherPatientAge}
+                      onChange={(e) => setOtherPatientAge(e.target.value)}
+                      className='w-full p-2 border rounded border-zinc-300'
+                    />
+                  </div>
+
+                  <div className='w-1/2'>
+                    <p className='mb-1 text-sm text-gray-600'>Gender</p>
+                    <select
+                      value={otherPatientGender}
+                      onChange={(e) => setOtherPatientGender(e.target.value)}
+                      className='w-full p-2 border rounded border-zinc-300'
+                    >
+                      <option value=''>Select</option>
+                      <option value='Male'>Male</option>
+                      <option value='Female'>Female</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
             : <div className='flex flex-col gap-6 md:flex-row'>
 
