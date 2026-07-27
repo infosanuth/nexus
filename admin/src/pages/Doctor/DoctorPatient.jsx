@@ -82,7 +82,7 @@ const DoctorPatient = () => {
     <div className='w-full max-w-6xl m-5'>
 
       <div className='flex flex-wrap items-center justify-between gap-3 mb-3'>
-        <p className='text-lg font-medium'>All Patients</p>
+        <p className='text-lg font-medium'>All Patients <span className='text-sm font-normal text-gray-400'>({filteredPatients.length})</span></p>
 
         <div className='flex items-center gap-3'>
           <div className='relative w-64'>
@@ -111,7 +111,7 @@ const DoctorPatient = () => {
       </div>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
-        <div className='max-sm:hidden grid grid-cols-[0.4fr_1.6fr_1.2fr_0.6fr_0.9fr_1fr_1fr] gap-1 py-3 px-6 border-b'>
+        <div className='max-sm:hidden grid grid-cols-[0.4fr_1.6fr_1.2fr_0.6fr_0.9fr_1fr_1fr] gap-1 py-3 px-6 border-b bg-gray-50 text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>
           <p>#</p>
           <p>Patient</p>
           <p>Phone Number</p>
@@ -129,7 +129,7 @@ const DoctorPatient = () => {
             <p className='max-sm:hidden'>{item.age}</p>
             <p>{item.gender}</p>
             <div>
-              <p className='inline px-2 text-xs border rounded-full border-primary'>
+              <p className={`inline px-2 py-0.5 text-xs border rounded-full ${item.method === 'Walk-in' ? 'border-amber-300 text-amber-600 bg-amber-50' : 'border-primary/30 text-primary bg-primary/5'}`}>
                 {item.method}
               </p>
             </div>
