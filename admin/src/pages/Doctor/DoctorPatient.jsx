@@ -1,6 +1,7 @@
 import React from 'react'
 import { useEffect, useMemo, useContext, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import { Download, Search, X } from 'lucide-react'
+import * as XLSX from 'xlsx'
 import { DoctorContext } from '../../context/DoctorContext'
 import { AppContext } from '../../context/AppContext'
 
@@ -41,6 +42,31 @@ const DoctorPatient = () => {
     return item.name?.toLowerCase().includes(term) || item.phone?.toLowerCase().includes(term)
   })
 
+  const handleExport = () => {
+    const header = ['Patient', 'Phone Number', 'Age', 'Gender', 'Method', 'Appointments']
+    const rows = filteredPatients.map((item) => [
+      item.name,
+      item.phone,
+      item.age,
+      item.gender,
+      item.method,
+      item.count
+    ])
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
+    ws['!cols'] = [
+      { wch: 20 }, // Patient
+      { wch: 15 }, // Phone Number
+      { wch: 8 },  // Age
+      { wch: 12 }, // Gender
+      { wch: 10 }, // Method
+      { wch: 12 }, // Appointments
+    ]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Patients')
+    XLSX.writeFile(wb, `patients-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
   // Pagination
   const PAGE_SIZE = 10
   const [page, setPage] = useState(1)
@@ -55,23 +81,32 @@ const DoctorPatient = () => {
   return (
     <div className='w-full max-w-6xl m-5'>
 
-      <p className='mb-3 text-lg font-medium'>All Patients</p>
+      <div className='flex flex-wrap items-center justify-between gap-3 mb-3'>
+        <p className='text-lg font-medium'>All Patients</p>
 
-      <div className='flex items-center px-5 py-3 mb-3 bg-white border rounded-xl'>
-        <div className='relative w-64 ml-auto'>
-          <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
-          <input
-            type='text'
-            placeholder='Search by name or phone number'
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className='w-full py-1.5 pl-8 pr-8 text-sm border rounded-lg focus:outline-none focus:border-primary'
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500'>
-              <X size={13} />
-            </button>
-          )}
+        <div className='flex items-center gap-3'>
+          <div className='relative w-64'>
+            <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
+            <input
+              type='text'
+              placeholder='Search by name or phone number'
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className='w-full py-1.5 pl-8 pr-8 text-sm border rounded-lg focus:outline-none focus:border-primary'
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500'>
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={handleExport}
+            className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800'
+          >
+            <Download size={14} /> Export
+          </button>
         </div>
       </div>
 
