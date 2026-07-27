@@ -309,52 +309,63 @@ const Appointment = () => {
                 }
               </button>
 
-              <div className='flex flex-col gap-3 mt-6'>
-                <div className='w-full'>
-                  <p className='mb-1 text-sm text-gray-600'>Patient Name</p>
-                  <input
-                    type='text'
-                    value={otherPatientName}
-                    onChange={(e) => setOtherPatientName(e.target.value)}
-                    className='w-full p-2 border rounded border-zinc-300'
-                  />
-                </div>
+              <div className='p-5 mt-6 bg-white border border-gray-200 shadow-sm rounded-xl'>
+                <p className='mb-4 text-sm font-semibold text-gray-800'>Patient Details</p>
 
-                <div className='w-full'>
-                  <p className='mb-1 text-sm text-gray-600'>Phone Number</p>
-                  <input
-                    type='tel'
-                    value={otherPatientPhone}
-                    onChange={(e) => setOtherPatientPhone(e.target.value)}
-                    className='w-full p-2 border rounded border-zinc-300'
-                  />
-                </div>
-
-                <div className='flex gap-3'>
-                  <div className='w-1/2'>
-                    <p className='mb-1 text-sm text-gray-600'>Age</p>
+                <div className='flex flex-col gap-4'>
+                  <div className='w-full'>
+                    <label className='block mb-1.5 text-sm font-medium text-gray-700'>Patient Name</label>
                     <input
-                      type='number'
-                      min='0'
-                      value={otherPatientAge}
-                      onChange={(e) => setOtherPatientAge(e.target.value)}
-                      className='w-full p-2 border rounded border-zinc-300'
+                      type='text'
+                      placeholder='Enter full name'
+                      value={otherPatientName}
+                      onChange={(e) => setOtherPatientName(e.target.value)}
+                      className='w-full px-3 py-2.5 text-sm border rounded-lg border-gray-300 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary'
                     />
                   </div>
 
-                  <div className='w-1/2'>
-                    <p className='mb-1 text-sm text-gray-600'>Gender</p>
-                    <select
-                      value={otherPatientGender}
-                      onChange={(e) => setOtherPatientGender(e.target.value)}
-                      className='w-full p-2 border rounded border-zinc-300'
-                    >
-                      <option value=''>Select</option>
-                      <option value='Male'>Male</option>
-                      <option value='Female'>Female</option>
-                    </select>
+                  <div className='w-full'>
+                    <label className='block mb-1.5 text-sm font-medium text-gray-700'>Phone Number</label>
+                    <input
+                      type='tel'
+                      placeholder='07XXXXXXXX'
+                      value={otherPatientPhone}
+                      onChange={(e) => setOtherPatientPhone(e.target.value)}
+                      className='w-full px-3 py-2.5 text-sm border rounded-lg border-gray-300 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary'
+                    />
+                  </div>
+
+                  <div className='flex gap-4'>
+                    <div className='w-1/2'>
+                      <label className='block mb-1.5 text-sm font-medium text-gray-700'>Age</label>
+                      <input
+                        type='number'
+                        min='0'
+                        placeholder='Age'
+                        value={otherPatientAge}
+                        onChange={(e) => setOtherPatientAge(e.target.value)}
+                        className='w-full px-3 py-2.5 text-sm border rounded-lg border-gray-300 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary'
+                      />
+                    </div>
+
+                    <div className='w-1/2'>
+                      <label className='block mb-1.5 text-sm font-medium text-gray-700'>Gender</label>
+                      <select
+                        value={otherPatientGender}
+                        onChange={(e) => setOtherPatientGender(e.target.value)}
+                        className='w-full px-3 py-2.5 text-sm bg-white border rounded-lg border-gray-300 outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary'
+                      >
+                        <option value=''>Select</option>
+                        <option value='Male'>Male</option>
+                        <option value='Female'>Female</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
+
+                <button className='w-full py-3 mt-6 text-sm font-medium text-white transition-colors rounded-full bg-primary hover:bg-primary/90'>
+                  Pay
+                </button>
               </div>
             </div>
             : <div className='flex flex-col gap-6 md:flex-row'>
