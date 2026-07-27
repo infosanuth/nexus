@@ -5,6 +5,7 @@ import appointmentModel from "../models/appointmentModel.js";
 import userModel from "../models/userModel.js";
 import specialityModel from "../models/specialityModel.js";
 import staffModel from "../models/staffModel.js";
+import sessionModel from "../models/sessionModel.js";
 
 // API for adding doctor
 const addDoctor = async (req, res) => {
@@ -99,7 +100,15 @@ const appointmentCancel = async (req, res) => {
   try {
 
     const { appointmentId } = req.body
-    await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
+    const appointmentData = await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
+
+    // releasing session slot, if this appointment belonged to a session
+    if (appointmentData?.sessionId) {
+      await sessionModel.findByIdAndUpdate(appointmentData.sessionId, {
+        $pull: { appointments: appointmentData._id },
+        $inc: { bookedPatientsCount: -1 }
+      })
+    }
 
     res.json({ success: true, message: 'Appointment Cancelled' })
 
