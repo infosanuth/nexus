@@ -123,6 +123,12 @@ const Appointment = () => {
     if (!otherPatientAge || Number(otherPatientAge) <= 0) {
       return toast.error('Age must be a positive number')
     }
+
+    if (!otherPatientGender) {
+      return toast.error('Please select gender')
+    }
+
+    bookAppointmentForOther()
   }
 
   const confirmBooking = () => {
@@ -143,6 +149,38 @@ const Appointment = () => {
       const { data } = await axios.post(backendUrl + '/api/user/book-appointment', { docId, slotDate, slotTime }, { headers: { token } })
       if (data.success) {
         // toast.success(data.message)
+        getDoctorsData()
+        getDoctorSessions()
+        payForAppointment(data.appointmentId)
+      } else {
+        toast.error(data.message)
+      }
+
+    } catch (error) {
+      console.log(error)
+      toast.error(error.message)
+    }
+  }
+
+  const bookAppointmentForOther = async () => {
+
+    const session = sessions.find(item => item._id === selectedSessionId)
+
+    const sessionDate = new Date(session.date)
+    const slotDate = `${sessionDate.getUTCDate()}_${sessionDate.getUTCMonth() + 1}_${sessionDate.getUTCFullYear()}`
+    const slotTime = formatTime12(session.startTime)
+
+    const otherPatient = {
+      name: otherPatientName.trim(),
+      phoneNumber: otherPatientPhone.trim(),
+      age: Number(otherPatientAge),
+      gender: otherPatientGender
+    }
+
+    try {
+
+      const { data } = await axios.post(backendUrl + '/api/user/book-appointment', { docId, slotDate, slotTime, otherPatient }, { headers: { token } })
+      if (data.success) {
         getDoctorsData()
         getDoctorSessions()
         payForAppointment(data.appointmentId)
