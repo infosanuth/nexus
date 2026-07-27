@@ -41,6 +41,17 @@ const DoctorPatient = () => {
     return item.name?.toLowerCase().includes(term) || item.phone?.toLowerCase().includes(term)
   })
 
+  // Pagination
+  const PAGE_SIZE = 10
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(filteredPatients.length / PAGE_SIZE))
+  const paginatedPatients = filteredPatients.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // End pagination
+
+  useEffect(() => {
+    setPage(1)
+  }, [search])
+
   return (
     <div className='w-full max-w-6xl m-5'>
 
@@ -75,10 +86,9 @@ const DoctorPatient = () => {
           <p>Appointments</p>
         </div>
 
-        {filteredPatients.map((item, index) => (
-            //  {patients.map((item, index) => (
+        {paginatedPatients.map((item, index) => (
           <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.4fr_1.6fr_1.2fr_0.6fr_0.9fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
-            <p className='max-sm:hidden'>{index + 1}</p>
+            <p className='max-sm:hidden'>{(page - 1) * PAGE_SIZE + index + 1}</p>
             <p>{item.name}</p>
             <p>{item.phone}</p>
             <p className='max-sm:hidden'>{item.age}</p>
@@ -93,6 +103,15 @@ const DoctorPatient = () => {
         ))
         }
       </div>
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className='flex items-center justify-end gap-3 px-2 pt-4'>
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Prev</button>
+          <span className='text-xs font-medium text-gray-400'>Page {page} of {totalPages}</span>
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Next</button>
+        </div>
+      )}
     </div>
   )
 }
