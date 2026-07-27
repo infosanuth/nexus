@@ -1,5 +1,5 @@
 import React from 'react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useContext } from 'react'
 import { DoctorContext } from '../../context/DoctorContext'
 import { AppContext } from '../../context/AppContext'
@@ -14,6 +14,13 @@ const DoctorAppointments = () => {
       getAppointments()
     }
   }, [dToken])
+
+  // Pagination
+  const PAGE_SIZE = 10
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(appointments.length / PAGE_SIZE))
+  const paginatedAppointments = appointments.reverse().slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // End pagination
 
   return (
     <div className='w-full max-w-6xl m-5'>
@@ -31,7 +38,7 @@ const DoctorAppointments = () => {
           <p>Date & Time</p>
         </div>
 
-        {appointments.reverse().map((item, index) => (
+        {paginatedAppointments.map((item, index) => (
           <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.4fr_0.8fr_1.6fr_1fr_0.6fr_0.9fr_1.8fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
             <p className='max-sm:hidden'>{index + 1}</p>
             <p>{item.ref || '-'}</p>
@@ -48,6 +55,15 @@ const DoctorAppointments = () => {
         ))
         }
       </div>
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className='flex items-center justify-end gap-3 px-2 pt-4'>
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Prev</button>
+          <span className='text-xs font-medium text-gray-400'>Page {page} of {totalPages}</span>
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Next</button>
+        </div>
+      )}
     </div>
   )
 }
