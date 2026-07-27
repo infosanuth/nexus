@@ -124,6 +124,14 @@ const appointmentCancel = async (req, res) => {
         if (appointmentData && appointmentData.docId === docId) {
             await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
 
+            // releasing session slot, if this appointment belonged to a session
+            if (appointmentData.sessionId) {
+                await sessionModel.findByIdAndUpdate(appointmentData.sessionId, {
+                    $pull: { appointments: appointmentData._id },
+                    $inc: { bookedPatientsCount: -1 }
+                })
+            }
+
             if (appointmentData.payment === true) {
                 await doctorModel.findByIdAndUpdate(docId, { $inc: { cancelAppointments: 1 } })
             }
@@ -288,6 +296,33 @@ const getSessions = async (req, res) => {
     }
 }
 
+// API for doctor to get a single session's booked appointments
+const getSessionAppointments = async (req, res) => {
+    try {
+
+        const { docId } = req.body
+        const { sessionId } = req.params
+
+        const session = await sessionModel.findById(sessionId).populate('appointments')
+
+        if (!session) {
+            return res.json({ success: false, message: 'Session not found' })
+        }
+
+        if (session.doctorId.toString() !== docId) {
+            return res.json({ success: false, message: 'Not Authorized' })
+        }
+
+        const appointments = session.appointments.filter(item => !item.cancelled)
+
+        res.json({ success: true, session, appointments })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 // API for doctor to cancel a session (kept in the database, marked cancelled)
 const cancelSession = async (req, res) => {
     try {
@@ -341,4 +376,4 @@ const getAvailableSessions = async (req, res) => {
     }
 }
 
-export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, cancelSession, getAvailableSessions }
+export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, getSessionAppointments, cancelSession, getAvailableSessions }
