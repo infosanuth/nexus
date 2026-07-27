@@ -28,29 +28,31 @@ const DoctorAppointments = () => {
       <p className='mb-3 text-lg font-medium'>All Appointments</p>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
-        <div className='max-sm:hidden grid grid-cols-[0.4fr_0.8fr_1.6fr_1fr_0.6fr_0.9fr_1.8fr] gap-1 py-3 px-6 border-b'>
+        <div className='max-sm:hidden grid grid-cols-[0.4fr_0.8fr_1.6fr_0.6fr_0.9fr_1.1fr_1.8fr_1fr] gap-1 py-3 px-6 border-b'>
           <p>#</p>
           <p>Ref</p>
           <p>Patient</p>
-          <p>Method</p>
           <p>Age</p>
           <p>Gender</p>
+          <p>Phone Number</p>
           <p>Date & Time</p>
+          <p>Method</p>
         </div>
 
         {paginatedAppointments.map((item, index) => (
-          <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.4fr_0.8fr_1.6fr_1fr_0.6fr_0.9fr_1.8fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
+          <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.4fr_0.8fr_1.6fr_0.6fr_0.9fr_1.1fr_1.8fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
             <p className='max-sm:hidden'>{index + 1}</p>
             <p>{item.ref || '-'}</p>
             <p>{item.userData.name}</p>
+            <p className='max-sm:hidden'>{item.userData.age || calculateAge(item.userData.dob)}</p>
+            <p>{item.userData.gender || 'Not Selected'}</p>
+            <p>{item.userData.phoneNumber || '-'}</p>
+            <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
             <div>
               <p className='inline px-2 text-xs border rounded-full border-primary'>
                 {item.isWalkIn ? 'Walk-in' : 'Online'}
               </p>
             </div>
-            <p className='max-sm:hidden'>{item.userData.age || calculateAge(item.userData.dob)}</p>
-            <p>{item.userData.gender || 'Not Selected'}</p>
-            <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
           </div>
         ))
         }
