@@ -83,6 +83,19 @@ const Appointment = () => {
     bookAppointment()
   }
 
+  const handleBookForSomeoneElse = () => {
+    if (!token) {
+      toast.warning('Login to book an appointment')
+      return navigate('/login')
+    }
+
+    if (!selectedSessionId) {
+      return toast.error('Please choose a session')
+    }
+
+    setShowOtherPatientForm(true)
+  }
+
   const confirmBooking = () => {
     setShowBookingDialog(false)
     bookAppointment()
@@ -223,6 +236,8 @@ const Appointment = () => {
     .sort((a, b) => a.startTime.localeCompare(b.startTime))
     .slice(0, 3)
 
+  const selectedSession = sessions.find(item => item._id === selectedSessionId)
+
   const hospitalCharge = specialities.find(item => item.speciality === docInfo?.speciality)?.channelingFee ?? 0
 
 
@@ -276,7 +291,25 @@ const Appointment = () => {
 
         {sessions.length === 0
           ? <p className='text-sm text-gray-400'>No sessions available right now</p>
-          : <div className='flex flex-col gap-6 md:flex-row'>
+          : showOtherPatientForm
+            ? <div className='max-w-md'>
+              <button
+                onClick={() => setShowOtherPatientForm(false)}
+                className='flex items-center w-fit gap-3 px-5 py-3 text-sm font-medium bg-white border rounded-lg border-primary text-primary'
+              >
+                <img className='w-3 rotate-180' src={assets.arrow_icon} alt="" />
+                {selectedDate &&
+                  <span>{selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                }
+                {selectedSession &&
+                  <>
+                    <span className='text-primary/30'>|</span>
+                    <span>{formatTime12(selectedSession.startTime)}{selectedSession.endTime ? ` - ${formatTime12(selectedSession.endTime)}` : ''}</span>
+                  </>
+                }
+              </button>
+            </div>
+            : <div className='flex flex-col gap-6 md:flex-row'>
 
             {/* Calendar */}
             <div className='w-full p-4 bg-white border border-blue-200 rounded-xl md:w-72 shrink-0'>
@@ -373,7 +406,7 @@ const Appointment = () => {
 
               <div className='flex gap-3 mt-6'>
                 <button onClick={handleBookClick} className='py-3 text-sm font-light text-white rounded-full bg-primary px-14'>Book for Myself</button>
-                <button onClick={() => !selectedSessionId ? toast.error('Please choose a session') : toast.info('Coming soon')} className='py-3 text-sm font-light border rounded-full border-primary text-primary px-14'>Book for Someone Else</button>
+                <button onClick={handleBookForSomeoneElse} className='py-3 text-sm font-light border rounded-full border-primary text-primary px-14'>Book for Someone Else</button>
               </div>
             </div>
           </div>
