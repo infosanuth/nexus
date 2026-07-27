@@ -412,7 +412,7 @@ const bookAppointment = async (req, res) => {
 
     try {
 
-        const { userId, docId, slotDate, slotTime, } = req.body
+        const { userId, docId, slotDate, slotTime, otherPatient } = req.body
 
         const docData = await doctorModel.findById(docId).select("-password")
 
@@ -466,7 +466,19 @@ const bookAppointment = async (req, res) => {
             }
         }
 
-        const userData = await userModel.findById(userId).select("-password")
+        const loggedInUserData = await userModel.findById(userId).select("-password")
+
+        const userData = otherPatient
+            ? {
+                name: otherPatient.name,
+                phoneNumber: otherPatient.phoneNumber,
+                age: otherPatient.age,
+                gender: otherPatient.gender,
+                email: loggedInUserData.email,
+                image: loggedInUserData.image,
+                bookedForSelf: false
+            }
+            : loggedInUserData
 
         delete docData.slots_booked
 
