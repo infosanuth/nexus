@@ -13,6 +13,8 @@ const DoctorContextProvider = (props) => {
     const [dashData, setDashData] = useState(false)
     const [profileData, setProfileData] = useState(false)
     const [sessions, setSessions] = useState([])
+    const [sessionDetails, setSessionDetails] = useState(false)
+    const [sessionAppointments, setSessionAppointments] = useState([])
 
     // Getting Doctor appointment data from Database using API
     const getAppointments = async () => {
@@ -152,6 +154,44 @@ const DoctorContextProvider = (props) => {
         }
     }
 
+    // Function to get a single session's booked appointments
+    const getSessionAppointments = async (sessionId) => {
+        try {
+
+            const { data } = await axios.get(backendUrl + '/api/doctor/session-appointments/' + sessionId, { headers: { dToken } })
+
+            if (data.success) {
+                setSessionDetails(data.session)
+                setSessionAppointments(data.appointments)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    // Function to mark an appointment within a session as completed
+    const completeSessionAppointment = async (appointmentId, sessionId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/doctor/complete-appointment', { appointmentId }, { headers: { dToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getSessionAppointments(sessionId)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
     // Function to cancel an empty session (kept in the database, marked cancelled)
     const cancelSession = async (sessionId) => {
         try {
@@ -179,7 +219,8 @@ const DoctorContextProvider = (props) => {
         dashData, setDashData, getDashData,
         profileData, setProfileData, getProfileData,
         addSession,
-        sessions, setSessions, getSessions, cancelSession
+        sessions, setSessions, getSessions, cancelSession,
+        sessionDetails, sessionAppointments, getSessionAppointments, completeSessionAppointment
 
 
     }
