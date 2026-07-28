@@ -1,5 +1,5 @@
 import express from 'express'
-import { doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, getSessionAppointments, cancelSession, getAvailableSessions } from '../controllers/doctorController.js'
+import { doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, getSessionAppointments, cancelSession, startSession, endSession, getAvailableSessions } from '../controllers/doctorController.js'
 import authDoctor from '../middleware/authDoctor.js'
 import upload from '../middleware/multer.js'
 
@@ -17,5 +17,7 @@ doctorRoutre.post('/add-session', authDoctor, addSession)
 doctorRoutre.get('/sessions', authDoctor, getSessions)
 doctorRoutre.get('/session-appointments/:sessionId', authDoctor, getSessionAppointments)
 doctorRoutre.post('/cancel-session', authDoctor, cancelSession)
+doctorRoutre.post('/start-session', authDoctor, startSession)
+doctorRoutre.post('/end-session', authDoctor, endSession)
 
 export default doctorRoutre

@@ -354,6 +354,86 @@ const cancelSession = async (req, res) => {
     }
 }
 
+// API for doctor to mark a session as started
+const startSession = async (req, res) => {
+    try {
+
+        const { docId, sessionId } = req.body
+
+        const session = await sessionModel.findById(sessionId)
+
+        if (!session) {
+            return res.json({ success: false, message: 'Session not found' })
+        }
+
+        if (session.doctorId.toString() !== docId) {
+            return res.json({ success: false, message: 'Not Authorized' })
+        }
+
+        const sessionDay = new Date(session.date)
+        const [hours, minutes] = session.startTime.split(':').map(Number)
+        const scheduledStart = new Date(sessionDay.getUTCFullYear(), sessionDay.getUTCMonth(), sessionDay.getUTCDate(), hours, minutes)
+
+        const windowStart = new Date(scheduledStart.getTime() - 20 * 60 * 1000)
+        const windowEnd = new Date(scheduledStart.getTime() + 60 * 60 * 1000)
+        const now = new Date()
+
+        if (now < windowStart) {
+            const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+            return res.json({ success: false, message: `Too early to start. This session opens for starting at ${formatTime(windowStart)}.` })
+        }
+
+        if (now > windowEnd) {
+            const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+            return res.json({ success: false, message: `The window to start this session has closed at ${formatTime(windowEnd)}.` })
+        }
+
+        if (session.appointments.length === 0) {
+            return res.json({ success: false, message: 'Cannot start a session with no appointments booked.' })
+        }
+
+        session.sessionStart = true
+        await session.save()
+
+        res.json({ success: true, message: 'Session Started' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API for doctor to mark a session as ended
+const endSession = async (req, res) => {
+    try {
+
+        const { docId, sessionId } = req.body
+
+        const session = await sessionModel.findById(sessionId)
+
+        if (!session) {
+            return res.json({ success: false, message: 'Session not found' })
+        }
+
+        if (session.doctorId.toString() !== docId) {
+            return res.json({ success: false, message: 'Not Authorized' })
+        }
+
+        if (!session.sessionStart) {
+            return res.json({ success: false, message: 'Session has not been started yet' })
+        }
+
+        session.sessionEnd = true
+        await session.save()
+
+        res.json({ success: true, message: 'Session Ended' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 // API to get a doctor's available sessions for patient booking
 const getAvailableSessions = async (req, res) => {
     try {
@@ -376,4 +456,4 @@ const getAvailableSessions = async (req, res) => {
     }
 }
 
-export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, getSessionAppointments, cancelSession, getAvailableSessions }
+export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, getSessionAppointments, cancelSession, startSession, endSession, getAvailableSessions }

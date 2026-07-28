@@ -11,6 +11,13 @@ const STATUS_OPTIONS = [
   { label: 'Cancelled', value: 'cancelled' },
 ]
 
+const getSessionStatusLabel = (item) => {
+  if (item.status === 'cancelled') return { label: 'Cancelled', className: 'text-red-500' }
+  if (item.sessionEnd) return { label: 'Completed', className: 'text-green-600' }
+  if (item.sessionStart) return { label: 'Not Ended', className: 'text-amber-500' }
+  return { label: 'Not Started', className: 'text-gray-400' }
+}
+
 const DoctorSessionHistory = () => {
 
   const { dToken, sessions, getSessions } = useContext(DoctorContext)
@@ -68,7 +75,7 @@ const DoctorSessionHistory = () => {
       item.endTime || '-',
       item.maxPatients,
       item.bookedPatientsCount,
-      item.status
+      getSessionStatusLabel(item).label
     ])
 
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
@@ -183,8 +190,8 @@ const DoctorSessionHistory = () => {
               <p>{item.startTime}</p>
               <p>{item.endTime || '-'}</p>
               <p className='text-center'>{item.bookedPatientsCount}/{item.maxPatients}</p>
-              <p className={`text-xs font-medium ${item.status === 'cancelled' ? 'text-red-500' : 'text-green-600'}`}>
-                {item.status}
+              <p className={`text-xs font-medium ${getSessionStatusLabel(item).className}`}>
+                {getSessionStatusLabel(item).label}
               </p>
             </div>
           ))

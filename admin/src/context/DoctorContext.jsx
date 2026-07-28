@@ -211,6 +211,44 @@ const DoctorContextProvider = (props) => {
         }
     }
 
+    // Function to mark a session as started
+    const startSession = async (sessionId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/doctor/start-session', { sessionId }, { headers: { dToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getSessionAppointments(sessionId)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    // Function to mark a session as ended (only allowed once the session has started)
+    const endSession = async (sessionId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/doctor/end-session', { sessionId }, { headers: { dToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getSessionAppointments(sessionId)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
     const value = {
         dToken, setDToken,
         backendUrl,
@@ -219,7 +257,7 @@ const DoctorContextProvider = (props) => {
         dashData, setDashData, getDashData,
         profileData, setProfileData, getProfileData,
         addSession,
-        sessions, setSessions, getSessions, cancelSession,
+        sessions, setSessions, getSessions, cancelSession, startSession, endSession,
         sessionDetails, sessionAppointments, getSessionAppointments, completeSessionAppointment
 
 

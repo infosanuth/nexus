@@ -10,6 +10,8 @@ const sessionSchema = new mongoose.Schema({
     bookedPatientsCount: { type: Number, default: 0 },
     status: { type: String, enum: ["active", "cancelled"], default: "active" },
     appointments: [{ type: mongoose.Schema.Types.ObjectId, ref: "appointment", },],
+    sessionStart: { type: Boolean, default: false },
+    sessionEnd: { type: Boolean, default: false },
 },
     { timestamps: true }
 );
