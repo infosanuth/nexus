@@ -6,15 +6,7 @@ import * as XLSX from 'xlsx'
 import { DoctorContext } from '../../context/DoctorContext'
 import { AppContext } from '../../context/AppContext'
 
-const todayUTC = () => {
-  const now = new Date()
-  return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-}
-
-const dateInputToUTC = (val) => {
-  const [y, m, d] = val.split('-').map(Number)
-  return Date.UTC(y, m - 1, d)
-}
+import { todayUTC, dateInputToUTC } from '../../utils/date'
 
 const slotDateToUTC = (slotDate) => {
   const [d, m, y] = slotDate.split('_').map(Number)

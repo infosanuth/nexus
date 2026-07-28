@@ -3,16 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { DoctorContext } from '../../context/DoctorContext'
 import { Ban, CalendarDays, Download, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
-
-const todayUTC = () => {
-  const now = new Date()
-  return Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-}
-
-const dateInputToUTC = (val) => {
-  const [y, m, d] = val.split('-').map(Number)
-  return Date.UTC(y, m - 1, d)
-}
+import { todayUTC, dateInputToUTC } from '../../utils/date'
 
 const QUICK_OPTIONS = [
   { label: 'Today', value: 'today' },
