@@ -1,6 +1,6 @@
-import React, { useContext, useEffect } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Search, X } from 'lucide-react'
 import { DoctorContext } from '../../context/DoctorContext'
 import { AppContext } from '../../context/AppContext'
 import { assets } from '../../assets/assets'
@@ -11,12 +11,19 @@ const DoctorSessionAppointments = () => {
   const navigate = useNavigate()
   const { dToken, sessionDetails, sessionAppointments, getSessionAppointments, completeSessionAppointment } = useContext(DoctorContext)
   const { calculateAge } = useContext(AppContext)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (dToken && sessionId) {
       getSessionAppointments(sessionId)
     }
   }, [dToken, sessionId])
+
+  const filteredAppointments = sessionAppointments.filter((item) => {
+    const term = search.trim().toLowerCase()
+    if (!term) return true
+    return String(item.ref || '').includes(term) || item.userData?.name?.toLowerCase().includes(term)
+  })
 
   return (
     <div className='w-full max-w-6xl m-5'>
@@ -36,6 +43,24 @@ const DoctorSessionAppointments = () => {
             </p>
           )}
         </div>
+        
+        {/* Search */}
+        <div className='relative w-64 ml-auto'>
+          <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
+          <input
+            type='text'
+            placeholder='Search by ref or name'
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className='w-full py-1.5 pl-8 pr-8 text-sm border rounded-lg focus:outline-none focus:border-primary'
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500'>
+              <X size={13} />
+            </button>
+          )}
+        </div>
+
       </div>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
@@ -48,9 +73,9 @@ const DoctorSessionAppointments = () => {
           <p className='text-center'>Action</p>
         </div>
 
-        {sessionAppointments.length === 0
-          ? <p className='p-6 text-gray-500'>No appointments booked for this session</p>
-          : sessionAppointments.map((item, index) => (
+        {filteredAppointments.length === 0
+          ? <p className='p-6 text-gray-500'>{search ? 'No matching appointments' : 'No appointments booked for this session'}</p>
+          : filteredAppointments.map((item, index) => (
             <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1fr_2fr_1fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={item._id}>
               <p className='max-sm:hidden'>{index + 1}</p>
               <p>{item.ref || '-'}</p>
