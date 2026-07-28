@@ -23,8 +23,10 @@ import Specialities from './pages/Admin/Specialities'
 import Staff from './pages/Admin/Staff'
 import { ReceptionContext } from './context/ReceptionContext'
 import PatientCheckIn from './pages/Reception/PatientCheckIn'
+import DoctorsForReception from './pages/Reception/DoctorsForReception'
 import AllAppointmentForReception from './pages/Reception/AllAppointmentForReception'
 import ReceptionSessions from './pages/Reception/SessionsForReception'
+import ReceptionSessionHistory from './pages/Reception/SessionHistoryForReception'
 import AddSessions from './pages/Reception/AddSessionsForReception'
 import RefundsForReception from './pages/Reception/RefundsForReception'
 import DoctorSessionHistory from './pages/Doctor/DoctorSessionHistory'
@@ -44,7 +46,7 @@ const App = () => {
       <Navbar />
       <div className='flex items-start flex-1 min-h-0'>
         <Sidebar />
-        <div className='flex-1 h-full overflow-y-auto'>
+        <div className='flex-1 h-full min-w-0 overflow-y-auto'>
         <Routes>
           <Route path='/' element={<Navigate to={aToken ? '/admin-dashboard' : dToken ? '/doctor-dashboard' : rToken ? '/reception-patient-check-in' : '/admin-dashboard'} replace />} />
           {/* Admin Route */}
@@ -68,8 +70,10 @@ const App = () => {
           <Route path='/doctor-session-appointments-history/:sessionId' element={<DoctorSessionAppointmentsHistory     />} />
           {/* Reception Route */}
           <Route path='/reception-patient-check-in' element={<PatientCheckIn />} />
+          <Route path='/reception-doctors' element={<DoctorsForReception />} />
           <Route path='/reception-all-appointments' element={<AllAppointmentForReception />} />
           <Route path='/reception-sessions' element={<ReceptionSessions />} />
+          <Route path='/reception-session-history' element={<ReceptionSessionHistory />} />
           <Route path='/reception-add-sessions' element={<AddSessions />} />
           <Route path='/reception-refunds' element={<RefundsForReception />} />
         </Routes>

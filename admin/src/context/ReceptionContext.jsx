@@ -111,11 +111,30 @@ const ReceptionContextProvider = (props) => {
         }
     }
 
+    // Function to cancel an empty session (kept in the database, marked cancelled)
+    const cancelSession = async (sessionId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/reception/cancel-session', { sessionId }, { headers: { rToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getSessions()
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
     const value = {
         backendUrl,
         rToken, setRToken,
         appointments, setAppointments, getAppointments,
-        sessions, setSessions, getSessions,
+        sessions, setSessions, getSessions, cancelSession,
         bookWalkInAppointment,
         addSession,
         requestRefund,

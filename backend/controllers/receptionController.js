@@ -226,4 +226,31 @@ const requestRefund = async (req, res) => {
     }
 }
 
-export { bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception, requestRefund }
+// API for reception to cancel an empty session (kept in the database, marked cancelled)
+const cancelSessionReception = async (req, res) => {
+    try {
+
+        const { sessionId } = req.body
+
+        const session = await sessionModel.findById(sessionId)
+
+        if (!session) {
+            return res.json({ success: false, message: 'Session not found' })
+        }
+
+        if (session.bookedPatientsCount > 0 || session.appointments.length > 0) {
+            return res.json({ success: false, message: 'Cannot cancel a session with booked patients' })
+        }
+
+        session.status = 'cancelled'
+        await session.save()
+
+        res.json({ success: true, message: 'Session Cancelled' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export { bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception, requestRefund, cancelSessionReception }
