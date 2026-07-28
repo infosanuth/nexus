@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import { useSearchParams } from 'react-router-dom'
 import { ReceptionContext } from '../../context/ReceptionContext'
 
 // Convert 24-hour "HH:MM" session time to "h:mm AM/PM"
@@ -43,6 +44,7 @@ const SESSIONS_PER_PAGE = 12
 const PatientCheckIn = () => {
 
   const { backendUrl, bookWalkInAppointment } = useContext(ReceptionContext)
+  const [searchParams] = useSearchParams()
 
   const [specialities, setSpecialities] = useState([])
   const [doctors, setDoctors] = useState([])
@@ -135,6 +137,17 @@ const PatientCheckIn = () => {
     setDocId('')
     setDoctorSearch('')
   }, [speciality, doctors])
+
+  // Preselect the doctor when arriving from the "Find Doctors" page (?docId=...)
+  useEffect(() => {
+    const docIdParam = searchParams.get('docId')
+    if (!docIdParam || !doctors.length) return
+    const doc = doctors.find(d => d._id === docIdParam)
+    if (doc) {
+      setDocId(doc._id)
+      setDoctorSearch(doc.name)
+    }
+  }, [doctors, searchParams])
 
   // Load sessions whenever the selected doctor changes
   useEffect(() => {

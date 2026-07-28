@@ -1,0 +1,364 @@
+import React, { useContext, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
+import { CalendarDays, Download, X } from 'lucide-react'
+import * as XLSX from 'xlsx'
+import { ReceptionContext } from '../../context/ReceptionContext'
+import { assets } from '../../assets/assets'
+
+// Matches the grid's `minmax(200px, 1fr)` columns and `gap-4` (1rem) spacing
+const CARD_MIN_WIDTH = 200
+const GRID_GAP = 16
+const ROWS_PER_PAGE = 2
+const MIN_PAGE_SIZE = 6
+
+// Derives the page size from the grid's actual rendered width so each page
+// fills whole rows, regardless of screen size, zoom or display scaling.
+const computePageSize = (containerWidth) => {
+  const columns = Math.max(1, Math.floor((containerWidth + GRID_GAP) / (CARD_MIN_WIDTH + GRID_GAP)))
+  return Math.max(MIN_PAGE_SIZE, columns * ROWS_PER_PAGE)
+}
+
+// "YYYY-MM-DD" key, matches the value format of <input type="date">
+const formatDateKey = (year, month, day) => `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+// session.date is stored as UTC midnight, so read it back using UTC getters
+const getSessionDateKey = (session) => {
+  const d = new Date(session.date)
+  return formatDateKey(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+}
+
+const DoctorsForReception = () => {
+
+  const { backendUrl } = useContext(ReceptionContext)
+  const navigate = useNavigate()
+
+  const [doctors, setDoctors] = useState([])
+  const [specialities, setSpecialities] = useState([])
+  const [filterDoc, setFilterDoc] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(MIN_PAGE_SIZE)
+  const [searchName, setSearchName] = useState('')
+  const [selectedSpeciality, setSelectedSpeciality] = useState('')
+  const [selectedGender, setSelectedGender] = useState('')
+  const [selectedDate, setSelectedDate] = useState('')
+  const [availableDocIds, setAvailableDocIds] = useState(null)
+  const [dateLoading, setDateLoading] = useState(false)
+  const gridWrapperRef = useRef(null)
+  const dateInputRef = useRef(null)
+
+  const today = new Date()
+  const todayStr = formatDateKey(today.getFullYear(), today.getMonth(), today.getDate())
+
+  // Getting all doctors
+  const getDoctors = async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/doctor/list`)
+      if (data.success) setDoctors(data.doctors)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  // Getting all specialities for the speciality filter
+  const getSpecialities = async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/admin/specialities`)
+      if (data.success) setSpecialities(data.specialities)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  useEffect(() => {
+    getDoctors()
+    getSpecialities()
+  }, [])
+
+  useEffect(() => {
+    const el = gridWrapperRef.current
+    if (!el) return
+
+    const updatePageSize = () => {
+      const next = computePageSize(el.offsetWidth)
+      setPageSize(prev => {
+        if (prev !== next) setCurrentPage(1)
+        return next
+      })
+    }
+
+    updatePageSize()
+
+    const observer = new ResizeObserver(updatePageSize)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  // Check which doctors have an open slot on the selected date
+  useEffect(() => {
+    if (!selectedDate) {
+      setAvailableDocIds(null)
+      return
+    }
+
+    let cancelled = false
+    setDateLoading(true)
+
+    Promise.all(
+      doctors.map(doc =>
+        axios.get(`${backendUrl}/api/doctor/sessions/${doc._id}`)
+          .then(({ data }) => {
+            const hasOpenSlot = data.success && data.sessions.some(session =>
+              getSessionDateKey(session) === selectedDate && session.bookedPatientsCount < session.maxPatients
+            )
+            return hasOpenSlot ? doc._id : null
+          })
+          .catch(() => null)
+      )
+    ).then(ids => {
+      if (cancelled) return
+      setAvailableDocIds(new Set(ids.filter(Boolean)))
+      setDateLoading(false)
+    })
+
+    return () => { cancelled = true }
+  }, [selectedDate, doctors, backendUrl])
+
+  const applyFilter = () => {
+    let result = doctors
+
+    if (selectedSpeciality) {
+      result = result.filter(doc => doc.speciality === selectedSpeciality)
+    }
+
+    if (searchName.trim()) {
+      const query = searchName.trim().toLowerCase()
+      result = result.filter(doc => doc.name.toLowerCase().includes(query))
+    }
+
+    if (selectedGender) {
+      result = result.filter(doc => doc.gender === selectedGender)
+    }
+
+    if (selectedDate && availableDocIds) {
+      result = result.filter(doc => availableDocIds.has(doc._id))
+    }
+
+    setFilterDoc(result)
+    setCurrentPage(1)
+  }
+
+  useEffect(() => {
+    applyFilter()
+  }, [doctors, selectedSpeciality, searchName, selectedGender, selectedDate, availableDocIds])
+
+  const totalPages = Math.ceil(filterDoc.length / pageSize)
+  const paginatedDocs = filterDoc.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  )
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const getPageNumbers = () => {
+    const pages = []
+    const delta = 1
+    const left = currentPage - delta
+    const right = currentPage + delta
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= left && i <= right)) {
+        pages.push(i)
+      } else if (i === left - 1 || i === right + 1) {
+        pages.push('...')
+      }
+    }
+    return pages
+  }
+
+  const handleExport = () => {
+    const header = ['Name', 'Speciality', 'Gender', 'Consultation Fee', 'Hospital Charge', 'Total']
+    const rows = filterDoc.map((item) => {
+      const hospitalCharge = specialities.find(s => s.speciality === item.speciality)?.channelingFee ?? 0
+      return [
+        item.name,
+        item.speciality || '-',
+        item.gender || '-',
+        item.fees,
+        hospitalCharge,
+        item.fees + hospitalCharge,
+      ]
+    })
+
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
+    ws['!cols'] = [
+      { wch: 22 }, // Name
+      { wch: 20 }, // Speciality
+      { wch: 10 }, // Gender
+      { wch: 16 }, // Consultation Fee
+      { wch: 16 }, // Hospital Charge
+      { wch: 10 }, // Total
+    ]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Doctors')
+    XLSX.writeFile(wb, `doctors-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
+  return (
+    <div className='m-5'>
+
+      <p className='mb-3 text-lg font-medium'>Find Doctors</p>
+
+      <div className='flex flex-col w-full gap-3 p-4 bg-white border border-gray-200 shadow-sm rounded-xl lg:flex-row lg:flex-wrap lg:items-center'>
+        <div className='relative w-full lg:flex-1 lg:min-w-[240px]'>
+          <svg className='absolute w-4 h-4 text-gray-400 -translate-y-1/2 left-3 top-1/2' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+            <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z' />
+          </svg>
+          <input
+            type='text'
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            placeholder='Search by name'
+            className='w-full py-2 pr-3 text-sm border border-gray-300 rounded-lg outline-none pl-9 bg-gray-50 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary'
+          />
+        </div>
+
+        <select
+          value={selectedSpeciality}
+          onChange={(e) => setSelectedSpeciality(e.target.value)}
+          className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none lg:w-48 bg-gray-50 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary'
+        >
+          <option value=''>All Specialities</option>
+          {specialities.map(item => (
+            <option key={item.speciality} value={item.speciality}>{item.speciality}</option>
+          ))}
+        </select>
+
+        <select
+          value={selectedGender}
+          onChange={(e) => setSelectedGender(e.target.value)}
+          className='w-full px-3 py-2 text-sm border border-gray-300 rounded-lg outline-none lg:w-32 bg-gray-50 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary'
+        >
+          <option value=''>All Genders</option>
+          <option value='Male'>Male</option>
+          <option value='Female'>Female</option>
+        </select>
+
+        <button
+          type='button'
+          onClick={() => dateInputRef.current?.showPicker()}
+          title='Pick a date'
+          className={`relative flex items-center gap-2 px-3 py-2 text-sm border rounded-lg transition-colors ${selectedDate ? 'border-primary/40 text-primary bg-primary/10' : 'border-gray-300 text-gray-500 bg-gray-50 hover:border-primary/40 hover:text-primary'}`}
+        >
+          <CalendarDays size={14} />
+          <span className='text-xs font-semibold tracking-wide uppercase'>Date</span>
+          <input
+            ref={dateInputRef}
+            type='date'
+            value={selectedDate}
+            min={todayStr}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className='absolute inset-0 opacity-0 cursor-pointer'
+          />
+        </button>
+
+        {selectedDate && (
+          <span className='flex items-center gap-1 px-2.5 py-1 text-xs font-medium border rounded-lg text-primary border-primary/30 bg-primary/10'>
+            {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+            <button onClick={() => setSelectedDate('')} className='transition-colors hover:text-red-400'>
+              <X size={11} />
+            </button>
+          </span>
+        )}
+
+        <button
+          onClick={handleExport}
+          className='flex items-center justify-center gap-1.5 w-full lg:w-auto px-3 py-2 text-sm font-medium text-gray-600 transition-colors border border-gray-300 rounded-lg shrink-0 hover:border-gray-400 hover:text-gray-800 lg:ml-auto'
+        >
+          <Download size={14} /> Export
+        </button>
+      </div>
+
+      <div ref={gridWrapperRef} className='flex flex-col w-full gap-6 mt-5'>
+        {dateLoading ? (
+          <p className='text-sm text-gray-400'>Checking availability...</p>
+        ) : paginatedDocs.length > 0 ? (
+          <div
+            className='grid w-full gap-4 gap-y-6'
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}
+          >
+            {paginatedDocs.map((item) => {
+              const hospitalCharge = specialities.find(s => s.speciality === item.speciality)?.channelingFee ?? 0
+
+              return (
+                <div
+                  onClick={() => navigate(`/reception-patient-check-in?docId=${item._id}`)}
+                  className='flex flex-col items-center justify-center w-full max-w-xs gap-2 p-5 text-center transition-all duration-300 bg-white border border-gray-200 cursor-pointer rounded-2xl min-h-[260px] hover:-translate-y-1 hover:shadow-lg justify-self-center'
+                  key={item._id}
+                >
+                  <img src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor} alt={item.name} className='object-cover w-24 h-24 bg-gray-100 rounded-full ring-4 ring-gray-100' />
+                  {item.gender && (
+                    <p className='text-xs font-medium text-gray-600'>
+                      {item.gender}
+                    </p>
+                  )}
+                  <p className='mt-6 font-semibold text-gray-900'>{item.name}</p>
+                  <p className='text-sm text-gray-500'>{item.speciality}</p>
+                  <p className='text-sm font-semibold text-gray-800'>Rs {item.fees + hospitalCharge}</p>
+                  <p className='text-[11px] text-gray-400'>Fee Rs {item.fees} + Hospital Rs {hospitalCharge}</p>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p className='text-sm text-gray-500'>No doctors found.</p>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className='flex flex-wrap items-center justify-center gap-1 mt-2'>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className='px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
+            >
+              Prev
+            </button>
+
+            {getPageNumbers().map((page, idx) =>
+              page === '...'
+                ? <span key={`ellipsis-${idx}`} className='px-1.5 py-1 sm:px-2 sm:py-1.5 text-gray-400 text-xs sm:text-sm select-none'>…</span>
+                : <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={`px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm border rounded transition-all ${currentPage === page ? 'bg-primary text-white border-primary' : 'border-gray-300 hover:bg-gray-100'}`}
+                  >
+                    {page}
+                  </button>
+            )}
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className='px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all'
+            >
+              Next
+            </button>
+          </div>
+        )}
+
+        {/* Page info */}
+        {filterDoc.length > 0 && (
+          <p className='text-xs text-center text-gray-400'>
+            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filterDoc.length)} of {filterDoc.length} doctors
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default DoctorsForReception
