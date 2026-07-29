@@ -121,51 +121,97 @@ const appointmentCancel = async (req, res) => {
 
 const adminDashboard = async (req, res) => {
   try {
-    // Fetch basic counts
-    const doctors = await doctorModel.find({});
-    const users = await userModel.find({});
-    const appointments = await appointmentModel.find({});
-
-    // Get current year and month for filtering revenue
+    // Get current year and month for scoping everything below to this month
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1; // JS months are 0-based
 
-    // Aggregate total revenue for current month where payment true
-    const revenueResult = await appointmentModel.aggregate([
-      { $match: { payment: true } },
-      {
-        $addFields: {
-          createdAtDate: { $toDate: "$date" }  // convert your timestamp field to Date
+    const monthExprMatch = (dateField) => ({
+      $match: {
+        $expr: {
+          $and: [
+            { $eq: [{ $year: dateField }, currentYear] },
+            { $eq: [{ $month: dateField }, currentMonth] }
+          ]
         }
-      },
+      }
+    });
+
+    // Doctor headcounts (live status, not month-scoped)
+    const doctorsCount = await doctorModel.countDocuments({});
+    const availableDoctorsCount = await doctorModel.countDocuments({ available: true });
+
+    // Appointment-based stats, scoped to appointments created this month
+    const [appointmentStats] = await appointmentModel.aggregate([
+      { $addFields: { createdAtDate: { $toDate: "$date" } } },
+      monthExprMatch("$createdAtDate"),
       {
-        $match: {
-          $expr: {
-            $and: [
-              { $eq: [{ $year: "$createdAtDate" }, currentYear] },
-              { $eq: [{ $month: "$createdAtDate" }, currentMonth] }
-            ]
-          }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: "$amount" }
+        $facet: {
+          total: [{ $count: "count" }],
+          completed: [{ $match: { isCompleted: true } }, { $count: "count" }],
+          cancelled: [{ $match: { cancelled: true } }, { $count: "count" }],
+          upcoming: [{ $match: { cancelled: false, isCompleted: false } }, { $count: "count" }],
+          patients: [{ $group: { _id: "$userId" } }, { $count: "count" }],
+          earnings: [
+            { $match: { payment: true, refundPayment: { $ne: true } } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+          ],
+          doctorFees: [
+            { $match: { payment: true, refundPayment: { $ne: true } } },
+            { $group: { _id: null, total: { $sum: "$docData.fees" } } }
+          ],
+          refunds: [
+            { $match: { refundPayment: true } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+          ]
         }
       }
     ]);
 
-    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+    const pick = (facetResult) => facetResult?.[0]?.count ?? 0;
+    const pickSum = (facetResult) => facetResult?.[0]?.total ?? 0;
 
-    // Build dashboard data object
+    const earningsThisMonth = pickSum(appointmentStats.earnings);
+    const doctorFeesThisMonth = pickSum(appointmentStats.doctorFees);
+
+    // Session-based stats, scoped to sessions scheduled this month
+    const [sessionStats] = await sessionModel.aggregate([
+      monthExprMatch("$date"),
+      {
+        $facet: {
+          total: [{ $count: "count" }],
+          completed: [{ $match: { sessionEnd: true } }, { $count: "count" }],
+          upcoming: [{ $match: { status: "active", sessionStart: false } }, { $count: "count" }],
+          cancelled: [{ $match: { status: "cancelled" } }, { $count: "count" }]
+        }
+      }
+    ]);
+
+    // Kept for the "Latest Bookings" list further down the dashboard
+    const latestAppointments = await appointmentModel.find({}).sort({ date: -1 }).limit(5);
+
     const dashData = {
-      doctors: doctors.length,
-      appointments: appointments.length,
-      patients: users.length,
-      latestAppointments: appointments.slice().reverse().slice(0, 5),
-      totalRevenueForCurrentMonth: totalRevenue
+      doctors: doctorsCount,
+      availableDoctors: availableDoctorsCount,
+
+      patientsThisMonth: pick(appointmentStats.patients),
+      totalAppointmentsThisMonth: pick(appointmentStats.total),
+      completedAppointmentsThisMonth: pick(appointmentStats.completed),
+      upcomingAppointmentsThisMonth: pick(appointmentStats.upcoming),
+      cancelledAppointmentsThisMonth: pick(appointmentStats.cancelled),
+
+      sessionsThisMonth: pick(sessionStats.total),
+      completedSessionsThisMonth: pick(sessionStats.completed),
+      upcomingSessionsThisMonth: pick(sessionStats.upcoming),
+      cancelledSessionsThisMonth: pick(sessionStats.cancelled),
+
+      earningsThisMonth,
+      doctorFeesThisMonth,
+      profitThisMonth: earningsThisMonth - doctorFeesThisMonth,
+
+      refundsThisMonth: pickSum(appointmentStats.refunds),
+
+      latestAppointments
     };
 
     res.json({ success: true, dashData });

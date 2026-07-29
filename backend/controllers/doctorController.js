@@ -27,7 +27,7 @@ const CANCEL_RATE_PRIOR_TOTAL = 5
 
 const doctorList = async (req, res) => {
     try {
-        const doctors = await doctorModel.find({}).select(['-password', '-email']).lean()
+        const doctors = await doctorModel.find({ available: true }).select(['-password', '-email']).lean()
 
         const normalize = (value, min, max) => (max === min ? 1 : (value - min) / (max - min))
 

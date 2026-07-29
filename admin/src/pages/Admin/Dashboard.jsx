@@ -4,17 +4,34 @@ import { useRef, useState, useEffect } from "react";
 import { useContext } from 'react'
 import { assets } from '../../assets/assets'
 import { AppContext } from '../../context/AppContext'
-import { UserRoundPen, CalendarSearch, SquareUserRound, DollarSign, Users } from 'lucide-react';
+import {
+  Stethoscope, UserCheck, Users,
+  CalendarDays, CalendarCheck, CalendarClock, CalendarX,
+  Layers, ListChecks, Hourglass, XCircle,
+  Wallet, TrendingUp, Undo2,
+} from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { PieChart, Pie, Cell, Legend } from 'recharts';
 import { ClipboardMinus } from 'lucide-react';
 import html2pdf from 'html2pdf.js'
 
 
+const StatCard = ({ icon: Icon, value, label }) => (
+  <div className='flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200'>
+    <div className='flex items-center justify-center w-11 h-11 shrink-0 rounded-lg border border-gray-200 bg-gray-50 text-gray-700'>
+      <Icon className='w-5 h-5' strokeWidth={1.75} />
+    </div>
+    <div className='min-w-0'>
+      <p className='text-xl font-semibold text-gray-800 leading-tight truncate'>{value}</p>
+      <p className='text-xs text-gray-500 truncate'>{label}</p>
+    </div>
+  </div>
+)
+
 const Dashboard = () => {
 
   const { aToken, getDashData, cancelAppointment, dashData, monthlyRevenue, getMonthlyRevenue, appointmentBySpeciallity, SpecialtyPieChart } = useContext(AdminContext)
-  const { slotDateFormat } = useContext(AppContext)
+  const { slotDateFormat, currency } = useContext(AppContext)
 
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28CFD', '#FF6384', '#36A2EB'];
@@ -55,55 +72,36 @@ const Dashboard = () => {
     // html2pdf(element1)
   }
 
+  const today = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+
   return dashData && (
     <div className='m-5'>
-      <div className=' flex flex-wrap gap-3'>
+      <p className='text-lg font-semibold text-gray-700 mb-4'>{today}</p>
 
-        <div className='flex items-center gap-3 bg-white p-4 min-w-60 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200 '>
-          {/* <img className='w-14' src={assets.doctor_icon} alt="" /> */}
-          <UserRoundPen className='w-10 h-9 border border-slate-100  text-blue-700 bg-slate-100 rounded-xl p-1.5' />
-          <div >
-            <p className='text-xl font-semibold text-gray-600'>{dashData.doctors}</p>
-            <p className='text-sm text-gray-400'>Doctors</p>
-          </div>
-        </div>
+      <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'>
 
-        <div className='flex items-center gap-3 bg-white p-4 min-w-60 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200'>
-          {/* <img className='w-14' src={assets.appointments_icon} alt="" /> */}
-          <CalendarSearch className='w-10 h-9 border border-indigo-100 text-purple-500 bg-purple-100 rounded-xl p-1.5' />
-          <div >
-            <p className='text-xl font-semibold text-gray-600'>{dashData.appointments}</p>
-            <p className='text-sm text-gray-400'>Appointments</p>
-          </div>
-        </div>
+        <StatCard icon={Stethoscope} value={dashData.doctors} label='Doctors' />
+        <StatCard icon={UserCheck} value={dashData.availableDoctors} label='Available Doctors' />
+        <StatCard icon={Users} value={dashData.patientsThisMonth} label='Patients (This Month)' />
 
-        <div className="flex items-center gap-3 bg-white p-4 min-w-60 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200">
-          {/* <img className='w-14' src={assets.patients_icon} alt="" /> */}
-          <SquareUserRound className="w-10 h-9 text-indigo-600 bg-indigo-100 border border-indigo-200 rounded-xl p-1.5" />
-          <div>
-            <p className="text-xl font-semibold text-gray-800">{dashData.patients}</p>
-            <p className="text-sm text-gray-400">Patients</p>
-          </div>
-        </div>
+        <StatCard icon={CalendarDays} value={dashData.totalAppointmentsThisMonth} label='Total Appointments' />
+        <StatCard icon={CalendarCheck} value={dashData.completedAppointmentsThisMonth} label='Completed Appointments' />
+        <StatCard icon={CalendarClock} value={dashData.upcomingAppointmentsThisMonth} label='Upcoming Appointments' />
+        <StatCard icon={CalendarX} value={dashData.cancelledAppointmentsThisMonth} label='Cancelled Appointments' />
 
+        <StatCard icon={Layers} value={dashData.sessionsThisMonth} label='Sessions (This Month)' />
+        <StatCard icon={ListChecks} value={dashData.completedSessionsThisMonth} label='Completed Sessions' />
+        <StatCard icon={Hourglass} value={dashData.upcomingSessionsThisMonth} label='Upcoming Sessions' />
+        <StatCard icon={XCircle} value={dashData.cancelledSessionsThisMonth} label='Cancelled Sessions' />
 
-        <div className="flex items-center gap-3 bg-white p-4 min-w-60 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200">
-          {/* <img className='w-14' src={assets.patients_icon} alt="" /> */}
-          <DollarSign className='w-10 h-9  border-green-100 text-[#00C49F] bg-green-100 rounded-xl p-1.5' />
-          <div>
-            <p className='text-xl font-semibold text-gray-600'>{dashData.totalRevenueForCurrentMonth}</p>
-            <p className='text-sm text-gray-400'>Total Revenue</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 bg-white p-4 min-w-60 rounded-xl border border-gray-200 shadow-sm cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200">
-          {/* <img className='w-14' src={assets.patients_icon} alt="" /> */}
-          <Users className='w-10 h-9  border-sky-100 text-sky-600 bg-sky-100 rounded-xl p-1.5' />
-          <div>
-            <p className='text-xl font-semibold text-gray-600'>26</p>
-            <p className='text-sm text-gray-400'>Active Users</p>
-          </div>
-        </div>
+        <StatCard icon={Wallet} value={`${currency}${dashData.earningsThisMonth}`} label='Earnings (This Month)' />
+        <StatCard icon={TrendingUp} value={`${currency}${dashData.profitThisMonth}`} label='Profit (This Month)' />
+        <StatCard icon={Undo2} value={`${currency}${dashData.refundsThisMonth}`} label='Refunds (This Month)' />
 
       </div >
 
