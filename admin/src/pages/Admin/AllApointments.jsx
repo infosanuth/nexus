@@ -17,8 +17,6 @@ const AllApointments = () => {
 
   const pendingappointment = appointments.filter(item =>!item.cancelled)
 
-  
-
   const missedAppointments = appointments.filter((a) => {
   const [day, month, year] = a.slotDate.split("_");
   const dateObj = new Date(`${year}-${month}-${day}`);
@@ -55,7 +53,7 @@ const AllApointments = () => {
 
   return (
     <>
-      <div className='w-full max-w-6xl  m-5'>
+      <div className='w-full max-w-6xl m-5'>
 
         <div>
           <p className='mb-3 text-lg font-medium'>All Appointments </p>
@@ -80,10 +78,10 @@ const AllApointments = () => {
                 <p className='max-sm:hidden'>{calculateAge(item.userData.dob)}</p>
                 <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
                 <div className='flex items-center gap-2'>
-                  <img src={`http://localhost:4000${item.docData.image}`} className='w-8 rounded-full bg-gray-200' alt="" /> <p>{item.docData.name}</p>
+                  <img src={`http://localhost:4000${item.docData.image}`} className='w-8 bg-gray-200 rounded-full' alt="" /> <p>{item.docData.name}</p>
                 </div>
                 <p>{currency}{item.amount}</p>
-                {item.cancelled ? <p className='text-red-400 text-xs font-medium'>Cancelled</p> : item.isCompleted ? <p className='text-green-500 text-xs font-medium'>Completed</p> : <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="" />}
+                {item.cancelled ? <p className='text-xs font-medium text-red-400'>Cancelled</p> : item.isCompleted ? <p className='text-xs font-medium text-green-500'>Completed</p> : <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="" />}
               </div>
             ))}
           </div>
@@ -98,7 +96,7 @@ const AllApointments = () => {
             </div>
 
             {/* Title - centered */}
-            <h2 className="text-center text-xl font-semibold mb-6">All Appointments</h2>
+            <h2 className="mb-6 text-xl font-semibold text-center">All Appointments</h2>
 
             {/* Table header */}
             <div className="grid grid-cols-[40px_1.5fr_60px_2fr_2fr_60px] border-t border-b border-gray-300 font-medium bg-gray-100 py-2 px-4">
@@ -125,47 +123,40 @@ const AllApointments = () => {
               </div>
             ))}
 
-
           </div>
         </div>
 
-
-
-        <button onClick={handleOnClick} className="fixed left-50 bottom-5 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        <button onClick={handleOnClick} className="fixed flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded left-50 bottom-5 hover:bg-blue-700">
           <ClipboardMinus size={20} />
           Generate Report
         </button>
 
       </div>
 
-      <div className="p-4 " >
-        <h2 className="text-xl font-semibold mb-4">Appointments Per Doctor</h2>
-        <table className="w-full border border-gray-300 text-sm">
+      {/* <div className="p-4 " >
+        <h2 className="mb-4 text-xl font-semibold">Appointments Per Doctor</h2>
+        <table className="w-full text-sm border border-gray-300">
           <thead className="bg-gray-100">
             <tr>
-              <th className="border px-4 py-2 text-left">#</th>
-              <th className="border px-4 py-2 text-left">Doctor Name</th>
-              <th className="border px-4 py-2 text-left">Total Appointments</th>
+              <th className="px-4 py-2 text-left border">#</th>
+              <th className="px-4 py-2 text-left border">Doctor Name</th>
+              <th className="px-4 py-2 text-left border">Total Appointments</th>
             </tr>
           </thead>
           <tbody>
             {Object.entries(doctorCounts).map(([docName, count], index) => (
               <tr className='bg-white' key={docName}>
-                <td className="border px-4 py-2">{index + 1}</td>
-                <td className="border px-4 py-2">{docName}</td>
-                <td className="border px-4 py-2">{count}</td>
+                <td className="px-4 py-2 border">{index + 1}</td>
+                <td className="px-4 py-2 border">{docName}</td>
+                <td className="px-4 py-2 border">{count}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
+      </div> */}
 
-      
     </>
-
   )
-
-
 }
 
 export default AllApointments

@@ -25,10 +25,13 @@ import { ReceptionContext } from './context/ReceptionContext'
 import PatientCheckIn from './pages/Reception/PatientCheckIn'
 import DoctorsForReception from './pages/Reception/DoctorsForReception'
 import AllAppointmentForReception from './pages/Reception/AllAppointmentForReception'
+import PatientsForReception from './pages/Reception/PatientsForReception'
 import ReceptionSessions from './pages/Reception/SessionsForReception'
 import ReceptionSessionHistory from './pages/Reception/SessionHistoryForReception'
 import AddSessions from './pages/Reception/AddSessionsForReception'
 import RefundsForReception from './pages/Reception/RefundsForReception'
+import CashRefundsForReception from './pages/Reception/CashRefundsForReception'
+import RescheduledAppointmentsForReception from './pages/Reception/RescheduledAppointmentsForReception'
 import DoctorSessionHistory from './pages/Doctor/DoctorSessionHistory'
 import DoctorSessionAppointments from './pages/Doctor/DoctorSessionAppointments'
 import DoctorSessionAppointmentsHistory from './pages/Doctor/DoctorSessionAppointmentsHistory'
@@ -72,10 +75,13 @@ const App = () => {
           <Route path='/reception-patient-check-in' element={<PatientCheckIn />} />
           <Route path='/reception-doctors' element={<DoctorsForReception />} />
           <Route path='/reception-all-appointments' element={<AllAppointmentForReception />} />
+          <Route path='/reception-patients' element={<PatientsForReception />} />
           <Route path='/reception-sessions' element={<ReceptionSessions />} />
           <Route path='/reception-session-history' element={<ReceptionSessionHistory />} />
           <Route path='/reception-add-sessions' element={<AddSessions />} />
           <Route path='/reception-refunds' element={<RefundsForReception />} />
+          <Route path='/reception-cash-refunds' element={<CashRefundsForReception />} />
+          <Route path='/reception-rescheduled-appointments' element={<RescheduledAppointmentsForReception />} />
         </Routes>
         </div>
       </div>

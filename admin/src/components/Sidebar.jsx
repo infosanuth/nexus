@@ -5,7 +5,7 @@ import { NavLink } from 'react-router-dom'
 import { assets } from '../assets/assets'
 import { DoctorContext } from '../context/DoctorContext'
 import { ReceptionContext } from '../context/ReceptionContext'
-import { MessageSquareText, Calendar, Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck } from 'lucide-react';
+import { MessageSquareText, Calendar, Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck, Users, ArrowRightLeft, Banknote } from 'lucide-react';
 
 
 const Sidebar = () => {
@@ -141,6 +141,11 @@ const Sidebar = () => {
             <p className='hidden md:block'>All Appointments</p>
           </NavLink>
 
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-patients'}>
+            <Users />
+            <p className='hidden md:block'>Patients</p>
+          </NavLink>
+
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-sessions'}>
             <CalendarDays />
             <p className='hidden md:block'>Session Schedule</p>
@@ -158,7 +163,17 @@ const Sidebar = () => {
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-refunds'}>
             <RotateCcw />
-            <p className='hidden md:block'>Refunds</p>
+            <p className='hidden md:block'>Online Refunds</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-cash-refunds'}>
+            <Banknote />
+            <p className='hidden md:block'>Cash Refunds</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-rescheduled-appointments'}>
+            <ArrowRightLeft />
+            <p className='hidden md:block'>Rescheduled</p>
           </NavLink>
         </ul>
       }

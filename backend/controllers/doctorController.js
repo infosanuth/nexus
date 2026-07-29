@@ -391,6 +391,7 @@ const startSession = async (req, res) => {
         if (session.appointments.length === 0) {
             return res.json({ success: false, message: 'Cannot start a session with no appointments booked.' })
         }
+        
 
         session.sessionStart = true
         await session.save()
