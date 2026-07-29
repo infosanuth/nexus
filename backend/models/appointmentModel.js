@@ -12,6 +12,8 @@ const appointmentSchema = new mongoose.Schema({
     date: { type: Number, required: true },
     cancelled: { type: Boolean, default: false },
     reSchedule : {type: Boolean, default: false },
+    previousSlotDate: { type: String, default: null },
+    previousSlotTime: { type: String, default: null },
     payment: { type: Boolean, default: false },
     isCompleted: { type: Boolean, default: false },
     isWalkIn: { type: Boolean, default: false },

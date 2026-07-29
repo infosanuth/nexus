@@ -412,6 +412,8 @@ const bookAppointment = async (req, res) => {
 
     try {
 
+        // const { userId, docId, slotDate, slotTime,} = req.body
+
         const { userId, docId, slotDate, slotTime, otherPatient } = req.body
 
         const docData = await doctorModel.findById(docId).select("-password")
@@ -466,19 +468,7 @@ const bookAppointment = async (req, res) => {
             }
         }
 
-        const loggedInUserData = await userModel.findById(userId).select("-password")
-
-        const userData = otherPatient
-            ? {
-                name: otherPatient.name,
-                phoneNumber: otherPatient.phoneNumber,
-                age: otherPatient.age,
-                gender: otherPatient.gender,
-                email: loggedInUserData.email,
-                image: loggedInUserData.image,
-                bookedForSelf: false
-            }
-            : loggedInUserData
+        const userData = await userModel.findById(userId).select("-password")
 
         delete docData.slots_booked
 
@@ -592,6 +582,40 @@ const cancelAppointment = async (req, res) => {
     }
 }
 
+// API for user to request a refund for a cancelled, paid appointment
+const requestRefund = async (req, res) => {
+    try {
+
+        const { userId, appointmentId } = req.body
+        const appointmentData = await appointmentModel.findById(appointmentId)
+
+        // verify appointment user
+        if (appointmentData.userId !== userId) {
+            return res.json({ success: false, message: 'Unauthorized action' })
+        }
+
+        if (!appointmentData.cancelled) {
+            return res.json({ success: false, message: 'Only cancelled appointments can be refunded' })
+        }
+
+        if (!appointmentData.payment) {
+            return res.json({ success: false, message: 'Appointment was not paid, nothing to refund' })
+        }
+
+        if (appointmentData.refund) {
+            return res.json({ success: false, message: 'Refund already requested for this appointment' })
+        }
+
+        await appointmentModel.findByIdAndUpdate(appointmentId, { refund: true })
+
+        res.json({ success: true, message: 'Refund requested successfully' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 // API to reschedule appointment (same doctor, new date/time)
 const rescheduleAppointment = async (req, res) => {
     try {
@@ -696,6 +720,8 @@ const rescheduleAppointment = async (req, res) => {
             tokenNumber = existingCount + 1
         }
 
+        appointmentData.previousSlotDate = oldSlotDate
+        appointmentData.previousSlotTime = oldSlotTime
         appointmentData.slotDate = newSlotDate
         appointmentData.slotTime = newSlotTime
         appointmentData.sessionId = matchedSession ? matchedSession._id : null
@@ -839,6 +865,6 @@ const payhereNotify = async (req, res) => {
 };
 
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, rescheduleAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, requestRefund, rescheduleAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword }
 
        
