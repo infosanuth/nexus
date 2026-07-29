@@ -17,13 +17,17 @@ const AppContextProvider = (props) => {
 
     // Getting Doctors using API
     const getDoctorsData = async () => {
+
         try {
+
             const { data } = await axios.get(backendUrl + '/api/doctor/list')
+
             if (data.success) {
                 setDoctors(data.doctors)
             } else {
                 toast.error(data.message)
             }
+
         } catch (error) {
             console.log(error)
             toast.error(error.message)
@@ -32,13 +36,17 @@ const AppContextProvider = (props) => {
 
     // Getting Specialities using API
     const getSpecialityData = async () => {
+
         try {
+
             const { data } = await axios.get(backendUrl + '/api/admin/specialities')
+
             if (data.success) {
                 setSpecialities(data.specialities)
             } else {
                 toast.error(data.message)
             }
+
         } catch (error) {
             console.log(error)
             toast.error(error.message)
@@ -64,7 +72,6 @@ const AppContextProvider = (props) => {
             console.log(error)
             toast.error(error.message)
         }
-
     }
     
     const value = {
@@ -88,7 +95,6 @@ const AppContextProvider = (props) => {
             setUserData(false)
         }
     }, [token])
-
 
     return (
         <AppContext.Provider value={value}>

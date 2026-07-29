@@ -96,6 +96,27 @@ const MyAppointments = () => {
 
   }
 
+  // Function to request a refund for a cancelled, paid appointment
+  const requestRefund = async (appointmentId) => {
+
+    try {
+
+      const { data } = await axios.post(backendUrl + '/api/user/request-refund', { appointmentId }, { headers: { token } })
+
+      if (data.success) {
+        toast.success(data.message)
+        getUserAppointments()
+      } else {
+        toast.error(data.message)
+      }
+
+    } catch (error) {
+      console.log(error)
+      toast.error(error.message)
+    }
+
+  }
+
 
   // Function to make payment using payhere
   const appointmentPayHere = async (appointmentId) => {
@@ -254,9 +275,9 @@ const MyAppointments = () => {
                 )}
                 {item.cancelled && !item.isCompleted && !item.payment && <button className='w-full py-2 text-red-500 border border-red-500 rounded'>Appointment cancelled</button>}
                 {item.payment && item.cancelled && (
-                  <button className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>
-                    Refund Request
-                  </button>
+                  item.refund
+                    ? <button className='w-full py-2 border border-stone-500 text-stone-500 bg-indigo-50 cursor-not-allowed'>Refund Requested</button>
+                    : <button onClick={() => requestRefund(item._id)} className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Refund Request</button>
                 )}
 
               </div>
