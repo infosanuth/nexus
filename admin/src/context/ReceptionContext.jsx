@@ -111,6 +111,28 @@ const ReceptionContextProvider = (props) => {
         }
     }
 
+    // Function to confirm a cash refund for a cancelled, paid walk-in appointment
+    const requestCashRefund = async (appointmentId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/reception/request-cash-refund', { appointmentId }, { headers: { rToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getAppointments()
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
     // Function to cancel an empty session (kept in the database, marked cancelled)
     const cancelSession = async (sessionId) => {
         try {
@@ -138,6 +160,7 @@ const ReceptionContextProvider = (props) => {
         bookWalkInAppointment,
         addSession,
         requestRefund,
+        requestCashRefund,
     }
 
     return (

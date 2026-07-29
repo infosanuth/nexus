@@ -197,11 +197,13 @@ const requestRefund = async (req, res) => {
         if (!appointmentData.payment) {
             return res.json({ success: false, message: 'Appointment was not paid, nothing to refund' })
         }
-        if (appointmentData.refund) {
-            return res.json({ success: false, message: 'Refund already requested for this appointment' })
+        if (appointmentData.refundPayment) {
+            return res.json({ success: false, message: 'Refund already processed for this appointment' })
         }
 
-        await appointmentModel.findByIdAndUpdate(appointmentId, { refund: true })
+        if (!appointmentData.refund) {
+            await appointmentModel.findByIdAndUpdate(appointmentId, { refund: true })
+        }
 
         try {
             // The notify webhook (which normally captures this) can't reach a local dev
@@ -219,6 +221,41 @@ const requestRefund = async (req, res) => {
             console.log(refundError)
             res.json({ success: false, message: `Refund requested, but PayHere processing failed: ${refundError.message}` })
         }
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API for reception to confirm a cash refund for a cancelled, paid walk-in appointment.
+// Walk-in payments are collected in cash at the desk, so there's no PayHere transaction
+// to reverse — this just records that the cash was handed back.
+const requestCashRefund = async (req, res) => {
+    try {
+
+        const { appointmentId } = req.body
+        const appointmentData = await appointmentModel.findById(appointmentId)
+
+        if (!appointmentData) {
+            return res.json({ success: false, message: 'Appointment not found' })
+        }
+        if (!appointmentData.isWalkIn) {
+            return res.json({ success: false, message: 'This appointment is not a walk-in appointment' })
+        }
+        if (!appointmentData.cancelled) {
+            return res.json({ success: false, message: 'Only cancelled appointments can be refunded' })
+        }
+        if (!appointmentData.payment) {
+            return res.json({ success: false, message: 'Appointment was not paid, nothing to refund' })
+        }
+        if (appointmentData.refundPayment) {
+            return res.json({ success: false, message: 'Refund already processed for this appointment' })
+        }
+
+        await appointmentModel.findByIdAndUpdate(appointmentId, { refund: true, refundPayment: true })
+
+        res.json({ success: true, message: 'Cash refund confirmed' })
 
     } catch (error) {
         console.log(error)
@@ -253,4 +290,4 @@ const cancelSessionReception = async (req, res) => {
     }
 }
 
-export { bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception, requestRefund, cancelSessionReception }
+export { bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception, requestRefund, requestCashRefund, cancelSessionReception }

@@ -12,14 +12,13 @@ const slotDateToUTC = (slotDate) => {
 
 const STATUS_OPTIONS = [
   { label: 'All', value: 'all' },
-  { label: 'Not Requested', value: 'not_requested' },
-  { label: 'Requested', value: 'requested' },
-  { label: 'Refunded', value: 'refunded' },
+  { label: 'Not Paid', value: 'not_paid' },
+  { label: 'Refund Paid', value: 'paid' },
 ]
 
-const RefundsForReception = () => {
+const CashRefundsForReception = () => {
 
-  const { rToken, appointments, getAppointments, requestRefund } = useContext(ReceptionContext)
+  const { rToken, appointments, getAppointments, requestCashRefund } = useContext(ReceptionContext)
   const { slotDateFormat, currency } = useContext(AppContext)
 
   const [confirmItem, setConfirmItem] = useState(null)
@@ -50,13 +49,13 @@ const RefundsForReception = () => {
 
   const confirmRefund = () => {
     if (confirmItem) {
-      requestRefund(confirmItem._id)
+      requestCashRefund(confirmItem._id)
       setConfirmItem(null)
     }
   }
 
-  // Only cancelled, paid online appointments are eligible for an online refund (walk-in/cash payments are handled separately)
-  const refundable = appointments.filter((item) => item.cancelled && item.payment && !item.isWalkIn)
+  // Only cancelled, paid walk-in appointments are eligible for a cash refund (online payments are handled separately)
+  const refundable = appointments.filter((item) => item.cancelled && item.payment && item.isWalkIn)
 
   const doctorNames = [...new Set(refundable.map((item) => item.docData?.name).filter(Boolean))].sort()
   const doctorSearchResults = doctorNames.filter((name) => name.toLowerCase().includes(doctorSearch.trim().toLowerCase()))
@@ -72,9 +71,8 @@ const RefundsForReception = () => {
     const matchesDoctor = !doctorTerm || item.docData?.name?.toLowerCase().includes(doctorTerm)
 
     const matchesStatus = statusFilter === 'all' ||
-      (statusFilter === 'refunded' && item.refundPayment) ||
-      (statusFilter === 'requested' && item.refund && !item.refundPayment) ||
-      (statusFilter === 'not_requested' && !item.refund)
+      (statusFilter === 'paid' && item.refundPayment) ||
+      (statusFilter === 'not_paid' && !item.refundPayment)
 
     const matchesDate = !specificDate || slotDateToUTC(item.slotDate) === dateInputToUTC(specificDate)
 
@@ -116,7 +114,7 @@ const RefundsForReception = () => {
       slotDateFormat(item.slotDate),
       item.slotTime,
       item.amount,
-      item.refundPayment ? 'Refunded' : item.refund ? 'Requested' : 'Not Requested'
+      item.refundPayment ? 'Refund Paid' : 'Not Paid'
     ])
 
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
@@ -130,15 +128,15 @@ const RefundsForReception = () => {
       { wch: 14 }, // Status
     ]
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Online Refunds')
-    XLSX.writeFile(wb, `online-refunds-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    XLSX.utils.book_append_sheet(wb, ws, 'Cash Refunds')
+    XLSX.writeFile(wb, `cash-refunds-${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   return (
-    <div className='w-full max-w-6xl m-5'>
+    <div className='w-full m-5 max-w-7xl'>
 
       <div className='flex flex-wrap items-center justify-between gap-3 mb-3'>
-        <p className='text-lg font-medium'>Online Refunds</p>
+        <p className='text-lg font-medium'>Cash Refunds</p>
         <button
           onClick={handleExport}
           className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors border rounded-lg shrink-0 hover:border-gray-300 hover:text-gray-800'
@@ -258,7 +256,7 @@ const RefundsForReception = () => {
       </div>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
-        <div className='max-sm:hidden grid grid-cols-[0.5fr_1fr_2fr_2fr_2fr_1fr_1fr_1.5fr] gap-1 py-3 px-6 border-b font-medium'>
+        <div className='max-sm:hidden grid grid-cols-[0.5fr_1fr_2fr_2fr_2fr_1fr_1.5fr_1.5fr] gap-1 py-3 px-6 border-b font-medium'>
           <p>#</p>
           <p>Ref</p>
           <p>Patient</p>
@@ -270,11 +268,11 @@ const RefundsForReception = () => {
         </div>
 
         {sorted.length === 0 ? (
-          <p className='py-6 text-center text-gray-400'>No refunds found</p>
+          <p className='py-6 text-center text-gray-400'>No cash refunds found</p>
         ) : (
           paginated.map((item, index) => (
             <div
-              className='flex flex-wrap justify-between max-sm:gap-2 max-sm:text-base sm:grid grid-cols-[0.5fr_1fr_2fr_2fr_2fr_1fr_1fr_1.5fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50'
+              className='flex flex-wrap justify-between max-sm:gap-2 max-sm:text-base sm:grid grid-cols-[0.5fr_1fr_2fr_2fr_2fr_1fr_1.5fr_1.5fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50'
               key={item._id}
             >
               <p className='max-sm:hidden'>{(page - 1) * PAGE_SIZE + index + 1}</p>
@@ -284,19 +282,17 @@ const RefundsForReception = () => {
               <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
               <p>{currency}{item.amount}</p>
               {item.refundPayment
-                ? <p className='text-xs font-medium whitespace-nowrap text-green-500'>Refunded</p>
-                : item.refund
-                  ? <p className='text-xs font-medium whitespace-nowrap text-yellow-500'>Requested</p>
-                  : <p className='text-xs font-medium whitespace-nowrap text-red-400'>Not Requested</p>
+                ? <p className='text-xs font-medium whitespace-nowrap text-green-500'>Refund Paid</p>
+                : <p className='text-xs font-medium whitespace-nowrap text-red-400'>Not Paid</p>
               }
               {item.refundPayment ? (
                 <p className='text-xs text-gray-400'>-</p>
               ) : (
                 <button
                   onClick={() => setConfirmItem(item)}
-                  className='px-3 py-1 text-xs text-white bg-[#64748B] rounded hover:opacity-90 w-fit'
+                  className='px-3 py-1 text-xs border border-stone-500 text-stone-500 bg-indigo-50 rounded hover:opacity-90 w-fit'
                 >
-                  Refund Request
+                  Pay Refund
                 </button>
               )}
             </div>
@@ -317,10 +313,10 @@ const RefundsForReception = () => {
       {confirmItem && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'>
           <div className='w-full max-w-md p-6 mx-4 bg-white shadow-xl rounded-xl'>
-            <h2 className='mb-3 text-lg font-semibold text-gray-800'>Confirm Refund</h2>
+            <h2 className='mb-3 text-lg font-semibold text-gray-800'>Confirm Cash Refund</h2>
             <p className='mb-5 text-sm text-gray-600'>
-              Pay a refund of <strong>{currency}{confirmItem.amount}</strong> to <strong>{confirmItem.userData?.name || 'this patient'}</strong> for their appointment with Dr. {confirmItem.docData?.name || 'N/A'}?
-              This will process the payment via PayHere and cannot be undone.
+              Confirm that <strong>{currency}{confirmItem.amount}</strong> cash has been handed back to <strong>{confirmItem.userData?.name || 'this patient'}</strong> for their cancelled appointment with Dr. {confirmItem.docData?.name || 'N/A'}?
+              This only records the refund and cannot be undone.
             </p>
             <div className='flex justify-end gap-3'>
               <button
@@ -333,7 +329,7 @@ const RefundsForReception = () => {
                 onClick={confirmRefund}
                 className='px-4 py-2 text-sm text-white bg-[#64748B] rounded hover:opacity-90'
               >
-                Yes, Pay Refund
+                Yes, Cash Refunded
               </button>
             </div>
           </div>
@@ -343,4 +339,4 @@ const RefundsForReception = () => {
   )
 }
 
-export default RefundsForReception
+export default CashRefundsForReception
