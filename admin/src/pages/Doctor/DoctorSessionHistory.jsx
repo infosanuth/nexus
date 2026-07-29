@@ -7,15 +7,16 @@ import { todayUTC, dateInputToUTC } from '../../utils/date'
 
 const STATUS_OPTIONS = [
   { label: 'All', value: 'all' },
-  { label: 'Complete', value: 'active' },
+  { label: 'Complete', value: 'completed' },
+  { label: 'Not Started', value: 'not-started' },
   { label: 'Cancelled', value: 'cancelled' },
 ]
 
 const getSessionStatusLabel = (item) => {
-  if (item.status === 'cancelled') return { label: 'Cancelled', className: 'text-red-500' }
-  if (item.sessionEnd) return { label: 'Completed', className: 'text-green-600' }
-  if (item.sessionStart) return { label: 'Not Ended', className: 'text-amber-500' }
-  return { label: 'Not Started', className: 'text-gray-400' }
+  if (item.status === 'cancelled') return { label: 'Cancelled', className: 'text-red-500', value: 'cancelled' }
+  if (item.sessionEnd) return { label: 'Completed', className: 'text-green-600', value: 'completed' }
+  if (item.sessionStart) return { label: 'Not Ended', className: 'text-amber-500', value: 'not-ended' }
+  return { label: 'Not Started', className: 'text-gray-400', value: 'not-started' }
 }
 
 const DoctorSessionHistory = () => {
@@ -62,7 +63,7 @@ const DoctorSessionHistory = () => {
 
     if (specificDate && sessionDay !== dateInputToUTC(specificDate)) return false
 
-    if (statusFilter !== 'all' && item.status !== statusFilter) return false
+    if (statusFilter !== 'all' && getSessionStatusLabel(item).value !== statusFilter) return false
 
     return true
   }).sort((a, b) => new Date(b.date) - new Date(a.date))
