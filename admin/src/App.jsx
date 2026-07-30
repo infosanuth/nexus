@@ -19,9 +19,11 @@ import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorProfile from './pages/Doctor/DoctorProfile';
 import DoctorAddSession from './pages/Doctor/DoctorAddSession';
 import DoctorSessionSchedule from './pages/Doctor/DoctorSessionSchedule';
-import DocAppointment from './pages/Admin/DocAppointment'
 import Specialities from './pages/Admin/Specialities'
+import SpecialityReport from './pages/Admin/SpecialityReport'
 import Staff from './pages/Admin/Staff'
+import SessionSchedule from './pages/Admin/SessionSchedule'
+import SessionHistory from './pages/Admin/SessionHistory'
 import { ReceptionContext } from './context/ReceptionContext'
 import PatientCheckIn from './pages/Reception/PatientCheckIn'
 import DoctorsForReception from './pages/Reception/DoctorsForReception'
@@ -61,7 +63,10 @@ const App = () => {
           <Route path='/doctor-list' element={<DoctorsList />} />
           <Route path='/edit-doctor/:id' element={<EditDoctorProfile />} />
           <Route path='/specialities' element={<Specialities />} />
+          <Route path='/speciality-report' element={<SpecialityReport />} />
           <Route path='/staff' element={<Staff />} />
+          <Route path='/admin-sessions' element={<SessionSchedule />} />
+          <Route path='/admin-session-history' element={<SessionHistory />} />
           {/* Doctor Route */}
           <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
           <Route path='/doctor-appointments' element={<DoctorAppointments />} />
@@ -69,7 +74,6 @@ const App = () => {
           <Route path='/doctor-profile' element={<DoctorProfile />} />
           <Route path='/doctor-add-session' element={<DoctorAddSession />} />
           <Route path='/doctor-sessions' element={<DoctorSessionSchedule />} />
-          <Route path='/appointments/:doctorId' element={<DocAppointment/>} />
           <Route path='/doctor-session-history' element={<DoctorSessionHistory />} />
           <Route path='/doctor-session-appointments/:sessionId' element={<DoctorSessionAppointments />} />
           <Route path='/doctor-session-appointments-history/:sessionId' element={<DoctorSessionAppointmentsHistory     />} />
