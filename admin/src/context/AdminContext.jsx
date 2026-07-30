@@ -13,6 +13,7 @@ const AdminContextProvider = (props) => {
     const [dashData, setDashData] = useState(false)
     const [monthlyRevenue, setMonthlyRevenue] = useState([]);
     const [appointmentBySpeciallity, SetAppointmentBySpeciallity] = useState([]);
+    const [appointmentByChannel, setAppointmentByChannel] = useState([]);
     const [specialities, setSpecialities] = useState([])
     const [staff, setStaff] = useState([])
 
@@ -139,6 +140,21 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    // Getting appointment counts grouped by booking channel (online vs walk-in) for pie chart
+    const ChannelPieChart = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/channel-count', { headers: { aToken } });
+            if (data.success) {
+                setAppointmentByChannel(data.data);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            toast.error(error.message);
+            console.log(error);
+        }
+    }
+
     // Getting all staff (admins and receptionists)
     const getAllStaff = async () => {
         try {
@@ -179,6 +195,7 @@ const AdminContextProvider = (props) => {
         dashData, getDashData,
         monthlyRevenue, getMonthlyRevenue,
         appointmentBySpeciallity, SpecialtyPieChart,
+        appointmentByChannel, ChannelPieChart,
         specialities, getSpecialities,
         staff, getAllStaff
     }

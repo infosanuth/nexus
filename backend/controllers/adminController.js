@@ -121,47 +121,71 @@ const appointmentCancel = async (req, res) => {
 
 const adminDashboard = async (req, res) => {
   try {
-    // Get current year and month for scoping everything below to this month
+    // Current-month boundaries in the server's local time (not UTC — Mongo's $year/$month
+    // aggregation operators default to UTC, which drifts from "this month" near month-start
+    // in timezones ahead of UTC like ours). Using plain instant ranges keeps every
+    // month-scoped query below agreeing on the same boundary.
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // JS months are 0-based
-
-    const monthExprMatch = (dateField) => ({
-      $match: {
-        $expr: {
-          $and: [
-            { $eq: [{ $year: dateField }, currentYear] },
-            { $eq: [{ $month: dateField }, currentMonth] }
-          ]
-        }
-      }
-    });
+    const currentMonth = now.getMonth() + 1; // JS months are 0-based; slotDate months are 1-based
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const startOfMonthMs = startOfMonth.getTime();
+    const startOfNextMonthMs = startOfNextMonth.getTime();
 
     // Doctor headcounts (live status, not month-scoped)
     const doctorsCount = await doctorModel.countDocuments({});
     const availableDoctorsCount = await doctorModel.countDocuments({ available: true });
 
-    // Appointment-based stats, scoped to appointments created this month
+    // Appointment-based stats. Counts (total/completed/cancelled/upcoming/patients) are scoped
+    // by slotDate — the appointment's actual scheduled date — so a September appointment
+    // booked in July shows up under September, not July. Money figures (earnings/fees/refunds)
+    // are scoped by `date` — when the payment/refund happened — since that's cash flow, not schedule.
     const [appointmentStats] = await appointmentModel.aggregate([
-      { $addFields: { createdAtDate: { $toDate: "$date" } } },
-      monthExprMatch("$createdAtDate"),
+      {
+        $addFields: {
+          slotDateParts: { $split: ["$slotDate", "_"] }
+        }
+      },
+      {
+        $addFields: {
+          slotMonth: { $toInt: { $arrayElemAt: ["$slotDateParts", 1] } },
+          slotYear: { $toInt: { $arrayElemAt: ["$slotDateParts", 2] } }
+        }
+      },
       {
         $facet: {
-          total: [{ $count: "count" }],
-          completed: [{ $match: { isCompleted: true } }, { $count: "count" }],
-          cancelled: [{ $match: { cancelled: true } }, { $count: "count" }],
-          upcoming: [{ $match: { cancelled: false, isCompleted: false } }, { $count: "count" }],
-          patients: [{ $group: { _id: "$userId" } }, { $count: "count" }],
+          total: [
+            { $match: { slotYear: currentYear, slotMonth: currentMonth } },
+            { $count: "count" }
+          ],
+          completed: [
+            { $match: { slotYear: currentYear, slotMonth: currentMonth, isCompleted: true } },
+            { $count: "count" }
+          ],
+          cancelled: [
+            { $match: { slotYear: currentYear, slotMonth: currentMonth, cancelled: true } },
+            { $count: "count" }
+          ],
+          upcoming: [
+            { $match: { slotYear: currentYear, slotMonth: currentMonth, cancelled: false, isCompleted: false } },
+            { $count: "count" }
+          ],
+          patients: [
+            { $match: { slotYear: currentYear, slotMonth: currentMonth } },
+            { $group: { _id: "$userId" } },
+            { $count: "count" }
+          ],
           earnings: [
-            { $match: { payment: true, refundPayment: { $ne: true } } },
+            { $match: { date: { $gte: startOfMonthMs, $lt: startOfNextMonthMs }, payment: true, refundPayment: { $ne: true } } },
             { $group: { _id: null, total: { $sum: "$amount" } } }
           ],
           doctorFees: [
-            { $match: { payment: true, refundPayment: { $ne: true } } },
+            { $match: { date: { $gte: startOfMonthMs, $lt: startOfNextMonthMs }, payment: true, refundPayment: { $ne: true } } },
             { $group: { _id: null, total: { $sum: "$docData.fees" } } }
           ],
           refunds: [
-            { $match: { refundPayment: true } },
+            { $match: { date: { $gte: startOfMonthMs, $lt: startOfNextMonthMs }, refundPayment: true } },
             { $group: { _id: null, total: { $sum: "$amount" } } }
           ]
         }
@@ -174,9 +198,11 @@ const adminDashboard = async (req, res) => {
     const earningsThisMonth = pickSum(appointmentStats.earnings);
     const doctorFeesThisMonth = pickSum(appointmentStats.doctorFees);
 
-    // Session-based stats, scoped to sessions scheduled this month
+    // Session-based stats, scoped to sessions scheduled this month.
+    // sessionModel.date is a real BSON Date, so compare against Date boundaries (not epoch-ms
+    // numbers, which don't sort correctly against a Date field in an aggregation $match).
     const [sessionStats] = await sessionModel.aggregate([
-      monthExprMatch("$date"),
+      { $match: { date: { $gte: startOfMonth, $lt: startOfNextMonth } } },
       {
         $facet: {
           total: [{ $count: "count" }],
@@ -187,8 +213,11 @@ const adminDashboard = async (req, res) => {
       }
     ]);
 
-    // Kept for the "Latest Bookings" list further down the dashboard
-    const latestAppointments = await appointmentModel.find({}).sort({ date: -1 }).limit(5);
+    // Kept for the "Latest Bookings" list further down the dashboard, scoped to this month
+    const latestAppointments = await appointmentModel
+      .find({ date: { $gte: startOfMonthMs, $lt: startOfNextMonthMs } })
+      .sort({ date: -1 })
+      .limit(5);
 
     const dashData = {
       doctors: doctorsCount,
@@ -226,7 +255,7 @@ const adminDashboard = async (req, res) => {
 const getMonthlyRevenue = async (req, res) => {
   try {
     const result = await appointmentModel.aggregate([
-      { $match: { payment: true } },
+      { $match: { payment: true, isCompleted: true } },
       {
         $addFields: {
           createdAtDate: { $toDate: "$date" }
@@ -259,7 +288,7 @@ const getMonthlyRevenue = async (req, res) => {
       revenueMap.set(`${year}-${month}`, item.totalRevenue); // <-- fix here: backticks for template literal
     });
 
-    const year = 2025;
+    const year = new Date().getFullYear();
     const monthsToShow = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // All 12 months
 
     // Build the full array with zeros for missing months
@@ -277,14 +306,22 @@ const getMonthlyRevenue = async (req, res) => {
   }
 };
 
-// Controller to get appointment counts grouped by doctor specialty
+// Controller to get appointment counts grouped by doctor specialty, for the current month
 const getAppointmentsBySpecialty = async (req, res) => {
   try {
-    // Fetch all completed, paid, and not cancelled appointments
-    const appointments = await appointmentModel.find({
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // slotDate months are 1-based
+
+    // Fetch completed, paid, and not cancelled appointments, then keep only those
+    // actually scheduled (slotDate) for this month
+    const appointments = (await appointmentModel.find({
       cancelled: false,
       payment: true,
       isCompleted: true,
+    })).filter(appointment => {
+      const [, month, year] = appointment.slotDate.split('_').map(Number)
+      return year === currentYear && month === currentMonth
     });
 
     // Group counts by specialty from docData.speciality
@@ -306,6 +343,57 @@ const getAppointmentsBySpecialty = async (req, res) => {
     res.status(200).json({ success: true, data: pieChartData });
   } catch (error) {
     console.error('Error fetching appointments by specialty:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Controller to get appointment counts grouped by booking channel (online vs walk-in) for the current month
+const getAppointmentsByChannel = async (req, res) => {
+  try {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // slotDate months are 1-based
+
+    const appointments = await appointmentModel.aggregate([
+      {
+        $addFields: {
+          slotDateParts: { $split: ["$slotDate", "_"] }
+        }
+      },
+      {
+        $addFields: {
+          slotMonth: { $toInt: { $arrayElemAt: ["$slotDateParts", 1] } },
+          slotYear: { $toInt: { $arrayElemAt: ["$slotDateParts", 2] } }
+        }
+      },
+      {
+        $match: {
+          cancelled: false,
+          payment: true,
+          isCompleted: true,
+          slotYear: currentYear,
+          slotMonth: currentMonth,
+        }
+      },
+      {
+        $group: {
+          _id: "$isWalkIn",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const onlineCount = appointments.find(item => item._id !== true)?.count ?? 0;
+    const offlineCount = appointments.find(item => item._id === true)?.count ?? 0;
+
+    const pieChartData = [
+      { name: 'Online', value: onlineCount },
+      { name: 'Walk-in', value: offlineCount },
+    ];
+
+    res.status(200).json({ success: true, data: pieChartData });
+  } catch (error) {
+    console.error('Error fetching appointments by channel:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -503,4 +591,4 @@ const updateDoctorById = async (req, res) => {
   }
 }
 
-export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, getDoctorById, updateDoctorById }
+export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, getDoctorById, updateDoctorById }

@@ -12,17 +12,15 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { PieChart, Pie, Cell, Legend } from 'recharts';
-import { ClipboardMinus } from 'lucide-react';
-import html2pdf from 'html2pdf.js'
 
 
 const StatCard = ({ icon: Icon, value, label }) => (
   <div className='flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200'>
-    <div className='flex items-center justify-center w-11 h-11 shrink-0 rounded-lg border border-gray-200 bg-gray-50 text-gray-700'>
+    <div className='flex items-center justify-center text-gray-700 border border-gray-200 rounded-lg w-11 h-11 shrink-0 bg-gray-50'>
       <Icon className='w-5 h-5' strokeWidth={1.75} />
     </div>
     <div className='min-w-0'>
-      <p className='text-xl font-semibold text-gray-800 leading-tight truncate'>{value}</p>
+      <p className='text-xl font-semibold leading-tight text-gray-800 truncate'>{value}</p>
       <p className='text-xs text-gray-500 truncate'>{label}</p>
     </div>
   </div>
@@ -30,47 +28,40 @@ const StatCard = ({ icon: Icon, value, label }) => (
 
 const Dashboard = () => {
 
-  const { aToken, getDashData, cancelAppointment, dashData, monthlyRevenue, getMonthlyRevenue, appointmentBySpeciallity, SpecialtyPieChart } = useContext(AdminContext)
+  const { aToken, getDashData, cancelAppointment, dashData, monthlyRevenue, getMonthlyRevenue, appointmentBySpeciallity, SpecialtyPieChart, appointmentByChannel, ChannelPieChart } = useContext(AdminContext)
   const { slotDateFormat, currency } = useContext(AppContext)
 
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28CFD', '#FF6384', '#36A2EB'];
+
+  const renderPercentLabel = ({ cx, cy, midAngle, outerRadius, percent, index }) => {
+    const RADIAN = Math.PI / 180
+    const radius = outerRadius + 18
+    const x = cx + radius * Math.cos(-midAngle * RADIAN)
+    const y = cy + radius * Math.sin(-midAngle * RADIAN)
+    return (
+      <text
+        x={x}
+        y={y}
+        fill={COLORS[index % COLORS.length]}
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        fontSize={13}
+        fontWeight={600}
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    )
+  }
 
   useEffect(() => {
     if (aToken) {
       getDashData()
       getMonthlyRevenue()
       SpecialtyPieChart()
+      ChannelPieChart()
     }
   }, [aToken])
-
-  async function handleOnClick() {
-    const element = document.querySelector('#invoice')
-    const opt = {
-      margin: [0, 0, 0, 0],
-      filename: 'Revenue_Report.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } // landscape looks better for charts
-    };
-
-    html2pdf().set(opt).from(element).save();
-    // html2pdf(element)
-  }
-
-  async function handleOnClick1() {
-    const element = document.querySelector('#invoice1')
-    const opt = {
-      margin: [0, 0, 0, 0],
-      filename: 'Appointments_by_Speciality_Report.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } // landscape looks better for charts
-    };
-
-    html2pdf().set(opt).from(element).save();
-    // html2pdf(element1)
-  }
 
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -81,9 +72,9 @@ const Dashboard = () => {
 
   return dashData && (
     <div className='m-5'>
-      <p className='text-lg font-semibold text-gray-700 mb-4'>{today}</p>
+      <p className='mb-4 text-lg font-semibold text-gray-700'>{today}</p>
 
-      <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4'>
+      <div className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
 
         <StatCard icon={Stethoscope} value={dashData.doctors} label='Doctors' />
         <StatCard icon={UserCheck} value={dashData.availableDoctors} label='Available Doctors' />
@@ -105,68 +96,52 @@ const Dashboard = () => {
 
       </div >
 
+      <div className="grid grid-cols-1 gap-6 mt-8 lg:grid-cols-2">
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mt-8">
-        <div className="xl:col-span-2">
-          <div id="invoice" className="bg-white border border-slate-200 rounded-lg shadow-sm h-96 p-6 flex flex-col w-full">
-            <div className="flex items-center justify-between mb-6">
-              <div className=''>
-                <p className=' text-lg font-semibold'>Revenue Chart</p>
-                <p className="text-sm text-slate-600 mt-1">Monthly Revenue</p>
-              </div>
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-600"></div>
-                  <div className="text-sm font-medium text-slate-900">Revenue</div>
-                  <button onClick={handleOnClick} className='-mt-0.5' id="108"><ClipboardMinus /></button>
-                </div>
-              </div>
-            </div>
+        <div id="invoice2" className="flex flex-col p-6 bg-white border rounded-lg shadow-sm border-slate-200 h-96">
+          <div className="mb-2">
+            <p className="text-lg font-semibold text-gray-800">Appointments by Channel</p>
+            <p className="mt-1 text-sm text-slate-600">Online vs walk-in bookings this month</p>
+          </div>
 
-            {/* Bar Chart */}
-            {monthlyRevenue && monthlyRevenue.length > 0 ? (
+          <div style={{ width: '100%', height: 300 }}>
+            {appointmentByChannel.some(item => item.value > 0) ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyRevenue} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fill: "#64748b", fontSize: 12, fontWeight: '500' }}
-                    axisLine={{ stroke: "#cbd5e1" }}
-                    tickLine={false}
-                    padding={{ left: 10, right: 10 }}
-                  />
-                  <YAxis
-                    tickFormatter={(value) => value.toLocaleString()}
-                    ticks={[10000, 20000, 30000, 40000]}
-                    domain={[0, 40000]}
-                    tick={{ fill: "#64748b", fontSize: 12, fontWeight: '500' }}
-                    axisLine={{ stroke: "#cbd5e1" }}
-                    tickLine={false}
-                    width={60}
-                  />
+                <PieChart>
+                  <Pie
+                    data={appointmentByChannel}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={3}
+                    labelLine={false}
+                    label={renderPercentLabel}
+                  >
+                    {appointmentByChannel.map((entry, index) => (
+                      <Cell key={`channel-cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                    ))}
+                  </Pie>
                   <Tooltip
-                    formatter={(value) => `Rs. ${value.toLocaleString()}`}
-                    contentStyle={{ fontSize: 14, borderRadius: 8, borderColor: '#e2e8f0' }}
+                    formatter={(value, name, props) =>
+                      [`${value} appointments`, name]
+                    }
                   />
-                  <Bar dataKey="revenue" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={24} />
-                </BarChart>
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} />
+                </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex justify-center items-center h-full text-gray-400 text-sm font-medium">
-                No revenue data available
-              </div>
+              <p className="mt-10 text-center text-gray-500">No appointment data available</p>
             )}
           </div>
         </div>
 
-
-
-        <div id="invoice1" className="bg-white border border-slate-200 rounded-lg shadow-sm h-96 p-6 flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Appointments by Speciality</h2>
-            <button onClick={handleOnClick1} className="-mt-0.5" id="108">
-              <ClipboardMinus />
-            </button>
+        <div id="invoice1" className="flex flex-col p-6 bg-white border rounded-lg shadow-sm border-slate-200 h-96">
+          <div className="mb-2">
+            <p className="text-lg font-semibold text-gray-800">Appointments by Speciality Report</p>
+            <p className="mt-1 text-sm text-slate-600">Appointment volume across specialities</p>
           </div>
 
           <div style={{ width: '100%', height: 300 }}>
@@ -179,11 +154,14 @@ const Dashboard = () => {
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={3}
+                    labelLine={false}
+                    label={renderPercentLabel}
                   >
                     {appointmentBySpeciallity.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
                     ))}
                   </Pie>
                   <Tooltip
@@ -191,49 +169,67 @@ const Dashboard = () => {
                       [`${value} appointments`, name]
                     }
                   />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" iconSize={8} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-center text-gray-500 mt-10">No appointment data available</p>
+              <p className="mt-10 text-center text-gray-500">No appointment data available</p>
             )}
           </div>
         </div>
 
-
       </div>
 
-
-
-
-
-
-      <div className='bg-white'>
-        <div className='flex items-center gap-2.5 px-4 py-4 mt-6 rounded-t border '>
-          <img src={assets.list_icon} alt="" />
-          <p className='font-semibold'>Latest Bookings</p>
-        </div>
-
-        <div className='pt-4 border border-t-0'>
-          {dashData.latestAppointments.slice(0, 5).map((item, index) => (
-            <div className='flex items-center px-6 py-3 gap-3 hover:bg-gray-100' key={index}>
-              <img className='rounded-full w-10' src={`http://localhost:4000${item.docData.image}`} alt="" />
-              <div className='flex-1 text-sm'>
-                <p className='text-gray-800 font-medium'>{item.docData.name}</p>
-                <p className='text-gray-600 '>Booking on {slotDateFormat(item.slotDate)}</p>
-              </div>
-              {item.cancelled ? <p className='text-red-400 text-xs font-medium'>Cancelled</p> : item.isCompleted ? <p className='text-green-500 text-xs font-medium'>Completed</p> : <img onClick={() => cancelAppointment(item._id)} className='w-10 cursor-pointer' src={assets.cancel_icon} alt="" />}
+      <div className="mt-6">
+        <div id="invoice" className="flex flex-col w-full p-6 bg-white border rounded-lg shadow-sm border-slate-200 h-96">
+          <div className="flex items-center justify-between mb-6">
+            <div className=''>
+              <p className='text-lg font-semibold '>Revenue Chart</p>
+              <p className="mt-1 text-sm text-slate-600">Monthly Revenue</p>
             </div>
-          ))}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
+                <div className="text-sm font-medium text-slate-900">Revenue</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bar Chart */}
+          {monthlyRevenue && monthlyRevenue.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyRevenue} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: "#64748b", fontSize: 12, fontWeight: '500' }}
+                  axisLine={{ stroke: "#cbd5e1" }}
+                  tickLine={false}
+                  padding={{ left: 10, right: 10 }}
+                />
+                <YAxis
+                  tickFormatter={(value) => value.toLocaleString()}
+                  ticks={[10000, 20000, 30000, 40000]}
+                  domain={[0, 40000]}
+                  tick={{ fill: "#64748b", fontSize: 12, fontWeight: '500' }}
+                  axisLine={{ stroke: "#cbd5e1" }}
+                  tickLine={false}
+                  width={60}
+                />
+                <Tooltip
+                  formatter={(value) => `Rs. ${value.toLocaleString()}`}
+                  contentStyle={{ fontSize: 14, borderRadius: 8, borderColor: '#e2e8f0' }}
+                />
+                <Bar dataKey="revenue" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={24} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full text-sm font-medium text-gray-400">
+              No revenue data available
+            </div>
+          )}
         </div>
       </div>
-
-
-
-
-
-
-
     </div>
   )
 }

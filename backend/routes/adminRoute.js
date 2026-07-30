@@ -1,5 +1,5 @@
 import express from "express";
-import { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, getDoctorById, updateDoctorById } from "../controllers/adminController.js";
+import { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, getDoctorById, updateDoctorById } from "../controllers/adminController.js";
 import upload from "../middleware/multer.js";
 import authAdmin from "../middleware/authAdmin.js";
 import { changeAvailability } from "../controllers/doctorController.js";
@@ -14,6 +14,7 @@ adminRouter.post('/cancel-appointment', authAdmin, appointmentCancel)
 adminRouter.get('/dashboard', authAdmin, adminDashboard)
 adminRouter.get('/monthly-revenue', authAdmin, getMonthlyRevenue);
 adminRouter.get('/specialty-count',authAdmin, getAppointmentsBySpecialty)
+adminRouter.get('/channel-count', authAdmin, getAppointmentsByChannel)
 adminRouter.post('/appointments-doctor',authAdmin,)
 adminRouter.post('/add-staff', authAdmin, addStaff)
 adminRouter.get('/staff', authAdmin, getStaff)
