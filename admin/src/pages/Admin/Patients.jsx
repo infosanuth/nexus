@@ -133,7 +133,7 @@ const Patients = () => {
             <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
             <input
               type='text'
-              placeholder='Search by name or phone number'
+              placeholder='Search by name or phone num'
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className='w-full py-1.5 pl-8 pr-8 text-sm border rounded-lg focus:outline-none focus:border-primary'
