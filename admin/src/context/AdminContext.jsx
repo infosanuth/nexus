@@ -16,6 +16,7 @@ const AdminContextProvider = (props) => {
     const [appointmentByChannel, setAppointmentByChannel] = useState([]);
     const [specialities, setSpecialities] = useState([])
     const [staff, setStaff] = useState([])
+    const [sessions, setSessions] = useState([])
 
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL
@@ -169,6 +170,54 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    // Deleting a staff member
+    const deleteStaff = async (staffId) => {
+        try {
+            const { data } = await axios.delete(backendUrl + `/api/admin/delete-staff/${staffId}`, { headers: { aToken } })
+            if (data.success) {
+                toast.success(data.message)
+                setStaff(prev => prev.filter(member => member._id !== staffId))
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+        }
+    }
+
+    // Updating a staff member's name and email
+    const updateStaff = async (staffId, { name, email }) => {
+        try {
+            const { data } = await axios.put(backendUrl + `/api/admin/update-staff/${staffId}`, { name, email }, { headers: { aToken } })
+            if (data.success) {
+                toast.success(data.message)
+                setStaff(prev => prev.map(member => member._id === staffId ? data.staff : member))
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+        } catch (error) {
+            toast.error(error.message)
+            return false
+        }
+    }
+
+    // Getting all doctor sessions (with earnings) for admin
+    const getSessions = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/sessions', { headers: { aToken } })
+            if (data.success) {
+                setSessions(data.sessions)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+    }
+
     // Getting all specialities data
     const getSpecialities = async () => {
         try {
@@ -197,7 +246,8 @@ const AdminContextProvider = (props) => {
         appointmentBySpeciallity, SpecialtyPieChart,
         appointmentByChannel, ChannelPieChart,
         specialities, getSpecialities,
-        staff, getAllStaff
+        staff, getAllStaff, deleteStaff, updateStaff,
+        sessions, getSessions
     }
 
     return (
