@@ -14,17 +14,33 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { PieChart, Pie, Cell, Legend } from 'recharts';
 
 
-const StatCard = ({ icon: Icon, value, label }) => (
-  <div className='flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200'>
-    <div className='flex items-center justify-center text-gray-700 border border-gray-200 rounded-lg w-11 h-11 shrink-0 bg-gray-50'>
-      <Icon className='w-5 h-5' strokeWidth={1.75} />
+const TONE_STYLES = {
+  neutral: { icon: 'text-gray-600 bg-gray-100' },
+  indigo: { icon: 'text-indigo-600 bg-indigo-50' },
+  cyan: { icon: 'text-cyan-600 bg-cyan-50' },
+  blue: { icon: 'text-blue-600 bg-blue-50' },
+  slate: { icon: 'text-slate-600 bg-slate-100' },
+  emerald: { icon: 'text-emerald-600 bg-emerald-50' },
+  amber: { icon: 'text-amber-600 bg-amber-50' },
+  red: { icon: 'text-red-600 bg-red-50' },
+  teal: { icon: 'text-teal-600 bg-teal-50' },
+  rose: { icon: 'text-rose-600 bg-rose-50' },
+}
+
+const StatCard = ({ icon: Icon, value, label, tone = 'neutral' }) => {
+  const t = TONE_STYLES[tone] || TONE_STYLES.neutral
+  return (
+    <div className='flex items-center gap-3 bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200'>
+      <div className={`flex items-center justify-center rounded-lg w-11 h-11 shrink-0 ${t.icon}`}>
+        <Icon className='w-5 h-5' strokeWidth={1.75} />
+      </div>
+      <div className='min-w-0'>
+        <p className='text-xl font-semibold leading-tight text-gray-800 truncate'>{value}</p>
+        <p className='text-xs text-gray-500 truncate'>{label}</p>
+      </div>
     </div>
-    <div className='min-w-0'>
-      <p className='text-xl font-semibold leading-tight text-gray-800 truncate'>{value}</p>
-      <p className='text-xs text-gray-500 truncate'>{label}</p>
-    </div>
-  </div>
-)
+  )
+}
 
 const Dashboard = () => {
 
@@ -34,7 +50,9 @@ const Dashboard = () => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28CFD', '#FF6384', '#36A2EB'];
 
-  const renderPercentLabel = ({ cx, cy, midAngle, outerRadius, percent, index }) => {
+  const CHANNEL_COLORS = ['#2563EB', '#DC2626']; // blue = Online, red = Walk-in
+
+  const renderPercentLabel = (colors) => ({ cx, cy, midAngle, outerRadius, percent, index }) => {
     const RADIAN = Math.PI / 180
     const radius = outerRadius + 18
     const x = cx + radius * Math.cos(-midAngle * RADIAN)
@@ -43,7 +61,7 @@ const Dashboard = () => {
       <text
         x={x}
         y={y}
-        fill={COLORS[index % COLORS.length]}
+        fill={colors[index % colors.length]}
         textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
         fontSize={13}
@@ -76,23 +94,23 @@ const Dashboard = () => {
 
       <div className='grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
 
-        <StatCard icon={Stethoscope} value={dashData.doctors} label='Doctors' />
-        <StatCard icon={UserCheck} value={dashData.availableDoctors} label='Available Doctors' />
-        <StatCard icon={Users} value={dashData.patientsThisMonth} label='Patients (This Month)' />
+        <StatCard icon={Stethoscope} value={dashData.doctors} label='Doctors' tone='indigo' />
+        <StatCard icon={UserCheck} value={dashData.availableDoctors} label='Available Doctors' tone='cyan' />
+        <StatCard icon={Users} value={dashData.patientsThisMonth} label='Patients (This Month)' tone='blue' />
 
-        <StatCard icon={CalendarDays} value={dashData.totalAppointmentsThisMonth} label='Total Appointments' />
-        <StatCard icon={CalendarCheck} value={dashData.completedAppointmentsThisMonth} label='Completed Appointments' />
-        <StatCard icon={CalendarClock} value={dashData.upcomingAppointmentsThisMonth} label='Upcoming Appointments' />
-        <StatCard icon={CalendarX} value={dashData.cancelledAppointmentsThisMonth} label='Cancelled Appointments' />
+        <StatCard icon={CalendarDays} value={dashData.totalAppointmentsThisMonth} label='Total Appointments' tone='slate' />
+        <StatCard icon={CalendarCheck} value={dashData.completedAppointmentsThisMonth} label='Completed Appointments' tone='emerald' />
+        <StatCard icon={CalendarClock} value={dashData.upcomingAppointmentsThisMonth} label='Upcoming Appointments' tone='amber' />
+        <StatCard icon={CalendarX} value={dashData.cancelledAppointmentsThisMonth} label='Cancelled Appointments' tone='red' />
 
-        <StatCard icon={Layers} value={dashData.sessionsThisMonth} label='Sessions (This Month)' />
-        <StatCard icon={ListChecks} value={dashData.completedSessionsThisMonth} label='Completed Sessions' />
-        <StatCard icon={Hourglass} value={dashData.upcomingSessionsThisMonth} label='Upcoming Sessions' />
-        <StatCard icon={XCircle} value={dashData.cancelledSessionsThisMonth} label='Cancelled Sessions' />
+        <StatCard icon={Layers} value={dashData.sessionsThisMonth} label='Sessions (This Month)' tone='slate' />
+        <StatCard icon={ListChecks} value={dashData.completedSessionsThisMonth} label='Completed Sessions' tone='emerald' />
+        <StatCard icon={Hourglass} value={dashData.upcomingSessionsThisMonth} label='Upcoming Sessions' tone='amber' />
+        <StatCard icon={XCircle} value={dashData.cancelledSessionsThisMonth} label='Cancelled Sessions' tone='red' />
 
-        <StatCard icon={Wallet} value={`${currency}${dashData.earningsThisMonth}`} label='Earnings (This Month)' />
-        <StatCard icon={TrendingUp} value={`${currency}${dashData.profitThisMonth}`} label='Profit (This Month)' />
-        <StatCard icon={Undo2} value={`${currency}${dashData.refundsThisMonth}`} label='Refunds (This Month)' />
+        <StatCard icon={Wallet} value={`${currency}${dashData.earningsThisMonth}`} label='Earnings (This Month)' tone='teal' />
+        <StatCard icon={TrendingUp} value={`${currency}${dashData.profitThisMonth}`} label='Profit (This Month)' tone='emerald' />
+        <StatCard icon={Undo2} value={`${currency}${dashData.refundsThisMonth}`} label='Refunds (This Month)' tone='rose' />
 
       </div >
 
@@ -118,10 +136,10 @@ const Dashboard = () => {
                     outerRadius={85}
                     paddingAngle={3}
                     labelLine={false}
-                    label={renderPercentLabel}
+                    label={renderPercentLabel(CHANNEL_COLORS)}
                   >
                     {appointmentByChannel.map((entry, index) => (
-                      <Cell key={`channel-cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
+                      <Cell key={`channel-cell-${index}`} fill={CHANNEL_COLORS[index % CHANNEL_COLORS.length]} stroke="none" />
                     ))}
                   </Pie>
                   <Tooltip
@@ -158,7 +176,7 @@ const Dashboard = () => {
                     outerRadius={85}
                     paddingAngle={3}
                     labelLine={false}
-                    label={renderPercentLabel}
+                    label={renderPercentLabel(COLORS)}
                   >
                     {appointmentBySpeciallity.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
@@ -217,10 +235,11 @@ const Dashboard = () => {
                   width={60}
                 />
                 <Tooltip
+                  cursor={{ fill: '#3b82f6', fillOpacity: 0.08 }}
                   formatter={(value) => `Rs. ${value.toLocaleString()}`}
                   contentStyle={{ fontSize: 14, borderRadius: 8, borderColor: '#e2e8f0' }}
                 />
-                <Bar dataKey="revenue" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={24} />
+                <Bar dataKey="revenue" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={24} activeBar={{ fill: '#2563eb' }} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
