@@ -5,7 +5,7 @@ import { NavLink } from 'react-router-dom'
 import { assets } from '../assets/assets'
 import { DoctorContext } from '../context/DoctorContext'
 import { ReceptionContext } from '../context/ReceptionContext'
-import { MessageSquareText, Calendar, Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck, Users, ArrowRightLeft, Banknote } from 'lucide-react';
+import { Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck, Users, ArrowRightLeft, Banknote } from 'lucide-react';
 
 
 const Sidebar = () => {
@@ -45,6 +45,11 @@ const Sidebar = () => {
             <p className='hidden md:block'>Appointments</p>
           </NavLink>
 
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/all-patients'}>
+            <Users />
+            <p className='hidden md:block'>Patients</p>
+          </NavLink>
+
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/add-doctor'}>
             <img src={assets.add_icon} alt="" />
             <p className='hidden md:block'>Add Doctor</p>
@@ -64,22 +69,6 @@ const Sidebar = () => {
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/staff'}>
             <UserRoundPen />
             <p className='hidden md:block'>staff</p>
-          </NavLink>
-
-          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/messages'}>
-            <MessageSquareText />
-            <p className='hidden md:block'>Messages</p>
-            <button className='w-6 h-4 gap-2 text-xs text-white bg-red-600 border border-red-600 rounded-xl'> 12</button>
-          </NavLink>
-
-          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/calendar'}>
-            <Calendar />
-            <p className='hidden md:block'>Calendar</p>
-          </NavLink>
-
-          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/settings'}>
-            <Settings />
-            <p className='hidden md:block'>Settings</p>
           </NavLink>
 
         </ul>
