@@ -2,10 +2,11 @@ import React, { useContext, useEffect, useState } from 'react'
 import { AdminContext } from '../../context/AdminContext'
 import { toast } from 'react-toastify'
 import axios from 'axios'
-import { UserRoundPlus, Eye, EyeOff } from 'lucide-react'
+import { UserRoundPlus, Eye, EyeOff, Search, Download, X, Trash2, Pencil } from 'lucide-react'
+import * as XLSX from 'xlsx'
 
 const Staff = () => {
-    const { aToken, backendUrl, staff, getAllStaff } = useContext(AdminContext)
+    const { aToken, backendUrl, staff, getAllStaff, deleteStaff, updateStaff } = useContext(AdminContext)
 
     useEffect(() => {
         if (aToken) getAllStaff()
@@ -18,6 +19,81 @@ const Staff = () => {
     const [role, setRole] = useState('receptionist')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
+
+    const [search, setSearch] = useState('')
+    const [roleFilter, setRoleFilter] = useState('all')
+
+    const [editingMember, setEditingMember] = useState(null)
+    const [editName, setEditName] = useState('')
+    const [editEmail, setEditEmail] = useState('')
+    const [editLoading, setEditLoading] = useState(false)
+
+    const [deleteTarget, setDeleteTarget] = useState(null)
+    const [deleteLoading, setDeleteLoading] = useState(false)
+
+    const filteredStaff = staff.filter((member) => {
+        const term = search.trim().toLowerCase()
+        const matchesSearch = !term || member.name?.toLowerCase().includes(term)
+        const matchesRole = roleFilter === 'all' || member.role === roleFilter
+
+        return matchesSearch && matchesRole
+    })
+
+    const handleExport = () => {
+        const header = ['Name', 'Role', 'Active']
+        const rows = filteredStaff.map((member) => [
+            member.name,
+            member.role.charAt(0).toUpperCase() + member.role.slice(1),
+            member.isActive ? 'Active' : 'Inactive'
+        ])
+
+        const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
+        ws['!cols'] = [
+            { wch: 22 }, // Name
+            { wch: 14 }, // Role
+            { wch: 10 }, // Active
+        ]
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Staff')
+        XLSX.writeFile(wb, `staff-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    }
+
+    const handleDelete = (member) => {
+        setDeleteTarget(member)
+    }
+
+    const confirmDelete = async () => {
+        setDeleteLoading(true)
+        try {
+            await deleteStaff(deleteTarget._id)
+            setDeleteTarget(null)
+        } finally {
+            setDeleteLoading(false)
+        }
+    }
+
+    const openEdit = (member) => {
+        setEditingMember(member)
+        setEditName(member.name)
+        setEditEmail(member.email)
+    }
+
+    const closeEdit = () => {
+        setEditingMember(null)
+        setEditName('')
+        setEditEmail('')
+    }
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault()
+        setEditLoading(true)
+        try {
+            const success = await updateStaff(editingMember._id, { name: editName, email: editEmail })
+            if (success) closeEdit()
+        } finally {
+            setEditLoading(false)
+        }
+    }
 
     const resetForm = () => {
         setName('')
@@ -51,10 +127,10 @@ const Staff = () => {
     }
 
     return (
-        <div className='w-full m-5'>
+        <div className='m-5'>
 
             {/* Header */}
-            <div className='flex items-center justify-between mb-5'>
+            <div className='flex items-center justify-between mb-3'>
                 <h1 className='text-lg font-medium'>Staff</h1>
                 <button
                     onClick={() => setShowForm(true)}
@@ -62,6 +138,42 @@ const Staff = () => {
                 >
                     <UserRoundPlus size={16} />
                     Add Staff
+                </button>
+            </div>
+
+            {/* Search + Filter + Export toolbar */}
+            <div className='flex items-center gap-3 mb-1'>
+                <div className='relative flex-1 max-w-xs'>
+                    <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
+                    <input
+                        type='text'
+                        placeholder='Search by name'
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className='w-full py-1.5 pl-8 pr-8 text-sm border rounded-lg focus:outline-none focus:border-primary'
+                    />
+                    {search && (
+                        <button onClick={() => setSearch('')} className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500'>
+                            <X size={13} />
+                        </button>
+                    )}
+                </div>
+
+                <select
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                    className='py-1.5 pl-3 pr-8 text-sm text-gray-600 border rounded-lg shrink-0 focus:outline-none focus:border-primary'
+                >
+                    <option value='all'>All Roles</option>
+                    <option value='admin'>Admin</option>
+                    <option value='receptionist'>Receptionist</option>
+                </select>
+
+                <button
+                    onClick={handleExport}
+                    className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors border rounded-lg shrink-0 hover:border-gray-300 hover:text-gray-800'
+                >
+                    <Download size={14} /> Export
                 </button>
             </div>
 
@@ -74,11 +186,12 @@ const Staff = () => {
                             <th className='px-6 py-3 font-medium text-gray-500'>Name</th>
                             <th className='px-6 py-3 font-medium text-gray-500'>Role</th>
                             <th className='px-6 py-3 font-medium text-gray-500'>Active</th>
+                            <th className='px-6 py-3 font-medium text-right text-gray-500'>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {staff.length > 0 ? (
-                            staff.map((member, index) => (
+                        {filteredStaff.length > 0 ? (
+                            filteredStaff.map((member, index) => (
                                 <tr key={member._id} className='transition-colors border-b last:border-0 hover:bg-gray-50'>
                                     <td className='px-6 py-4 text-gray-400'>{index + 1}</td>
                                     <td className='px-6 py-4'>
@@ -101,11 +214,29 @@ const Staff = () => {
                                             {member.isActive ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
+                                    <td className='px-6 py-4'>
+                                        <div className='flex items-center justify-end gap-3'>
+                                            <button
+                                                onClick={() => openEdit(member)}
+                                                title='Edit staff member'
+                                                className='text-gray-400 transition-colors hover:text-indigo-500'
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(member)}
+                                                title='Delete staff member'
+                                                className='text-gray-400 transition-colors hover:text-red-500'
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={4} className='px-6 py-12 text-sm text-center text-gray-400'>
+                                <td colSpan={5} className='px-6 py-12 text-sm text-center text-gray-400'>
                                     No staff members found.
                                 </td>
                             </tr>
@@ -198,6 +329,90 @@ const Staff = () => {
                             </button>
                         </div>
                     </form>
+                </div>
+            )}
+
+            {/* Edit Staff Modal */}
+            {editingMember && (
+                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'>
+                    <form
+                        onSubmit={handleEditSubmit}
+                        className='w-full max-w-md p-6 mx-4 bg-white shadow-xl rounded-xl'
+                    >
+                        <h2 className='mb-5 text-base font-medium text-neutral-700'>Edit Staff Member</h2>
+
+                        <div className='mb-3'>
+                            <label className='block mb-1 text-sm text-gray-600'>Full Name</label>
+                            <input
+                                value={editName}
+                                onChange={e => setEditName(e.target.value)}
+                                type='text'
+                                placeholder='e.g. John Perera'
+                                required
+                                className='w-full px-3 py-2 text-sm transition-colors border border-gray-300 rounded outline-none focus:border-indigo-400'
+                            />
+                        </div>
+
+                        <div className='mb-5'>
+                            <label className='block mb-1 text-sm text-gray-600'>Email Address</label>
+                            <input
+                                value={editEmail}
+                                onChange={e => setEditEmail(e.target.value)}
+                                type='email'
+                                placeholder='e.g. john@hospital.com'
+                                required
+                                className='w-full px-3 py-2 text-sm transition-colors border border-gray-300 rounded outline-none focus:border-indigo-400'
+                            />
+                        </div>
+
+                        <div className='flex gap-3'>
+                            <button
+                                type='submit'
+                                disabled={editLoading}
+                                className='px-5 py-2 text-sm text-white transition-all bg-indigo-500 rounded hover:bg-indigo-600 disabled:opacity-60'
+                            >
+                                {editLoading ? 'Saving...' : 'Save Changes'}
+                            </button>
+                            <button
+                                type='button'
+                                onClick={closeEdit}
+                                className='px-5 py-2 text-sm text-gray-600 transition-all border border-gray-300 rounded hover:bg-gray-100'
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {/* Delete Confirmation Dialog */}
+            {deleteTarget && (
+                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'>
+                    <div className='w-full max-w-sm p-6 mx-4 bg-white shadow-xl rounded-xl'>
+                        <h2 className='mb-2 text-base font-medium text-neutral-700'>Delete staff member?</h2>
+                        <p className='mb-5 text-sm text-gray-500'>
+                            This will permanently remove <span className='font-medium text-gray-700'>{deleteTarget.name}</span> from staff. This cannot be undone.
+                        </p>
+
+                        <div className='flex gap-3'>
+                            <button
+                                type='button'
+                                onClick={confirmDelete}
+                                disabled={deleteLoading}
+                                className='px-5 py-2 text-sm text-white transition-all bg-red-500 rounded hover:bg-red-600 disabled:opacity-60'
+                            >
+                                {deleteLoading ? 'Deleting...' : 'Delete'}
+                            </button>
+                            <button
+                                type='button'
+                                onClick={() => setDeleteTarget(null)}
+                                disabled={deleteLoading}
+                                className='px-5 py-2 text-sm text-gray-600 transition-all border border-gray-300 rounded hover:bg-gray-100'
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 
