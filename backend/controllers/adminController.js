@@ -119,6 +119,34 @@ const appointmentCancel = async (req, res) => {
 
 }
 
+// API to get all doctor sessions for admin, with per-session earnings (doctor fee + speciality fee) x booked patients
+const sessionsAdmin = async (req, res) => {
+  try {
+
+    const sessions = await sessionModel.find({}).sort({ date: 1, startTime: 1 })
+    const doctors = await doctorModel.find({}).select('fees speciality')
+    const specialities = await specialityModel.find({}).select('speciality channelingFee')
+
+    const doctorInfoById = new Map(doctors.map(doc => [doc._id.toString(), { fees: doc.fees, speciality: doc.speciality }]))
+    const channelingFeeBySpeciality = new Map(specialities.map(spec => [spec.speciality, spec.channelingFee]))
+
+    const sessionsWithEarnings = sessions.map(session => {
+      const doctorInfo = doctorInfoById.get(session.doctorId.toString())
+      const doctorFee = doctorInfo?.fees || 0
+      const specialityFee = doctorInfo ? (channelingFeeBySpeciality.get(doctorInfo.speciality) || 0) : 0
+      const earnings = (doctorFee + specialityFee) * session.bookedPatientsCount
+
+      return { ...session.toObject(), doctorFee, specialityFee, earnings }
+    })
+
+    res.json({ success: true, sessions: sessionsWithEarnings })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 const adminDashboard = async (req, res) => {
   try {
     // Current-month boundaries in the server's local time (not UTC — Mongo's $year/$month
@@ -544,6 +572,63 @@ const getStaff = async (req, res) => {
   }
 }
 
+// API to delete a staff member
+const deleteStaff = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { adminId } = req.body
+
+    if (id === adminId) {
+      return res.json({ success: false, message: "You cannot delete your own account" })
+    }
+
+    const staffMember = await staffModel.findById(id)
+    if (!staffMember) {
+      return res.json({ success: false, message: "Staff member not found" })
+    }
+
+    await staffModel.findByIdAndDelete(id)
+
+    res.json({ success: true, message: "Staff member deleted successfully" })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to update a staff member's name and email
+const updateStaff = async (req, res) => {
+  try {
+    const { id } = req.params
+    const { name, email } = req.body
+
+    if (!name || !email) {
+      return res.json({ success: false, message: "Name and email are required" })
+    }
+
+    if (!validator.isEmail(email)) {
+      return res.json({ success: false, message: "Please enter a valid email" })
+    }
+
+    const existing = await staffModel.findOne({ email, _id: { $ne: id } })
+    if (existing) {
+      return res.json({ success: false, message: "Email already in use" })
+    }
+
+    const updated = await staffModel.findByIdAndUpdate(id, { name, email }, { new: true }).select('-password')
+    if (!updated) {
+      return res.json({ success: false, message: "Staff member not found" })
+    }
+
+    res.json({ success: true, message: "Staff member updated successfully", staff: updated })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 // API to get a single doctor by ID (for admin edit form)
 const getDoctorById = async (req, res) => {
   try {
@@ -591,4 +676,4 @@ const updateDoctorById = async (req, res) => {
   }
 }
 
-export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, getDoctorById, updateDoctorById }
+export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, sessionsAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById }
