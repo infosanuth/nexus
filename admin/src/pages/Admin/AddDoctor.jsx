@@ -50,6 +50,52 @@ const AddDoctor = () => {
         return toast.error("Name must be between 8 and 24 characters")
       }
 
+      if (password.length < 8) {
+        return toast.error("Password must be at least 8 characters")
+      }
+
+      const specialChars = "@#$"
+      let hasUpperCase = false
+      let hasLowerCase = false
+      let hasSpecialChar = false
+
+      for (const ch of password) {
+        if (ch >= 'A' && ch <= 'Z') hasUpperCase = true
+        if (ch >= 'a' && ch <= 'z') hasLowerCase = true
+        if (specialChars.includes(ch)) hasSpecialChar = true
+      }
+
+      if (!hasUpperCase) {
+        return toast.error("Password must contain at least one capital letter")
+      }
+
+      if (!hasLowerCase) {
+        return toast.error("Password must contain at least one lowercase letter")
+      }
+
+      if (!hasSpecialChar) {
+        return toast.error("Password must contain at least one special character (@, #, $)")
+      }
+
+      if (!registrationNumber) {
+        return toast.error("SLMC registration number is required")
+      } else {
+        let isValidRegistrationNumber = registrationNumber.length === 7 && registrationNumber[0] === 'D'
+
+        if (isValidRegistrationNumber) {
+          for (let i = 1; i < registrationNumber.length; i++) {
+            if (registrationNumber[i] < '0' || registrationNumber[i] > '9') {
+              isValidRegistrationNumber = false
+              break
+            }
+          }
+        }
+
+        if (!isValidRegistrationNumber) {
+          return toast.error("Invalid SLMC registration number")
+        }
+      }
+
       if (Number(fees) < 0) {
         return toast.error("Fees cannot be negative");
       }
@@ -141,7 +187,7 @@ const AddDoctor = () => {
 
             <div className='flex flex-col flex-1 gap-1'>
               <p>Doctor Password</p>
-              <input onChange={(e) => setPassword(e.target.value)} value={password} className='px-3 py-2 border rounded' type="password" placeholder='Password' required />
+              <input onChange={(e) => setPassword(e.target.value)} value={password} className='px-3 py-2 border rounded' type="password" placeholder='Password' minLength={8} required />
             </div>
 
             <div className='flex flex-col flex-1 gap-1'>
