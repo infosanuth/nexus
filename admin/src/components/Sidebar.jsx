@@ -5,7 +5,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { assets } from '../assets/assets'
 import { DoctorContext } from '../context/DoctorContext'
 import { ReceptionContext } from '../context/ReceptionContext'
-import { Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck, Users, ArrowRightLeft, Banknote, BarChart3, ChartLine, UserX, Wallet } from 'lucide-react';
+import { Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck, Users, ArrowRightLeft, Banknote, BarChart3, ChartLine, UserX, Wallet, Table2, PieChart, TrendingUp } from 'lucide-react';
 
 
 const Sidebar = () => {
@@ -52,6 +52,11 @@ const Sidebar = () => {
             <p className='hidden md:block'>Patients</p>
           </NavLink>
 
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-patient-history'}>
+            <ClipboardList />
+            <p className='hidden md:block'>Patient History</p>
+          </NavLink>
+
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/add-doctor'}>
             <img src={assets.add_icon} alt="" />
             <p className='hidden md:block'>Add Doctor</p>
@@ -68,9 +73,19 @@ const Sidebar = () => {
             <p className='hidden md:block'>Specialities</p>
           </NavLink>
 
-          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/speciality-report'}>
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/speciality-data'}>
             <BarChart3 />
+            <p className='hidden md:block'>Speciality Data</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-speciality-report'}>
+            <PieChart />
             <p className='hidden md:block'>Speciality Report</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-doctor-performance'}>
+            <TrendingUp />
+            <p className='hidden md:block'>Doctor Performance</p>
           </NavLink>
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/staff'}>
@@ -86,6 +101,46 @@ const Sidebar = () => {
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-session-history'}>
             <History />
             <p className='hidden md:block'>Session History</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-session-report'}>
+            <Table2 />
+            <p className='hidden md:block'>Session Report</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-appointment-report'}>
+            <Table2 />
+            <p className='hidden md:block'>Appointment Report</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-cancel-rate-report'}>
+            <Table2 />
+            <p className='hidden md:block'>Cancel Rate Report</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-online-vs-walkin'}>
+            <Table2 />
+            <p className='hidden md:block'>Online vs Walk-in</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-male-vs-female'}>
+            <Table2 />
+            <p className='hidden md:block'>Male vs Female</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-booking-type'}>
+            <Table2 />
+            <p className='hidden md:block'>Booking Type</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-rescheduled-appointments'}>
+            <ArrowRightLeft />
+            <p className='hidden md:block'>Rescheduled</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/admin-no-shows'}>
+            <UserX />
+            <p className='hidden md:block'>No-Shows</p>
           </NavLink>
 
         </ul>
@@ -232,7 +287,7 @@ const Sidebar = () => {
 
       {(aToken || dToken || rToken) && (
         <button
-          // onClick={() => profilePath && navigate(profilePath)}
+          onClick={() => profilePath && navigate(profilePath)}
           // className='flex items-center w-full gap-3 p-4 text-left transition-colors border-t hover:bg-gray-50'
           className='flex items-center w-full gap-3 p-4 text-left transition-colors border-t'
         >
