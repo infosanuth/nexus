@@ -15,6 +15,12 @@ const STATUS_OPTIONS = [
   { label: 'Cancelled', value: 'cancelled' },
 ]
 
+const BOOKING_OPTIONS = [
+  { label: 'All', value: 'all' },
+  { label: 'Fully Booked', value: 'full' },
+  { label: 'Open Slots', value: 'open' },
+]
+
 const SessionsForReception = () => {
 
   const { rToken, sessions, getSessions, cancelSession } = useContext(ReceptionContext)
@@ -22,6 +28,7 @@ const SessionsForReception = () => {
   const [dateFilter, setDateFilter] = useState('all')
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [bookingFilter, setBookingFilter] = useState('all')
   const dateInputRef = useRef(null)
 
   useEffect(() => {
@@ -50,13 +57,14 @@ const SessionsForReception = () => {
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
-  const isFiltered = search.trim() || dateFilter !== 'all' || specificDate || statusFilter !== 'all'
+  const isFiltered = search.trim() || dateFilter !== 'all' || specificDate || statusFilter !== 'all' || bookingFilter !== 'all'
 
   const resetFilters = () => {
     setSearch('')
     setDateFilter('all')
     setSpecificDate('')
     setStatusFilter('all')
+    setBookingFilter('all')
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
@@ -76,6 +84,9 @@ const SessionsForReception = () => {
     }
 
     if (statusFilter !== 'all' && item.status !== statusFilter) return false
+
+    if (bookingFilter === 'full' && item.bookedPatientsCount < item.maxPatients) return false
+    if (bookingFilter === 'open' && item.bookedPatientsCount >= item.maxPatients) return false
 
     return true
   }).sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -119,8 +130,8 @@ const SessionsForReception = () => {
 
       <p className='mb-3 text-lg font-medium'>Session Schedule</p>
 
-      <div className='flex flex-wrap items-center gap-3 px-5 py-3 mb-3 bg-white border rounded-xl'>
-        <div className='relative'>
+      <div className='flex items-center gap-3 px-5 py-3 mb-3 overflow-x-auto bg-white border rounded-xl'>
+        <div className='relative shrink-0'>
           <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-2.5 top-1/2' />
           <input
             type='text'
@@ -131,72 +142,94 @@ const SessionsForReception = () => {
           />
         </div>
 
-        <div className='w-px h-5 bg-gray-200' />
+        <div className='w-px h-5 bg-gray-200 shrink-0' />
 
-        <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Date</span>
-        {QUICK_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => handleQuickPill(opt.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${!specificDate && dateFilter === opt.value
-              ? 'bg-primary/10 text-primary border-primary/30'
-              : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+        <div className='flex items-center gap-2 shrink-0'>
+          <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Date</span>
+          {QUICK_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => handleQuickPill(opt.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${!specificDate && dateFilter === opt.value
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+            >
+              {opt.label}
+            </button>
+          ))}
 
-        <div className='relative flex items-center'>
-          <button
-            type='button'
-            onClick={() => dateInputRef.current?.showPicker()}
-            title='Pick a specific date'
-            className={`p-1.5 rounded-lg border transition-colors ${specificDate
-              ? 'border-primary/30 text-primary bg-primary/10'
-              : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
-              }`}
-          >
-            <CalendarDays size={14} />
-          </button>
-          <input
-            ref={dateInputRef}
-            type='date'
-            value={specificDate}
-            onChange={handleDateInput}
-            min={todayInputValue}
-            className='absolute w-0 h-0 opacity-0 pointer-events-none'
-          />
-          {specificDate && (
-            <span className='ml-2 flex items-center gap-1 text-xs text-primary border border-primary/30 bg-primary/10 rounded-lg px-2.5 py-1 font-medium'>
-              {new Date(specificDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-              <button onClick={clearSpecificDate} className='transition-colors hover:text-red-400'>
-                <X size={11} />
-              </button>
-            </span>
-          )}
+          <div className='relative flex items-center'>
+            <button
+              type='button'
+              onClick={() => dateInputRef.current?.showPicker()}
+              title='Pick a specific date'
+              className={`p-1.5 rounded-lg border transition-colors ${specificDate
+                ? 'border-primary/30 text-primary bg-primary/10'
+                : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                }`}
+            >
+              <CalendarDays size={14} />
+            </button>
+            <input
+              ref={dateInputRef}
+              type='date'
+              value={specificDate}
+              onChange={handleDateInput}
+              min={todayInputValue}
+              className='absolute w-0 h-0 opacity-0 pointer-events-none'
+            />
+            {specificDate && (
+              <span className='ml-2 flex items-center gap-1 text-xs text-primary border border-primary/30 bg-primary/10 rounded-lg px-2.5 py-1 font-medium whitespace-nowrap'>
+                {new Date(specificDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                <button onClick={clearSpecificDate} className='transition-colors hover:text-red-400'>
+                  <X size={11} />
+                </button>
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className='w-px h-5 bg-gray-200' />
+        <div className='w-px h-5 bg-gray-200 shrink-0' />
 
-        <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Status</span>
-        {STATUS_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => setStatusFilter(opt.value)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${statusFilter === opt.value
-              ? 'bg-primary/10 text-primary border-primary/30'
-              : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+        <div className='flex items-center gap-2 shrink-0'>
+          <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Status</span>
+          {STATUS_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${statusFilter === opt.value
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className='w-px h-5 bg-gray-200 shrink-0' />
+
+        <div className='flex items-center gap-2 shrink-0'>
+          <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Booking</span>
+          {BOOKING_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setBookingFilter(opt.value)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${bookingFilter === opt.value
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
         {isFiltered && (
           <button
             onClick={resetFilters}
-            className='flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-red-400'
+            className='flex items-center gap-1 text-xs text-gray-400 transition-colors shrink-0 whitespace-nowrap hover:text-red-400'
           >
             <X size={12} /> Clear
           </button>
@@ -204,7 +237,7 @@ const SessionsForReception = () => {
 
         <button
           onClick={handleExport}
-          className='flex items-center gap-1.5 px-3 py-1.5 ml-auto text-xs font-medium text-gray-600 transition-colors border rounded-lg hover:border-gray-300 hover:text-gray-800'
+          className='flex items-center gap-1.5 px-3 py-1.5 ml-auto text-xs font-medium text-gray-600 transition-colors border rounded-lg shrink-0 whitespace-nowrap hover:border-gray-300 hover:text-gray-800'
         >
           <Download size={14} /> Export
         </button>
