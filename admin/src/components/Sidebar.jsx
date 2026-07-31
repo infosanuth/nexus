@@ -5,7 +5,7 @@ import { NavLink } from 'react-router-dom'
 import { assets } from '../assets/assets'
 import { DoctorContext } from '../context/DoctorContext'
 import { ReceptionContext } from '../context/ReceptionContext'
-import { Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck, Users, ArrowRightLeft, Banknote, BarChart3 } from 'lucide-react';
+import { Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck, Users, ArrowRightLeft, Banknote, BarChart3, ChartLine, UserX } from 'lucide-react';
 
 
 const Sidebar = () => {
@@ -104,6 +104,36 @@ const Sidebar = () => {
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-patients'}>
             <UserCheck />
             <p className='hidden md:block'>Patients</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-patient-history'}>
+            <ClipboardList />
+            <p className='hidden md:block'>Patient History</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-rescheduled-appointments'}>
+            <ArrowRightLeft />
+            <p className='hidden md:block'>Rescheduled</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-no-shows'}>
+            <UserX />
+            <p className='hidden md:block'>No-Shows</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-online-vs-offline'}>
+            <ChartLine />
+            <p className='hidden md:block'>Online vs Offline</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-male-vs-female'}>
+            <ChartLine />
+            <p className='hidden md:block'>Male vs Female</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-booking-type'}>
+            <ChartLine />
+            <p className='hidden md:block'>Booking Type</p>
           </NavLink>
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/doctor-add-session'}>

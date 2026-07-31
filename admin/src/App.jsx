@@ -15,6 +15,12 @@ import EditDoctorProfile from './pages/Admin/EditDoctorProfile'
 import { DoctorContext } from './context/DoctorContext'
 import DoctorAppointments from './pages/Doctor/DoctorAppointments';
 import DoctorPatient from './pages/Doctor/DoctorPatient';
+import DoctorPatientHistory from './pages/Doctor/DoctorPatientHistory';
+import DoctorRescheduledAppointments from './pages/Doctor/DoctorRescheduledAppointments';
+import DoctorNoShows from './pages/Doctor/DoctorNoShows';
+import DoctorOnlineVsOffline from './pages/Doctor/DoctorOnlineVsOffline';
+import DoctorMaleVsFemale from './pages/Doctor/DoctorMaleVsFemale';
+import DoctorBookingType from './pages/Doctor/DoctorBookingType';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorProfile from './pages/Doctor/DoctorProfile';
 import DoctorAddSession from './pages/Doctor/DoctorAddSession';
@@ -71,6 +77,12 @@ const App = () => {
           <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
           <Route path='/doctor-appointments' element={<DoctorAppointments />} />
           <Route path='/doctor-patients' element={<DoctorPatient />} />
+          <Route path='/doctor-patient-history' element={<DoctorPatientHistory />} />
+          <Route path='/doctor-rescheduled-appointments' element={<DoctorRescheduledAppointments />} />
+          <Route path='/doctor-no-shows' element={<DoctorNoShows />} />
+          <Route path='/doctor-online-vs-offline' element={<DoctorOnlineVsOffline />} />
+          <Route path='/doctor-male-vs-female' element={<DoctorMaleVsFemale />} />
+          <Route path='/doctor-booking-type' element={<DoctorBookingType />} />
           <Route path='/doctor-profile' element={<DoctorProfile />} />
           <Route path='/doctor-add-session' element={<DoctorAddSession />} />
           <Route path='/doctor-sessions' element={<DoctorSessionSchedule />} />
