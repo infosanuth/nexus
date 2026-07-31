@@ -6,7 +6,7 @@ import { assets } from '../../assets/assets'
 import { AppContext } from '../../context/AppContext'
 import {
   Stethoscope, UserCheck, Users,
-  CalendarDays, CalendarCheck, CalendarClock, CalendarX,
+  CalendarDays, CalendarCheck, CalendarClock, CalendarX, PercentCircle,
   Layers, ListChecks, Hourglass, XCircle,
   Wallet, TrendingUp, Undo2,
 } from 'lucide-react';
@@ -25,7 +25,10 @@ const TONE_STYLES = {
   red: { icon: 'text-red-600 bg-red-50' },
   teal: { icon: 'text-teal-600 bg-teal-50' },
   rose: { icon: 'text-rose-600 bg-rose-50' },
+  orange: { icon: 'text-orange-600 bg-orange-50' },
 }
+
+const formatPercent = (value) => `${Number(value ?? 0).toFixed(1)}%`
 
 const StatCard = ({ icon: Icon, value, label, tone = 'neutral' }) => {
   const t = TONE_STYLES[tone] || TONE_STYLES.neutral
@@ -102,6 +105,7 @@ const Dashboard = () => {
         <StatCard icon={CalendarCheck} value={dashData.completedAppointmentsThisMonth} label='Completed Appointments' tone='emerald' />
         <StatCard icon={CalendarClock} value={dashData.upcomingAppointmentsThisMonth} label='Upcoming Appointments' tone='amber' />
         <StatCard icon={CalendarX} value={dashData.cancelledAppointmentsThisMonth} label='Cancelled Appointments' tone='red' />
+        <StatCard icon={PercentCircle} value={formatPercent(dashData.cancelRateThisMonth)} label='Cancel Rate (This Month)' tone='orange' />
 
         <StatCard icon={Layers} value={dashData.sessionsThisMonth} label='Sessions (This Month)' tone='slate' />
         <StatCard icon={ListChecks} value={dashData.completedSessionsThisMonth} label='Completed Sessions' tone='emerald' />
@@ -235,7 +239,7 @@ const Dashboard = () => {
                   width={60}
                 />
                 <Tooltip
-                  cursor={{ fill: '#3b82f6', fillOpacity: 0.08 }}
+                  cursor={false}
                   formatter={(value) => `Rs. ${value.toLocaleString()}`}
                   contentStyle={{ fontSize: 14, borderRadius: 8, borderColor: '#e2e8f0' }}
                 />
