@@ -556,6 +556,94 @@ const addStaff = async (req, res) => {
   }
 }
 
+// API for the currently logged-in admin to fetch their own profile
+const getMyProfile = async (req, res) => {
+  try {
+    const { adminId } = req.body
+
+    if (adminId === 'superadmin') {
+      return res.json({ success: true, profile: { name: 'Admin', email: process.env.ADMIN_EMAIL, isSuperAdmin: true } })
+    }
+
+    const staff = await staffModel.findById(adminId).select('-password')
+    if (!staff) {
+      return res.json({ success: false, message: 'Account not found' })
+    }
+
+    res.json({ success: true, profile: { name: staff.name, email: staff.email, isSuperAdmin: false } })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API for the currently logged-in admin to update their own name
+// Email is fixed (it's the login identifier) and isn't editable here
+const updateMyProfile = async (req, res) => {
+  try {
+    const { adminId, name } = req.body
+
+    if (adminId === 'superadmin') {
+      return res.json({ success: false, message: 'The default admin account is configured via environment settings and cannot be edited here' })
+    }
+
+    if (!name) {
+      return res.json({ success: false, message: 'Name is required' })
+    }
+
+    const updated = await staffModel.findByIdAndUpdate(adminId, { name }, { new: true }).select('-password')
+    if (!updated) {
+      return res.json({ success: false, message: 'Account not found' })
+    }
+
+    res.json({ success: true, message: 'Profile updated successfully', profile: { name: updated.name, email: updated.email, isSuperAdmin: false } })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API for the currently logged-in admin to change their own password
+const changeMyPassword = async (req, res) => {
+  try {
+    const { adminId, currentPassword, newPassword } = req.body
+
+    if (adminId === 'superadmin') {
+      return res.json({ success: false, message: 'The default admin password is configured via environment settings and cannot be changed here' })
+    }
+
+    if (!currentPassword || !newPassword) {
+      return res.json({ success: false, message: 'Current and new password are required' })
+    }
+
+    if (newPassword.length < 8) {
+      return res.json({ success: false, message: 'New password must be at least 8 characters' })
+    }
+
+    const staff = await staffModel.findById(adminId)
+    if (!staff) {
+      return res.json({ success: false, message: 'Account not found' })
+    }
+
+    const isMatch = await bycrypt.compare(currentPassword, staff.password)
+    if (!isMatch) {
+      return res.json({ success: false, message: 'Current password is incorrect' })
+    }
+
+    const salt = await bycrypt.genSalt(10)
+    staff.password = await bycrypt.hash(newPassword, salt)
+    await staff.save()
+
+    res.json({ success: true, message: 'Password changed successfully' })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 // API to get all staff
 const getStaff = async (req, res) => {
   try {
@@ -567,19 +655,18 @@ const getStaff = async (req, res) => {
   }
 }
 
-// API to delete a staff member
+// API to delete a staff member (admin accounts cannot be deleted, only receptionists)
 const deleteStaff = async (req, res) => {
   try {
     const { id } = req.params
-    const { adminId } = req.body
-
-    if (id === adminId) {
-      return res.json({ success: false, message: "You cannot delete your own account" })
-    }
 
     const staffMember = await staffModel.findById(id)
     if (!staffMember) {
       return res.json({ success: false, message: "Staff member not found" })
+    }
+
+    if (staffMember.role === 'admin') {
+      return res.json({ success: false, message: "Admin accounts cannot be deleted" })
     }
 
     await staffModel.findByIdAndDelete(id)
@@ -671,4 +758,4 @@ const updateDoctorById = async (req, res) => {
   }
 }
 
-export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, sessionsAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById }
+export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, sessionsAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById, getMyProfile, updateMyProfile, changeMyPassword }

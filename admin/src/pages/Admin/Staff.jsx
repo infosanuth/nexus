@@ -186,7 +186,8 @@ const Staff = () => {
                             <th className='px-6 py-3 font-medium text-gray-500'>Name</th>
                             <th className='px-6 py-3 font-medium text-gray-500'>Role</th>
                             <th className='px-6 py-3 font-medium text-gray-500'>Active</th>
-                            <th className='px-6 py-3 font-medium text-right text-gray-500'>Action</th>
+                            <th className='px-6 py-3 font-medium text-center text-gray-500'>Edit</th>
+                            <th className='px-6 py-3 font-medium text-center text-gray-500'>Delete</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -215,7 +216,7 @@ const Staff = () => {
                                         </span>
                                     </td>
                                     <td className='px-6 py-4'>
-                                        <div className='flex items-center justify-end gap-3'>
+                                        <div className='flex items-center justify-center'>
                                             <button
                                                 onClick={() => openEdit(member)}
                                                 title='Edit staff member'
@@ -223,20 +224,26 @@ const Staff = () => {
                                             >
                                                 <Pencil size={16} />
                                             </button>
-                                            <button
-                                                onClick={() => handleDelete(member)}
-                                                title='Delete staff member'
-                                                className='text-gray-400 transition-colors hover:text-red-500'
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                        </div>
+                                    </td>
+                                    <td className='px-6 py-4'>
+                                        <div className='flex items-center justify-center'>
+                                            {member.role !== 'admin' && (
+                                                <button
+                                                    onClick={() => handleDelete(member)}
+                                                    title='Delete staff member'
+                                                    className='text-gray-400 transition-colors hover:text-red-500'
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={5} className='px-6 py-12 text-sm text-center text-gray-400'>
+                                <td colSpan={6} className='px-6 py-12 text-sm text-center text-gray-400'>
                                     No staff members found.
                                 </td>
                             </tr>
