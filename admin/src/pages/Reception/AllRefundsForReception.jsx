@@ -1,9 +1,9 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import { CalendarDays, Download, Search, X } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown, Clock, Download, Search, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { ReceptionContext } from '../../context/ReceptionContext'
 import { AppContext } from '../../context/AppContext'
-import { dateInputToUTC } from '../../utils/date'
+import { dateInputToUTC, getPeriodStartUTC, PERIOD_OPTIONS } from '../../utils/date'
 
 const slotDateToUTC = (slotDate) => {
   const [d, m, y] = slotDate.split('_').map(Number)
@@ -41,9 +41,12 @@ const AllRefundsForReception = () => {
   const [typeFilter, setTypeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [specificDate, setSpecificDate] = useState('')
+  const [period, setPeriod] = useState('all')
   const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false)
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false)
   const doctorDropdownRef = useRef(null)
   const dateInputRef = useRef(null)
+  const periodDropdownRef = useRef(null)
 
   useEffect(() => {
     if (rToken) {
@@ -51,11 +54,14 @@ const AllRefundsForReception = () => {
     }
   }, [rToken])
 
-  // Close the doctor search dropdown when clicking outside of it
+  // Close the doctor search / period dropdowns when clicking outside of them
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (doctorDropdownRef.current && !doctorDropdownRef.current.contains(event.target)) {
         setIsDoctorDropdownOpen(false)
+      }
+      if (periodDropdownRef.current && !periodDropdownRef.current.contains(event.target)) {
+        setIsPeriodDropdownOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -65,7 +71,7 @@ const AllRefundsForReception = () => {
   // Any cancelled, paid appointment is refund-eligible, whether paid online or in cash
   const refundable = appointments.filter((item) => item.cancelled && item.payment)
 
-  const doctorNames = [...new Set(refundable.map((item) => item.docData?.name).filter(Boolean))].sort()
+  const doctorNames = [...new Set(refundable.map((item) => item.docData?.name?.trim()).filter(Boolean))].sort()
   const doctorSearchResults = doctorNames.filter((name) => name.toLowerCase().includes(doctorSearch.trim().toLowerCase()))
 
   const filtered = refundable.filter((item) => {
@@ -86,7 +92,10 @@ const AllRefundsForReception = () => {
 
     const matchesDate = !specificDate || slotDateToUTC(item.slotDate) === dateInputToUTC(specificDate)
 
-    return matchesSearch && matchesDoctor && matchesType && matchesStatus && matchesDate
+    const periodStart = getPeriodStartUTC(period)
+    const matchesPeriod = periodStart === null || slotDateToUTC(item.slotDate) >= periodStart
+
+    return matchesSearch && matchesDoctor && matchesType && matchesStatus && matchesDate && matchesPeriod
   })
 
   const sorted = [...filtered].sort((a, b) => slotDateToUTC(b.slotDate) - slotDateToUTC(a.slotDate))
@@ -100,20 +109,21 @@ const AllRefundsForReception = () => {
 
   useEffect(() => {
     setPage(1)
-  }, [search, doctorSearch, typeFilter, statusFilter, specificDate])
+  }, [search, doctorSearch, typeFilter, statusFilter, specificDate, period])
 
   const clearSpecificDate = () => {
     setSpecificDate('')
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
-  const isFiltered = typeFilter !== 'all' || statusFilter !== 'all' || specificDate || search || doctorSearch
+  const isFiltered = typeFilter !== 'all' || statusFilter !== 'all' || specificDate || search || doctorSearch || period !== 'all'
 
   const resetFilters = () => {
     setTypeFilter('all')
     setStatusFilter('all')
     setSearch('')
     setDoctorSearch('')
+    setPeriod('all')
     clearSpecificDate()
   }
 
@@ -159,7 +169,7 @@ const AllRefundsForReception = () => {
         </button>
       </div>
 
-      <div className='flex items-center gap-3 px-5 py-3 mb-3 overflow-x-auto bg-white border rounded-xl'>
+      <div className='flex flex-wrap items-center gap-3 px-5 py-3 mb-3 bg-white border rounded-xl'>
         <div className='relative w-64 shrink-0'>
           <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
           <input
@@ -275,6 +285,35 @@ const AllRefundsForReception = () => {
               {opt.label}
             </button>
           ))}
+        </div>
+
+        <div className='w-px h-5 bg-gray-200 shrink-0' />
+
+        <div className='relative shrink-0' ref={periodDropdownRef}>
+          <button
+            type='button'
+            onClick={() => setIsPeriodDropdownOpen((open) => !open)}
+            className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+          >
+            <Clock size={14} />
+            Period: {PERIOD_OPTIONS.find((opt) => opt.value === period)?.label}
+            <ChevronDown size={14} />
+          </button>
+          {isPeriodDropdownOpen && (
+            <div className='absolute right-0 z-10 mt-1 overflow-hidden bg-white border rounded-lg shadow-lg top-full w-44'>
+              {PERIOD_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type='button'
+                  onClick={() => { setPeriod(opt.value); setIsPeriodDropdownOpen(false) }}
+                  className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left hover:bg-gray-100 ${period === opt.value ? 'text-primary font-medium' : 'text-gray-600'}`}
+                >
+                  {opt.label}
+                  {period === opt.value && <Check size={14} />}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {isFiltered && (
