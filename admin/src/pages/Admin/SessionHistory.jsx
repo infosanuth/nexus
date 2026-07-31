@@ -1,9 +1,10 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AdminContext } from '../../context/AdminContext'
 import { AppContext } from '../../context/AppContext'
-import { CalendarDays, Download, Search, X } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown, Clock, Download, Search, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { todayUTC, dateInputToUTC } from '../../utils/date'
+import { todayUTC, dateInputToUTC, getPeriodStartUTC, PERIOD_OPTIONS } from '../../utils/date'
 
 const STATUS_OPTIONS = [
   { label: 'All', value: 'all' },
@@ -25,16 +26,39 @@ const SessionHistory = () => {
 
   const { aToken, sessions, getSessions } = useContext(AdminContext)
   const { currency } = useContext(AppContext)
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [period, setPeriod] = useState('all')
+  const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false)
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false)
+  const doctorDropdownRef = useRef(null)
   const dateInputRef = useRef(null)
+  const periodDropdownRef = useRef(null)
 
   useEffect(() => {
     if (aToken) {
       getSessions()
     }
   }, [aToken])
+
+  // Close the doctor search / period dropdowns when clicking outside of them
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (doctorDropdownRef.current && !doctorDropdownRef.current.contains(event.target)) {
+        setIsDoctorDropdownOpen(false)
+      }
+      if (periodDropdownRef.current && !periodDropdownRef.current.contains(event.target)) {
+        setIsPeriodDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const doctorNames = [...new Set(sessions.map((item) => item.doctorName?.trim()).filter(Boolean))].sort()
+  const doctorSearchResults = doctorNames.filter((name) => name.toLowerCase().includes(search.trim().toLowerCase()))
 
   const today = todayUTC()
 
@@ -50,14 +74,17 @@ const SessionHistory = () => {
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
-  const isFiltered = search.trim() || specificDate || statusFilter !== 'all'
+  const isFiltered = search.trim() || specificDate || statusFilter !== 'all' || period !== 'all'
 
   const resetFilters = () => {
     setSearch('')
     setSpecificDate('')
     setStatusFilter('all')
+    setPeriod('all')
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
+
+  const periodStart = getPeriodStartUTC(period)
 
   const pastSessions = sessions.filter((item) => {
     const sessionDay = new Date(item.date).setUTCHours(0, 0, 0, 0)
@@ -70,6 +97,8 @@ const SessionHistory = () => {
     if (specificDate && sessionDay !== dateInputToUTC(specificDate)) return false
 
     if (statusFilter !== 'all' && getSessionStatusLabel(item).value !== statusFilter) return false
+
+    if (periodStart !== null && sessionDay < periodStart) return false
 
     return true
   }).sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -114,15 +143,31 @@ const SessionHistory = () => {
       <p className='mb-3 text-lg font-medium'>Session History</p>
 
       <div className='flex flex-wrap items-center gap-3 px-5 py-3 mb-3 bg-white border rounded-xl'>
-        <div className='relative'>
+        <div className='relative' ref={doctorDropdownRef}>
           <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-2.5 top-1/2' />
           <input
             type='text'
             placeholder='Search doctor...'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onFocus={() => setIsDoctorDropdownOpen(true)}
             className='py-1.5 pl-7 pr-2 text-xs transition-colors border border-gray-200 rounded-lg w-44 focus:outline-none focus:border-primary'
+            autoComplete='off'
           />
+          {isDoctorDropdownOpen && doctorSearchResults.length > 0 && (
+            <div className='absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border rounded-lg shadow-lg z-10'>
+              {doctorSearchResults.map((name) => (
+                <button
+                  key={name}
+                  type='button'
+                  onClick={() => { setSearch(name); setIsDoctorDropdownOpen(false) }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${search === name ? 'bg-primary/10 text-primary' : ''}`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className='w-px h-5 bg-gray-200' />
@@ -175,6 +220,35 @@ const SessionHistory = () => {
           </button>
         ))}
 
+        <div className='w-px h-5 bg-gray-200' />
+
+        <div className='relative' ref={periodDropdownRef}>
+          <button
+            type='button'
+            onClick={() => setIsPeriodDropdownOpen((open) => !open)}
+            className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+          >
+            <Clock size={14} />
+            Period: {PERIOD_OPTIONS.find((opt) => opt.value === period)?.label}
+            <ChevronDown size={14} />
+          </button>
+          {isPeriodDropdownOpen && (
+            <div className='absolute right-0 z-10 mt-1 overflow-hidden bg-white border rounded-lg shadow-lg top-full w-44'>
+              {PERIOD_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type='button'
+                  onClick={() => { setPeriod(opt.value); setIsPeriodDropdownOpen(false) }}
+                  className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left hover:bg-gray-100 ${period === opt.value ? 'text-primary font-medium' : 'text-gray-600'}`}
+                >
+                  {opt.label}
+                  {period === opt.value && <Check size={14} />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {isFiltered && (
           <button
             onClick={resetFilters}
@@ -206,7 +280,11 @@ const SessionHistory = () => {
         {paginatedSessions.length === 0
           ? <p className='p-6 text-gray-500'>No past sessions found</p>
           : paginatedSessions.map((item, index) => (
-            <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1.3fr_1fr_1fr_1fr_1.2fr] gap-1 items-center text-gray-500 py-3 px-6 border-b last:border-0 transition-colors hover:bg-gray-50' key={item._id}>
+            <div
+              onClick={() => navigate(`/admin-session-appointments/${item._id}`)}
+              className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1.3fr_1fr_1fr_1fr_1.2fr] gap-1 items-center text-gray-500 py-3 px-6 border-b last:border-0 transition-colors hover:bg-gray-50 cursor-pointer'
+              key={item._id}
+            >
               <p className='max-sm:hidden'>{index + 1}</p>
               <p className='font-medium text-gray-800'>{item.doctorName}</p>
               <p>{new Date(item.date).toLocaleDateString('en-GB')}</p>
