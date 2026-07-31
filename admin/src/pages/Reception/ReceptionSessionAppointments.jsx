@@ -27,6 +27,17 @@ const ReceptionSessionAppointments = () => {
 
   const completedCount = sessionAppointments.filter(item => item.isCompleted).length
 
+  // Pagination
+  const PAGE_SIZE = 10
+  const [page, setPage] = useState(1)
+  const totalPages = Math.max(1, Math.ceil(filteredAppointments.length / PAGE_SIZE))
+  const paginatedAppointments = filteredAppointments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  // End pagination
+
+  useEffect(() => {
+    setPage(1)
+  }, [search])
+
   const handleExport = () => {
     const header = ['Ref', 'Patient', 'Age', 'Gender', 'Token', 'Status']
     const rows = filteredAppointments.map((item) => [
@@ -125,6 +136,15 @@ const ReceptionSessionAppointments = () => {
           )}
         </div>
 
+        <button
+          onClick={handleExport}
+          // className='hidden items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg shadow-sm hover:border-gray-300 hover:text-gray-800'
+          className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg shadow-sm hover:border-gray-300 hover:text-gray-800'
+
+        >
+          <Download size={14} /> Export
+        </button>
+
       </div>
 
       <div className='overflow-hidden bg-white border shadow-sm rounded-xl'>
@@ -139,11 +159,11 @@ const ReceptionSessionAppointments = () => {
         </div>
 
         <div className='max-h-[65vh] overflow-y-scroll'>
-          {filteredAppointments.length === 0
+          {paginatedAppointments.length === 0
             ? <p className='p-6 text-sm text-gray-500'>{search ? 'No matching appointments' : 'No appointments booked for this session'}</p>
-            : filteredAppointments.map((item, index) => (
+            : paginatedAppointments.map((item, index) => (
               <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1fr_2fr_1fr_1fr_1fr_1fr] gap-1 items-center text-sm text-gray-500 py-3 px-6 border-b last:border-b-0 hover:bg-gray-50/80 transition-colors' key={item._id}>
-                <p className='max-sm:hidden'>{index + 1}</p>
+                <p className='max-sm:hidden'>{(page - 1) * PAGE_SIZE + index + 1}</p>
                 <p className='font-medium text-gray-600'>{item.ref || '-'}</p>
                 <p className='text-gray-700'>{item.userData.name}</p>
                 <p className='text-center'>{item.userData.age || calculateAge(item.userData.dob)}</p>
@@ -170,6 +190,15 @@ const ReceptionSessionAppointments = () => {
           }
         </div>
       </div>
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className='flex items-center justify-end gap-3 px-2 pt-4'>
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Prev</button>
+          <span className='text-xs font-medium text-gray-400'>Page {page} of {totalPages}</span>
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Next</button>
+        </div>
+      )}
     </div>
   )
 }
