@@ -16,6 +16,12 @@ const STATUS_OPTIONS = [
   { label: 'Cancelled', value: 'cancelled' },
 ]
 
+const BOOKING_OPTIONS = [
+  { label: 'All', value: 'all' },
+  { label: 'Fully Booked', value: 'full' },
+  { label: 'Open Slots', value: 'open' },
+]
+
 const DoctorSessionSchedule = () => {
 
   const { dToken, sessions, getSessions, cancelSession } = useContext(DoctorContext)
@@ -23,7 +29,10 @@ const DoctorSessionSchedule = () => {
   const [dateFilter, setDateFilter] = useState('all')
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [bookingFilter, setBookingFilter] = useState('all')
   const dateInputRef = useRef(null)
+  const [cancelTarget, setCancelTarget] = useState(null)
+  const [cancelLoading, setCancelLoading] = useState(false)
 
   useEffect(() => {
     if (dToken) {
@@ -51,12 +60,13 @@ const DoctorSessionSchedule = () => {
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
-  const isFiltered = dateFilter !== 'all' || specificDate || statusFilter !== 'all'
+  const isFiltered = dateFilter !== 'all' || specificDate || statusFilter !== 'all' || bookingFilter !== 'all'
 
   const resetFilters = () => {
     setDateFilter('all')
     setSpecificDate('')
     setStatusFilter('all')
+    setBookingFilter('all')
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
@@ -74,6 +84,9 @@ const DoctorSessionSchedule = () => {
     }
 
     if (statusFilter !== 'all' && item.status !== statusFilter) return false
+
+    if (bookingFilter === 'full' && item.bookedPatientsCount < item.maxPatients) return false
+    if (bookingFilter === 'open' && item.bookedPatientsCount >= item.maxPatients) return false
 
     return true
   }).sort((a, b) => new Date(a.date) - new Date(b.date))
@@ -103,7 +116,26 @@ const DoctorSessionSchedule = () => {
     XLSX.writeFile(wb, `session-schedule-${todayInputValue}.xlsx`)
   }
 
-  // Pagination 
+  // Sessions with no booked patients cancel immediately; sessions with appointments
+  // require confirmation since cancelling also cancels those appointments.
+  const handleCancelClick = (e, item) => {
+    e.stopPropagation()
+    if (item.bookedPatientsCount > 0) {
+      setCancelTarget(item)
+    } else {
+      cancelSession(item._id)
+    }
+  }
+
+  const confirmCancelSession = async () => {
+    if (!cancelTarget) return
+    setCancelLoading(true)
+    await cancelSession(cancelTarget._id)
+    setCancelLoading(false)
+    setCancelTarget(null)
+  }
+
+  // Pagination
   const PAGE_SIZE = 10
   const [page, setPage] = useState(1)
   const totalPages = Math.max(1, Math.ceil(upcomingSessions.length / PAGE_SIZE))
@@ -115,71 +147,93 @@ const DoctorSessionSchedule = () => {
 
       <p className='mb-3 text-lg font-medium'>Session Schedule</p>
 
-      <div className='flex flex-wrap items-center gap-3 px-5 py-3 mb-3 bg-white border rounded-xl'>
-        <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Date</span>
-        {QUICK_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => handleQuickPill(opt.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${!specificDate && dateFilter === opt.value
-              ? 'bg-primary/10 text-primary border-primary/30'
-              : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+      <div className='flex items-center gap-3 px-5 py-3 mb-3 overflow-x-auto bg-white border rounded-xl'>
+        <div className='flex items-center gap-2 shrink-0'>
+          <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Date</span>
+          {QUICK_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => handleQuickPill(opt.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${!specificDate && dateFilter === opt.value
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+            >
+              {opt.label}
+            </button>
+          ))}
 
-        <div className='relative flex items-center'>
-          <button
-            type='button'
-            onClick={() => dateInputRef.current?.showPicker()}
-            title='Pick a specific date'
-            className={`p-1.5 rounded-lg border transition-colors ${specificDate
-              ? 'border-primary/30 text-primary bg-primary/10'
-              : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
-              }`}
-          >
-            <CalendarDays size={14} />
-          </button>
-          <input
-            ref={dateInputRef}
-            type='date'
-            value={specificDate}
-            onChange={handleDateInput}
-            min={todayInputValue}
-            className='absolute w-0 h-0 opacity-0 pointer-events-none'
-          />
-          {specificDate && (
-            <span className='ml-2 flex items-center gap-1 text-xs text-primary border border-primary/30 bg-primary/10 rounded-lg px-2.5 py-1 font-medium'>
-              {new Date(specificDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-              <button onClick={clearSpecificDate} className='transition-colors hover:text-red-400'>
-                <X size={11} />
-              </button>
-            </span>
-          )}
+          <div className='relative flex items-center'>
+            <button
+              type='button'
+              onClick={() => dateInputRef.current?.showPicker()}
+              title='Pick a specific date'
+              className={`p-1.5 rounded-lg border transition-colors ${specificDate
+                ? 'border-primary/30 text-primary bg-primary/10'
+                : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                }`}
+            >
+              <CalendarDays size={14} />
+            </button>
+            <input
+              ref={dateInputRef}
+              type='date'
+              value={specificDate}
+              onChange={handleDateInput}
+              min={todayInputValue}
+              className='absolute w-0 h-0 opacity-0 pointer-events-none'
+            />
+            {specificDate && (
+              <span className='ml-2 flex items-center gap-1 text-xs text-primary border border-primary/30 bg-primary/10 rounded-lg px-2.5 py-1 font-medium whitespace-nowrap'>
+                {new Date(specificDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                <button onClick={clearSpecificDate} className='transition-colors hover:text-red-400'>
+                  <X size={11} />
+                </button>
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className='w-px h-5 bg-gray-200' />
+        <div className='w-px h-5 bg-gray-200 shrink-0' />
 
-        <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Status</span>
-        {STATUS_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => setStatusFilter(opt.value)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${statusFilter === opt.value
-              ? 'bg-primary/10 text-primary border-primary/30'
-              : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
-              }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+        <div className='flex items-center gap-2 shrink-0'>
+          <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Status</span>
+          {STATUS_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${statusFilter === opt.value
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className='w-px h-5 bg-gray-200 shrink-0' />
+
+        <div className='flex items-center gap-2 shrink-0'>
+          <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Booking</span>
+          {BOOKING_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setBookingFilter(opt.value)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${bookingFilter === opt.value
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
         {isFiltered && (
           <button
             onClick={resetFilters}
-            className='flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-red-400'
+            className='flex items-center gap-1 text-xs text-gray-400 transition-colors shrink-0 whitespace-nowrap hover:text-red-400'
           >
             <X size={12} /> Clear
           </button>
@@ -187,7 +241,7 @@ const DoctorSessionSchedule = () => {
 
         <button
           onClick={handleExport}
-          className='flex items-center gap-1.5 px-3 py-1.5 ml-auto text-xs font-medium text-gray-600 transition-colors border rounded-lg hover:border-gray-300 hover:text-gray-800'
+          className='flex items-center gap-1.5 px-3 py-1.5 ml-auto text-xs font-medium text-gray-600 transition-colors border rounded-lg shrink-0 whitespace-nowrap hover:border-gray-300 hover:text-gray-800'
         >
           <Download size={14} /> Export
         </button>
@@ -220,9 +274,9 @@ const DoctorSessionSchedule = () => {
               <p className={`text-xs font-medium ${item.status === 'cancelled' ? 'text-red-500' : 'text-green-600'}`}>
                 {item.status}
               </p>
-              {item.bookedPatientsCount > 0 || item.status === 'cancelled'
+              {item.status === 'cancelled'
                 ? <p className='text-xs text-center text-gray-400'>-</p>
-                : <Ban onClick={() => cancelSession(item._id)} title='Cancel session' className='w-4 mx-auto text-red-500 cursor-pointer hover:text-red-700' />
+                : <Ban onClick={(e) => handleCancelClick(e, item)} title='Cancel session' className='w-4 mx-auto text-red-500 cursor-pointer hover:text-red-700' />
               }
             </div>
           ))
@@ -235,6 +289,42 @@ const DoctorSessionSchedule = () => {
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Prev</button>
           <span className='text-xs font-medium text-gray-400'>Page {page} of {totalPages}</span>
           <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Next</button>
+        </div>
+      )}
+
+      {/* Cancel Session Confirmation Dialog */}
+      {cancelTarget && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40' onClick={() => !cancelLoading && setCancelTarget(null)}>
+          <div className='w-full max-w-md p-6 mx-4 bg-white shadow-xl rounded-xl' onClick={(e) => e.stopPropagation()}>
+            <h2 className='mb-2 text-base font-medium text-neutral-700'>Cancel this session?</h2>
+            <p className='mb-4 text-sm text-gray-500'>
+              This session on <span className='font-medium text-gray-700'>{new Date(cancelTarget.date).toLocaleDateString('en-GB')} at {cancelTarget.startTime}</span> has{' '}
+              <span className='font-medium text-gray-700'>{cancelTarget.bookedPatientsCount} booked appointment{cancelTarget.bookedPatientsCount === 1 ? '' : 's'}</span>.
+              Cancelling the session will also cancel {cancelTarget.bookedPatientsCount === 1 ? 'that appointment' : 'all of those appointments'}.
+            </p>
+            <p className='mb-5 text-sm font-medium text-red-500'>
+              This action cannot be undone, and paid appointments cancelled this way will count against your reliability score in the doctor suggestion algorithm.
+            </p>
+
+            <div className='flex gap-3'>
+              <button
+                type='button'
+                onClick={confirmCancelSession}
+                disabled={cancelLoading}
+                className='px-5 py-2 text-sm text-white transition-all bg-red-500 rounded hover:bg-red-600 disabled:opacity-60'
+              >
+                {cancelLoading ? 'Cancelling...' : 'Yes, Cancel Session'}
+              </button>
+              <button
+                type='button'
+                onClick={() => setCancelTarget(null)}
+                disabled={cancelLoading}
+                className='px-5 py-2 text-sm text-gray-600 transition-all border border-gray-300 rounded hover:bg-gray-100'
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
