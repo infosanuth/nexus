@@ -5,11 +5,18 @@ import * as XLSX from 'xlsx'
 import { DoctorContext } from '../../context/DoctorContext'
 import { AppContext } from '../../context/AppContext'
 
+const GENDER_OPTIONS = [
+  { label: 'All', value: 'all' },
+  { label: 'Male', value: 'Male' },
+  { label: 'Female', value: 'Female' },
+]
+
 const DoctorPatient = () => {
 
   const { dToken, appointments, getAppointments } = useContext(DoctorContext)
   const { calculateAge } = useContext(AppContext)
   const [search, setSearch] = useState('')
+  const [genderFilter, setGenderFilter] = useState('all')
 
   useEffect(() => {
     if (dToken) {
@@ -28,7 +35,6 @@ const DoctorPatient = () => {
         phone: item.userData.phoneNumber || item.userData.phone || '-',
         age: item.userData.age || calculateAge(item.userData.dob),
         gender: item.userData.gender || 'Not Selected',
-        method: item.isWalkIn ? 'Walk-in' : 'Online',
         count: (map.get(key)?.count || 0) + 1
       })
     })
@@ -38,18 +44,26 @@ const DoctorPatient = () => {
 
   const filteredPatients = patients.filter((item) => {
     const term = search.trim().toLowerCase()
-    if (!term) return true
-    return item.name?.toLowerCase().includes(term) || item.phone?.toLowerCase().includes(term)
+    const matchesSearch = !term || item.name?.toLowerCase().includes(term) || item.phone?.toLowerCase().includes(term)
+    const matchesGender = genderFilter === 'all' || item.gender === genderFilter
+
+    return matchesSearch && matchesGender
   })
 
+  const isFiltered = genderFilter !== 'all' || search
+
+  const resetFilters = () => {
+    setGenderFilter('all')
+    setSearch('')
+  }
+
   const handleExport = () => {
-    const header = ['Patient', 'Phone Number', 'Age', 'Gender', 'Method', 'Appointments']
+    const header = ['Patient', 'Phone Number', 'Age', 'Gender', 'Appointments']
     const rows = filteredPatients.map((item) => [
       item.name,
       item.phone,
       item.age,
       item.gender,
-      item.method,
       item.count
     ])
 
@@ -59,7 +73,6 @@ const DoctorPatient = () => {
       { wch: 15 }, // Phone Number
       { wch: 8 },  // Age
       { wch: 12 }, // Gender
-      { wch: 10 }, // Method
       { wch: 12 }, // Appointments
     ]
     const wb = XLSX.utils.book_new()
@@ -76,15 +89,42 @@ const DoctorPatient = () => {
 
   useEffect(() => {
     setPage(1)
-  }, [search])
+  }, [search, genderFilter])
 
   return (
     <div className='w-full max-w-6xl m-5'>
 
       <div className='flex flex-wrap items-center justify-between gap-3 mb-3'>
         <p className='text-lg font-medium'>All Patients <span className='text-sm font-normal text-gray-400'>({filteredPatients.length})</span></p>
+      </div>
 
-        <div className='flex items-center gap-3'>
+      <div className='flex items-center gap-3 px-5 py-3 mb-3 overflow-x-auto bg-white border rounded-xl'>
+        <div className='flex items-center gap-2 shrink-0'>
+          <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Gender</span>
+          {GENDER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setGenderFilter(opt.value)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${genderFilter === opt.value
+                ? 'bg-primary/10 text-primary border-primary/30'
+                : 'border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {isFiltered && (
+          <button
+            onClick={resetFilters}
+            className='flex items-center gap-1 text-xs text-gray-400 transition-colors shrink-0 whitespace-nowrap hover:text-red-400'
+          >
+            <X size={12} /> Clear
+          </button>
+        )}
+
+        <div className='flex items-center gap-3 ml-auto shrink-0'>
           <div className='relative w-64'>
             <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
             <input
@@ -111,28 +151,22 @@ const DoctorPatient = () => {
       </div>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
-        <div className='max-sm:hidden grid grid-cols-[0.4fr_1.6fr_1.2fr_0.6fr_0.9fr_1fr_1fr] gap-1 py-3 px-6 border-b bg-gray-50 text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>
+        <div className='max-sm:hidden grid grid-cols-[0.4fr_1.6fr_1.2fr_0.6fr_0.9fr_1fr] gap-1 py-3 px-6 border-b bg-gray-50 text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>
           <p>#</p>
           <p>Patient</p>
           <p>Phone Number</p>
           <p>Age</p>
           <p>Gender</p>
-          <p>Method</p>
           <p>Appointments</p>
         </div>
 
         {paginatedPatients.map((item, index) => (
-          <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.4fr_1.6fr_1.2fr_0.6fr_0.9fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
+          <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.4fr_1.6fr_1.2fr_0.6fr_0.9fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50' key={index}>
             <p className='max-sm:hidden'>{(page - 1) * PAGE_SIZE + index + 1}</p>
             <p>{item.name}</p>
             <p>{item.phone}</p>
             <p className='max-sm:hidden'>{item.age}</p>
             <p>{item.gender}</p>
-            <div>
-              <p className={`inline px-2 py-0.5 text-xs border rounded-full ${item.method === 'Walk-in' ? 'border-amber-300 text-amber-600 bg-amber-50' : 'border-primary/30 text-primary bg-primary/5'}`}>
-                {item.method}
-              </p>
-            </div>
             <p>{item.count}</p>
           </div>
         ))
