@@ -7,6 +7,24 @@ import specialityModel from "../models/specialityModel.js";
 import staffModel from "../models/staffModel.js";
 import sessionModel from "../models/sessionModel.js";
 
+// Inclusive lower-bound Date for the "Period" dropdown filter (speciality/doctor-performance/
+// cancel-rate reports) — 'all' (or anything unrecognised) returns null, meaning no lower bound.
+const getPeriodStartDate = (period) => {
+  const now = new Date()
+  switch (period) {
+    case '7d': return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
+    case '1m': return new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+    case '3m': return new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
+    case '12m': return new Date(now.getFullYear(), now.getMonth() - 12, now.getDate())
+    default: return null
+  }
+}
+
+const slotDateToDate = (slotDate) => {
+  const [d, m, y] = slotDate.split('_').map(Number)
+  return new Date(y, m - 1, d)
+}
+
 // API for adding doctor
 const addDoctor = async (req, res) => {
 
@@ -95,6 +113,30 @@ const appointmentsAdmin = async (req, res) => {
   }
 
 }
+
+// API for admin to get no-show appointments across all doctors
+// A no-show is a paid appointment in a session that has started and ended,
+// but was never marked completed (patient never came in)
+const getNoShowsAdmin = async (req, res) => {
+  try {
+
+    const appointments = await appointmentModel.find({
+      payment: true,
+      isCompleted: false,
+      cancelled: false,
+      sessionId: { $ne: null }
+    }).populate('sessionId')
+
+    const noShows = appointments.filter(item => item.sessionId?.sessionStart && item.sessionId?.sessionEnd)
+
+    res.json({ success: true, noShows })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 // API for appointment cancellation
 const appointmentCancel = async (req, res) => {
   try {
@@ -119,6 +161,26 @@ const appointmentCancel = async (req, res) => {
 
 }
 
+// API for admin to view the appointments belonging to a single session (read-only)
+const getSessionAppointmentsAdmin = async (req, res) => {
+  try {
+
+    const { sessionId } = req.params
+
+    const session = await sessionModel.findById(sessionId).populate('appointments')
+
+    if (!session) {
+      return res.json({ success: false, message: 'Session not found' })
+    }
+
+    res.json({ success: true, session, appointments: session.appointments })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
 // API to get all doctor sessions for admin, with per-session earnings summed from paid & completed appointments only
 const sessionsAdmin = async (req, res) => {
   try {
@@ -135,6 +197,290 @@ const sessionsAdmin = async (req, res) => {
     })
 
     res.json({ success: true, sessions: sessionsWithEarnings })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to get an all-time, per-doctor summary of sessions and earnings/profit for admin.
+// Total is always Upcoming + Complete + Cancel (mutually exclusive, exhaustive) — a session is:
+//  - Complete, if it was actually ended (sessionEnd)
+//  - Cancel, if explicitly cancelled, OR its date has already passed without ever starting/ending
+//    (the doctor never held it — same "lapsed session" rule SessionHistory.jsx applies per-session,
+//    folded into Cancel here since this summary only has one bucket for "didn't happen")
+//  - Upcoming, otherwise (today or a future date, not yet started)
+// Earnings/profit mirror sessionsAdmin/adminDashboard: sum of amount on paid & completed
+// appointments, profit = earnings - doctor fees.
+const sessionReportAdmin = async (req, res) => {
+  try {
+    const doctors = await doctorModel.find({}).select('name')
+    const sessions = await sessionModel.find({}).populate('appointments')
+
+    const now = new Date()
+    const todayUTCms = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+
+    const report = doctors.map(doctor => {
+      const doctorSessions = sessions.filter(session => String(session.doctorId) === String(doctor._id))
+
+      let earnings = 0
+      let profit = 0
+      let upcomingSessions = 0
+      let completeSessions = 0
+      let cancelSessions = 0
+
+      doctorSessions.forEach(session => {
+        const sessionDayMs = new Date(session.date).setUTCHours(0, 0, 0, 0)
+        const isPast = sessionDayMs < todayUTCms
+
+        if (session.status === 'cancelled') {
+          cancelSessions++
+        } else if (session.sessionEnd) {
+          completeSessions++
+        } else if (isPast) {
+          cancelSessions++
+        } else {
+          upcomingSessions++
+        }
+
+        session.appointments
+          .filter(appt => appt.payment && appt.isCompleted)
+          .forEach(appt => {
+            earnings += appt.amount
+            profit += appt.amount - (appt.docData?.fees || 0)
+          })
+      })
+
+      return {
+        doctorId: doctor._id,
+        doctorName: doctor.name,
+        totalSessions: doctorSessions.length,
+        upcomingSessions,
+        completeSessions,
+        cancelSessions,
+        earnings,
+        profit
+      }
+    })
+
+    res.json({ success: true, report })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to get an all-time, per-doctor summary of appointments and earnings/profit for admin.
+// Upcoming = not cancelled & not completed, Complete = isCompleted.
+// Cancel is intentionally scoped to cancelled AND paid appointments only — cancelled bookings
+// that were never paid (abandoned before payment completed) are excluded on purpose, so
+// Total is NOT guaranteed to equal Upcoming + Complete + Cancel; the gap is that
+// never-paid-then-cancelled group, tracked as a real but separate category (confirmed).
+// Earnings/profit mirror sessionReportAdmin/adminDashboard: sum of amount on paid & completed
+// appointments, profit = earnings - doctor fees.
+const appointmentReportAdmin = async (req, res) => {
+  try {
+    const doctors = await doctorModel.find({}).select('name')
+    const appointments = await appointmentModel.find({})
+
+    const report = doctors.map(doctor => {
+      const doctorAppointments = appointments.filter(appt => appt.docId === String(doctor._id))
+
+      let earnings = 0
+      let profit = 0
+      let upcomingAppointments = 0
+      let completeAppointments = 0
+      let cancelAppointments = 0
+
+      doctorAppointments.forEach(appt => {
+        if (!appt.cancelled && !appt.isCompleted) upcomingAppointments++
+        if (appt.isCompleted) completeAppointments++
+        if (appt.cancelled && appt.payment) cancelAppointments++
+
+        if (appt.payment && appt.isCompleted) {
+          earnings += appt.amount
+          profit += appt.amount - (appt.docData?.fees || 0)
+        }
+      })
+
+      return {
+        doctorId: doctor._id,
+        doctorName: doctor.name,
+        totalAppointments: doctorAppointments.length,
+        upcomingAppointments,
+        completeAppointments,
+        cancelAppointments,
+        earnings,
+        profit
+      }
+    })
+
+    res.json({ success: true, report })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to get a per-doctor cancel-rate summary for admin, scoped to the requested period
+// (req.query.period — see getPeriodStartDate; defaults to all-time when omitted/'all').
+// Cancel Appointment % = paid cancelled appointments / (complete + paid cancelled) * 100 —
+//   same paid-only cancel rule as appointmentReportAdmin (unpaid/never-paid cancellations excluded).
+// Cancel Session % = cancelled sessions / (complete + cancelled) * 100, scoped to sessions that
+//   had at least one appointment ever booked on them — sessions nobody ever booked into are
+//   excluded entirely (both from the complete and cancel buckets), and future not-yet-held
+//   sessions are excluded from the ratio too (same complete/cancel/lapsed rules as sessionReportAdmin).
+const cancelRateReportAdmin = async (req, res) => {
+  try {
+    const periodStart = getPeriodStartDate(req.query.period)
+
+    const doctors = await doctorModel.find({}).select('name')
+    const appointments = await appointmentModel.find({})
+    const sessions = await sessionModel.find({}).populate('appointments')
+
+    const now = new Date()
+    const todayUTCms = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+
+    const report = doctors.map(doctor => {
+      const doctorAppointments = appointments.filter(appt =>
+        appt.docId === String(doctor._id) && (!periodStart || slotDateToDate(appt.slotDate) >= periodStart)
+      )
+      const doctorSessions = sessions.filter(session =>
+        String(session.doctorId) === String(doctor._id) && session.appointments.length > 0 &&
+        (!periodStart || new Date(session.date) >= periodStart)
+      )
+
+      let completeAppointments = 0
+      let cancelAppointments = 0
+      doctorAppointments.forEach(appt => {
+        if (appt.isCompleted) completeAppointments++
+        if (appt.cancelled && appt.payment) cancelAppointments++
+      })
+
+      let completeSessions = 0
+      let cancelSessions = 0
+      doctorSessions.forEach(session => {
+        const sessionDayMs = new Date(session.date).setUTCHours(0, 0, 0, 0)
+        const isPast = sessionDayMs < todayUTCms
+
+        if (session.status === 'cancelled') {
+          cancelSessions++
+        } else if (session.sessionEnd) {
+          completeSessions++
+        } else if (isPast) {
+          cancelSessions++
+        }
+        // future, not-yet-held sessions are left out of both buckets
+      })
+
+      const appointmentDenom = completeAppointments + cancelAppointments
+      const sessionDenom = completeSessions + cancelSessions
+
+      return {
+        doctorId: doctor._id,
+        doctorName: doctor.name,
+        cancelAppointmentRate: appointmentDenom > 0 ? (cancelAppointments / appointmentDenom) * 100 : 0,
+        cancelSessionRate: sessionDenom > 0 ? (cancelSessions / sessionDenom) * 100 : 0
+      }
+    })
+
+    res.json({ success: true, report })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to get a per-speciality summary of doctor counts and earnings/profit for admin, with
+// earnings/profit scoped to the requested period (req.query.period — see getPeriodStartDate;
+// defaults to all-time when omitted/'all'). Doctor count is a live headcount, not period-scoped.
+// Earnings/profit mirror appointmentReportAdmin/sessionReportAdmin/adminDashboard: sum of amount
+// on paid & completed appointments, matched to a speciality via docData.speciality (same field
+// getAppointmentsBySpecialty groups by), profit = earnings - doctor fees.
+const specialityReportAdmin = async (req, res) => {
+  try {
+    const periodStart = getPeriodStartDate(req.query.period)
+
+    const specialities = await specialityModel.find({}).select('speciality')
+    const doctors = await doctorModel.find({}).select('speciality')
+    let appointments = await appointmentModel.find({ payment: true, isCompleted: true })
+    if (periodStart) appointments = appointments.filter(appt => slotDateToDate(appt.slotDate) >= periodStart)
+
+    const report = specialities.map(item => {
+      const name = item.speciality
+
+      const doctorCount = doctors.filter(doc => doc.speciality === name).length
+
+      let earnings = 0
+      let profit = 0
+      appointments
+        .filter(appt => appt.docData?.speciality === name)
+        .forEach(appt => {
+          earnings += appt.amount
+          profit += appt.amount - (appt.docData?.fees || 0)
+        })
+
+      return {
+        specialityId: item._id,
+        specialityName: name,
+        doctorCount,
+        earnings,
+        profit
+      }
+    })
+
+    res.json({ success: true, report })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+// API to get a per-doctor performance summary for admin: doctor's own fee revenue vs the
+// hospital's cut, on paid & completed appointments, scoped to the requested period
+// (req.query.period — see getPeriodStartDate; defaults to all-time when omitted/'all').
+// Earnings = sum of docData.fees (the doctor's fee, snapshotted per appointment) — what the
+// doctor themself earned, not the total the patient paid.
+// Profit = sum of (amount - docData.fees) — the hospital's channeling-fee cut, same rule as
+// appointmentReportAdmin/specialityReportAdmin's profit.
+const doctorPerformanceAdmin = async (req, res) => {
+  try {
+    const periodStart = getPeriodStartDate(req.query.period)
+
+    const doctors = await doctorModel.find({}).select('name speciality')
+    let appointments = await appointmentModel.find({ payment: true, isCompleted: true })
+    if (periodStart) appointments = appointments.filter(appt => slotDateToDate(appt.slotDate) >= periodStart)
+
+    const report = doctors.map(doctor => {
+      let earnings = 0
+      let profit = 0
+      let completedAppointments = 0
+
+      appointments
+        .filter(appt => appt.docId === String(doctor._id))
+        .forEach(appt => {
+          const fee = appt.docData?.fees || 0
+          earnings += fee
+          profit += appt.amount - fee
+          completedAppointments++
+        })
+
+      return {
+        doctorId: doctor._id,
+        doctorName: doctor.name,
+        speciality: doctor.speciality,
+        completedAppointments,
+        earnings,
+        profit
+      }
+    })
+
+    res.json({ success: true, report })
 
   } catch (error) {
     console.log(error)
@@ -199,6 +545,13 @@ const adminDashboard = async (req, res) => {
             { $group: { _id: "$userId" } },
             { $count: "count" }
           ],
+          // Cancel rate follows the same paid-only cancel rule as cancelRateReportAdmin/
+          // appointmentReportAdmin (unpaid/never-paid cancellations excluded) — see
+          // cancelAppointmentRate above — just scoped to this month instead of all-time.
+          cancelledPaid: [
+            { $match: { slotYear: currentYear, slotMonth: currentMonth, cancelled: true, payment: true } },
+            { $count: "count" }
+          ],
           earnings: [
             { $match: { date: { $gte: startOfMonthMs, $lt: startOfNextMonthMs }, payment: true, refundPayment: { $ne: true } } },
             { $group: { _id: null, total: { $sum: "$amount" } } }
@@ -242,15 +595,20 @@ const adminDashboard = async (req, res) => {
       .sort({ date: -1 })
       .limit(5);
 
+    const completedAppointmentsThisMonth = pick(appointmentStats.completed);
+    const cancelledPaidAppointmentsThisMonth = pick(appointmentStats.cancelledPaid);
+    const cancelRateDenom = completedAppointmentsThisMonth + cancelledPaidAppointmentsThisMonth;
+
     const dashData = {
       doctors: doctorsCount,
       availableDoctors: availableDoctorsCount,
 
       patientsThisMonth: pick(appointmentStats.patients),
       totalAppointmentsThisMonth: pick(appointmentStats.total),
-      completedAppointmentsThisMonth: pick(appointmentStats.completed),
+      completedAppointmentsThisMonth,
       upcomingAppointmentsThisMonth: pick(appointmentStats.upcoming),
       cancelledAppointmentsThisMonth: pick(appointmentStats.cancelled),
+      cancelRateThisMonth: cancelRateDenom > 0 ? (cancelledPaidAppointmentsThisMonth / cancelRateDenom) * 100 : 0,
 
       sessionsThisMonth: pick(sessionStats.total),
       completedSessionsThisMonth: pick(sessionStats.completed),
@@ -758,4 +1116,4 @@ const updateDoctorById = async (req, res) => {
   }
 }
 
-export { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, sessionsAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById, getMyProfile, updateMyProfile, changeMyPassword }
+export { addDoctor, allDoctors, appointmentsAdmin, getNoShowsAdmin, appointmentCancel, sessionsAdmin, getSessionAppointmentsAdmin, sessionReportAdmin, appointmentReportAdmin, cancelRateReportAdmin, specialityReportAdmin, doctorPerformanceAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById, getMyProfile, updateMyProfile, changeMyPassword }
