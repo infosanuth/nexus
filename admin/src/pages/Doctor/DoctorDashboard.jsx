@@ -25,6 +25,8 @@ const getSessionStatusLabel = (item) => {
   if (item.status === 'cancelled') return { label: 'Cancelled', className: 'text-red-500' }
   if (item.sessionEnd) return { label: 'Completed', className: 'text-green-600' }
   if (item.sessionStart) return { label: 'Not Ended', className: 'text-amber-500' }
+  // A past session with patients booked but never started means the doctor didn't hold it in time
+  if (item.bookedPatientsCount > 0) return { label: 'Cancelled', className: 'text-red-500' }
   return { label: 'Not Started', className: 'text-slate-400' }
 }
 

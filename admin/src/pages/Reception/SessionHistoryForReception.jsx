@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ReceptionContext } from '../../context/ReceptionContext'
 import { CalendarDays, Download, Search, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
@@ -15,12 +16,15 @@ const getSessionStatusLabel = (item) => {
   if (item.status === 'cancelled') return { label: 'Cancelled', className: 'text-red-500', value: 'cancelled' }
   if (item.sessionEnd) return { label: 'Completed', className: 'text-green-600', value: 'completed' }
   if (item.sessionStart) return { label: 'Not Ended', className: 'text-amber-500', value: 'not-ended' }
+  // A past session with patients booked but never started means the doctor didn't hold it in time
+  if (item.bookedPatientsCount > 0) return { label: 'Cancelled', className: 'text-red-500', value: 'cancelled' }
   return { label: 'Not Started', className: 'text-gray-400', value: 'not-started' }
 }
 
 const SessionHistoryForReception = () => {
 
   const { rToken, sessions, getSessions } = useContext(ReceptionContext)
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -202,7 +206,7 @@ const SessionHistoryForReception = () => {
         {paginatedSessions.length === 0
           ? <p className='p-6 text-gray-500'>No past sessions found</p>
           : paginatedSessions.map((item, index) => (
-            <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1.3fr_1fr_1fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b' key={item._id}>
+            <div onClick={() => navigate(`/reception-session-appointments-history/${item._id}`)} className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1.3fr_1fr_1fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50 cursor-pointer transition-colors' key={item._id}>
               <p className='max-sm:hidden'>{index + 1}</p>
               <p>{item.doctorName}</p>
               <p>{new Date(item.date).toLocaleDateString('en-GB')}</p>
