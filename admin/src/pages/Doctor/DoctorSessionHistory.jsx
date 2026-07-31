@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DoctorContext } from '../../context/DoctorContext'
+import { AppContext } from '../../context/AppContext'
 import { CalendarDays, Download, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { todayUTC, dateInputToUTC } from '../../utils/date'
@@ -22,6 +23,7 @@ const getSessionStatusLabel = (item) => {
 const DoctorSessionHistory = () => {
 
   const { dToken, sessions, getSessions } = useContext(DoctorContext)
+  const { currency } = useContext(AppContext)
   const navigate = useNavigate()
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -69,14 +71,15 @@ const DoctorSessionHistory = () => {
   }).sort((a, b) => new Date(b.date) - new Date(a.date))
 
   const handleExport = () => {
-    const header = ['Date', 'Start Time', 'End Time', 'Max Patients', 'Booked', 'Status']
+    const header = ['Date', 'Start Time', 'End Time', 'Max Patients', 'Booked', 'Status', 'Earnings']
     const rows = pastSessions.map((item) => [
       new Date(item.date).toLocaleDateString('en-GB'),
       item.startTime,
       item.endTime || '-',
       item.maxPatients,
       item.bookedPatientsCount,
-      getSessionStatusLabel(item).label
+      getSessionStatusLabel(item).label,
+      item.earnings || 0
     ])
 
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
@@ -87,6 +90,7 @@ const DoctorSessionHistory = () => {
       { wch: 14 }, // Max Patients
       { wch: 10 }, // Booked
       { wch: 10 }, // Status
+      { wch: 14 }, // Earnings
     ]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Sessions')
@@ -171,21 +175,22 @@ const DoctorSessionHistory = () => {
         </button>
       </div>
 
-      <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
-        <div className='max-sm:hidden grid grid-cols-[0.5fr_1.5fr_1fr_1fr_1fr_1fr] gap-1 py-3 px-6 border-b'>
+      <div className='overflow-hidden bg-white border rounded-xl text-sm max-h-[80vh] overflow-y-auto'>
+        <div className='max-sm:hidden grid grid-cols-[0.5fr_1.5fr_1fr_1fr_1fr_1fr_1.2fr] gap-1 py-3 px-6 border-b bg-gray-50 text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>
           <p>#</p>
           <p>Date</p>
           <p>Start Time</p>
           <p>End Time</p>
           <p className='text-center'>Appointments</p>
           <p>Status</p>
+          <p className='text-right'>Earnings</p>
         </div>
 
         {paginatedSessions.length === 0
           ? <p className='p-6 text-gray-500'>No past sessions found</p>
           : paginatedSessions.map((item, index) => (
-            // <div onClick={() => navigate(`/doctor-session-appointments-history/${item._id}`)} className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1fr_1fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50 cursor-pointer' key={item._id}>
-            <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1fr_1fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b' key={item._id}>
+            // <div onClick={() => navigate(`/doctor-session-appointments-history/${item._id}`)} className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1fr_1fr_1fr_1fr_1.2fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50 cursor-pointer' key={item._id}>
+            <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1fr_1fr_1fr_1fr_1.2fr] gap-1 items-center text-gray-500 py-3 px-6 border-b last:border-0 transition-colors hover:bg-gray-50' key={item._id}>
               <p className='max-sm:hidden'>{index + 1}</p>
               <p>{new Date(item.date).toLocaleDateString('en-GB')}</p>
               <p>{item.startTime}</p>
@@ -193,6 +198,9 @@ const DoctorSessionHistory = () => {
               <p className='text-center'>{item.bookedPatientsCount}/{item.maxPatients}</p>
               <p className={`text-xs font-medium ${getSessionStatusLabel(item).className}`}>
                 {getSessionStatusLabel(item).label}
+              </p>
+              <p className={`text-right ${item.earnings ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
+                {currency}{(item.earnings || 0).toLocaleString()}
               </p>
             </div>
           ))

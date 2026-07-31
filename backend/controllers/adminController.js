@@ -119,24 +119,19 @@ const appointmentCancel = async (req, res) => {
 
 }
 
-// API to get all doctor sessions for admin, with per-session earnings (doctor fee + speciality fee) x booked patients
+// API to get all doctor sessions for admin, with per-session earnings summed from paid & completed appointments only
 const sessionsAdmin = async (req, res) => {
   try {
 
-    const sessions = await sessionModel.find({}).sort({ date: 1, startTime: 1 })
-    const doctors = await doctorModel.find({}).select('fees speciality')
-    const specialities = await specialityModel.find({}).select('speciality channelingFee')
-
-    const doctorInfoById = new Map(doctors.map(doc => [doc._id.toString(), { fees: doc.fees, speciality: doc.speciality }]))
-    const channelingFeeBySpeciality = new Map(specialities.map(spec => [spec.speciality, spec.channelingFee]))
+    const sessions = await sessionModel.find({}).sort({ date: 1, startTime: 1 }).populate('appointments')
 
     const sessionsWithEarnings = sessions.map(session => {
-      const doctorInfo = doctorInfoById.get(session.doctorId.toString())
-      const doctorFee = doctorInfo?.fees || 0
-      const specialityFee = doctorInfo ? (channelingFeeBySpeciality.get(doctorInfo.speciality) || 0) : 0
-      const earnings = (doctorFee + specialityFee) * session.bookedPatientsCount
+      const { appointments, ...sessionObj } = session.toObject()
+      const earnings = appointments
+        .filter(appt => appt.payment && appt.isCompleted)
+        .reduce((sum, appt) => sum + appt.amount, 0)
 
-      return { ...session.toObject(), doctorFee, specialityFee, earnings }
+      return { ...sessionObj, appointments, earnings }
     })
 
     res.json({ success: true, sessions: sessionsWithEarnings })
