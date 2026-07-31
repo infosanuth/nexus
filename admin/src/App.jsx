@@ -36,6 +36,7 @@ import DoctorsForReception from './pages/Reception/DoctorsForReception'
 import AllAppointmentForReception from './pages/Reception/AllAppointmentForReception'
 import PatientsForReception from './pages/Reception/PatientsForReception'
 import ReceptionSessions from './pages/Reception/SessionsForReception'
+import ReceptionSessionAppointments from './pages/Reception/ReceptionSessionAppointments'
 import ReceptionSessionHistory from './pages/Reception/SessionHistoryForReception'
 import AddSessions from './pages/Reception/AddSessionsForReception'
 import RefundsForReception from './pages/Reception/RefundsForReception'
@@ -95,6 +96,7 @@ const App = () => {
           <Route path='/reception-all-appointments' element={<AllAppointmentForReception />} />
           <Route path='/reception-patients' element={<PatientsForReception />} />
           <Route path='/reception-sessions' element={<ReceptionSessions />} />
+          <Route path='/reception-session-appointments/:sessionId' element={<ReceptionSessionAppointments />} />
           <Route path='/reception-session-history' element={<ReceptionSessionHistory />} />
           <Route path='/reception-add-sessions' element={<AddSessions />} />
           <Route path='/reception-refunds' element={<RefundsForReception />} />

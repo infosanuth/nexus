@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ReceptionContext } from '../../context/ReceptionContext'
 import { Ban, CalendarDays, Download, Search, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
@@ -24,12 +25,15 @@ const BOOKING_OPTIONS = [
 const SessionsForReception = () => {
 
   const { rToken, sessions, getSessions, cancelSession } = useContext(ReceptionContext)
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [dateFilter, setDateFilter] = useState('all')
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [bookingFilter, setBookingFilter] = useState('all')
   const dateInputRef = useRef(null)
+  const [cancelTarget, setCancelTarget] = useState(null)
+  const [cancelLoading, setCancelLoading] = useState(false)
 
   useEffect(() => {
     if (rToken) {
@@ -116,6 +120,25 @@ const SessionsForReception = () => {
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Sessions')
     XLSX.writeFile(wb, `session-schedule-${todayInputValue}.xlsx`)
+  }
+
+  // Sessions with no booked patients cancel immediately; sessions with appointments
+  // require confirmation since cancelling also cancels those appointments.
+  const handleCancelClick = (e, item) => {
+    e.stopPropagation()
+    if (item.bookedPatientsCount > 0) {
+      setCancelTarget(item)
+    } else {
+      cancelSession(item._id)
+    }
+  }
+
+  const confirmCancelSession = async () => {
+    if (!cancelTarget) return
+    setCancelLoading(true)
+    await cancelSession(cancelTarget._id)
+    setCancelLoading(false)
+    setCancelTarget(null)
   }
 
   // Pagination
@@ -259,7 +282,7 @@ const SessionsForReception = () => {
         {paginatedSessions.length === 0
           ? <p className='p-6 text-gray-500'>No sessions found</p>
           : paginatedSessions.map((item, index) => (
-            <div className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1.3fr_1fr_1fr_1fr_1fr_1fr_0.5fr] gap-1 items-center text-gray-500 py-3 px-6 border-b' key={item._id}>
+            <div onClick={() => navigate(`/reception-session-appointments/${item._id}`)} className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[0.5fr_1.5fr_1.3fr_1fr_1fr_1fr_1fr_1fr_0.5fr] gap-1 items-center text-gray-500 py-3 px-6 border-b hover:bg-gray-50 cursor-pointer' key={item._id}>
               <p className='max-sm:hidden'>{index + 1}</p>
               <p>{item.doctorName}</p>
               <p>{new Date(item.date).toLocaleDateString('en-GB')}</p>
@@ -270,9 +293,9 @@ const SessionsForReception = () => {
               <p className={`text-xs font-medium ${item.status === 'cancelled' ? 'text-red-500' : 'text-green-600'}`}>
                 {item.status}
               </p>
-              {item.bookedPatientsCount > 0 || item.status === 'cancelled'
+              {item.status === 'cancelled'
                 ? <p className='text-xs text-center text-gray-400'>-</p>
-                : <Ban onClick={() => cancelSession(item._id)} title='Cancel session' className='w-4 mx-auto text-red-500 cursor-pointer hover:text-red-700' />
+                : <Ban onClick={(e) => handleCancelClick(e, item)} title='Cancel session' className='w-4 mx-auto text-red-500 cursor-pointer hover:text-red-700' />
               }
             </div>
           ))
@@ -285,6 +308,42 @@ const SessionsForReception = () => {
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Prev</button>
           <span className='text-xs font-medium text-gray-400'>Page {page} of {totalPages}</span>
           <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className='px-3 py-1 text-xs font-medium text-gray-600 transition-colors bg-white border rounded-lg hover:border-gray-300 hover:text-gray-800 disabled:opacity-30 disabled:cursor-not-allowed'>Next</button>
+        </div>
+      )}
+
+      {/* Cancel Session Confirmation Dialog */}
+      {cancelTarget && (
+        <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40' onClick={() => !cancelLoading && setCancelTarget(null)}>
+          <div className='w-full max-w-md p-6 mx-4 bg-white shadow-xl rounded-xl' onClick={(e) => e.stopPropagation()}>
+            <h2 className='mb-2 text-base font-medium text-neutral-700'>Cancel this session?</h2>
+            <p className='mb-4 text-sm text-gray-500'>
+              {cancelTarget.doctorName}'s session on <span className='font-medium text-gray-700'>{new Date(cancelTarget.date).toLocaleDateString('en-GB')} at {cancelTarget.startTime}</span> has{' '}
+              <span className='font-medium text-gray-700'>{cancelTarget.bookedPatientsCount} booked appointment{cancelTarget.bookedPatientsCount === 1 ? '' : 's'}</span>.
+              Cancelling the session will also cancel {cancelTarget.bookedPatientsCount === 1 ? 'that appointment' : 'all of those appointments'}.
+            </p>
+            <p className='mb-5 text-sm font-medium text-red-500'>
+              This action cannot be undone, and paid appointments cancelled this way will affect the doctor's ranking in Top Doctors.
+            </p>
+
+            <div className='flex gap-3'>
+              <button
+                type='button'
+                onClick={confirmCancelSession}
+                disabled={cancelLoading}
+                className='px-5 py-2 text-sm text-white transition-all bg-red-500 rounded hover:bg-red-600 disabled:opacity-60'
+              >
+                {cancelLoading ? 'Cancelling...' : 'Yes, Cancel Session'}
+              </button>
+              <button
+                type='button'
+                onClick={() => setCancelTarget(null)}
+                disabled={cancelLoading}
+                className='px-5 py-2 text-sm text-gray-600 transition-all border border-gray-300 rounded hover:bg-gray-100'
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

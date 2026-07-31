@@ -263,7 +263,9 @@ const requestCashRefund = async (req, res) => {
     }
 }
 
-// API for reception to cancel an empty session (kept in the database, marked cancelled)
+// API for reception to cancel a session (kept in the database, marked cancelled).
+// Any appointments still booked into the session are cancelled along with it, and
+// paid ones count against the doctor's reliability score (see cancellationRate in doctorList).
 const cancelSessionReception = async (req, res) => {
     try {
 
@@ -275,14 +277,35 @@ const cancelSessionReception = async (req, res) => {
             return res.json({ success: false, message: 'Session not found' })
         }
 
-        if (session.bookedPatientsCount > 0 || session.appointments.length > 0) {
-            return res.json({ success: false, message: 'Cannot cancel a session with booked patients' })
+        if (session.status === 'cancelled') {
+            return res.json({ success: false, message: 'Session already cancelled' })
+        }
+
+        const activeAppointments = await appointmentModel.find({
+            _id: { $in: session.appointments },
+            cancelled: false
+        })
+
+        if (activeAppointments.length > 0) {
+            await appointmentModel.updateMany(
+                { _id: { $in: activeAppointments.map(item => item._id) } },
+                { cancelled: true }
+            )
+
+            const paidCount = activeAppointments.filter(item => item.payment === true).length
+            if (paidCount > 0) {
+                await doctorModel.findByIdAndUpdate(session.doctorId, { $inc: { cancelAppointments: paidCount } })
+            }
         }
 
         session.status = 'cancelled'
         await session.save()
 
-        res.json({ success: true, message: 'Session Cancelled' })
+        const message = activeAppointments.length > 0
+            ? `Session cancelled along with ${activeAppointments.length} booked appointment${activeAppointments.length === 1 ? '' : 's'}`
+            : 'Session Cancelled'
+
+        res.json({ success: true, message })
 
     } catch (error) {
         console.log(error)
@@ -290,4 +313,127 @@ const cancelSessionReception = async (req, res) => {
     }
 }
 
-export { bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception, requestRefund, requestCashRefund, cancelSessionReception }
+// API for reception to get a single session's booked appointments
+const getSessionAppointmentsReception = async (req, res) => {
+    try {
+
+        const { sessionId } = req.params
+
+        const session = await sessionModel.findById(sessionId).populate('appointments')
+
+        if (!session) {
+            return res.json({ success: false, message: 'Session not found' })
+        }
+
+        const appointments = session.appointments.filter(item => !item.cancelled)
+
+        res.json({ success: true, session, appointments })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API for reception to mark a session appointment as completed
+const completeAppointmentReception = async (req, res) => {
+    try {
+
+        const { appointmentId } = req.body
+
+        const appointmentData = await appointmentModel.findById(appointmentId)
+        if (!appointmentData) {
+            return res.json({ success: false, message: 'Appointment not found' })
+        }
+
+        await appointmentModel.findByIdAndUpdate(appointmentId, { isCompleted: true })
+
+        if (appointmentData.payment === true) {
+            await doctorModel.findByIdAndUpdate(appointmentData.docId, { $inc: { totalAppointments: 1 } })
+        }
+
+        res.json({ success: true, message: 'Appointment Completed' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API for reception to mark a session as started
+const startSessionReception = async (req, res) => {
+    try {
+
+        const { sessionId } = req.body
+
+        const session = await sessionModel.findById(sessionId)
+
+        if (!session) {
+            return res.json({ success: false, message: 'Session not found' })
+        }
+
+        const sessionDay = new Date(session.date)
+        const [hours, minutes] = session.startTime.split(':').map(Number)
+        const scheduledStart = new Date(sessionDay.getUTCFullYear(), sessionDay.getUTCMonth(), sessionDay.getUTCDate(), hours, minutes)
+
+        const windowStart = new Date(scheduledStart.getTime() - 20 * 60 * 1000)
+        const windowEnd = new Date(scheduledStart.getTime() + 60 * 60 * 1000)
+        const now = new Date()
+
+        if (now < windowStart) {
+            const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+            return res.json({ success: false, message: `Too early to start. This session opens for starting at ${formatTime(windowStart)}.` })
+        }
+
+        if (now > windowEnd) {
+            const formatTime = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+            return res.json({ success: false, message: `The window to start this session has closed at ${formatTime(windowEnd)}.` })
+        }
+
+        if (session.appointments.length === 0) {
+            return res.json({ success: false, message: 'Cannot start a session with no appointments booked.' })
+        }
+
+        session.sessionStart = true
+        await session.save()
+
+        res.json({ success: true, message: 'Session Started' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API for reception to mark a session as ended
+const endSessionReception = async (req, res) => {
+    try {
+
+        const { sessionId } = req.body
+
+        const session = await sessionModel.findById(sessionId)
+
+        if (!session) {
+            return res.json({ success: false, message: 'Session not found' })
+        }
+
+        if (!session.sessionStart) {
+            return res.json({ success: false, message: 'Session has not been started yet' })
+        }
+
+        session.sessionEnd = true
+        await session.save()
+
+        res.json({ success: true, message: 'Session Ended' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+export {
+    bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception,
+    requestRefund, requestCashRefund, cancelSessionReception,
+    getSessionAppointmentsReception, completeAppointmentReception, startSessionReception, endSessionReception
+}

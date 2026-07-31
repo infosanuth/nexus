@@ -10,6 +10,8 @@ const ReceptionContextProvider = (props) => {
     const [rToken, setRToken] = useState(localStorage.getItem('rToken') ? localStorage.getItem('rToken') : '')
     const [appointments, setAppointments] = useState([])
     const [sessions, setSessions] = useState([])
+    const [sessionDetails, setSessionDetails] = useState(false)
+    const [sessionAppointments, setSessionAppointments] = useState([])
 
     // Function to get all appointments for reception
     const getAppointments = async () => {
@@ -133,7 +135,8 @@ const ReceptionContextProvider = (props) => {
         }
     }
 
-    // Function to cancel an empty session (kept in the database, marked cancelled)
+    // Function to cancel a session (kept in the database, marked cancelled).
+    // Any appointments still booked into it are cancelled along with it.
     const cancelSession = async (sessionId) => {
         try {
 
@@ -142,6 +145,85 @@ const ReceptionContextProvider = (props) => {
             if (data.success) {
                 toast.success(data.message)
                 getSessions()
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
+    // Function to get a single session's booked appointments
+    const getSessionAppointments = async (sessionId) => {
+        try {
+
+            const { data } = await axios.get(backendUrl + '/api/reception/session-appointments/' + sessionId, { headers: { rToken } })
+
+            if (data.success) {
+                setSessionDetails(data.session)
+                setSessionAppointments(data.appointments)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    // Function to mark an appointment within a session as completed
+    const completeSessionAppointment = async (appointmentId, sessionId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/reception/complete-appointment', { appointmentId }, { headers: { rToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getSessionAppointments(sessionId)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    // Function to mark a session as started
+    const startSession = async (sessionId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/reception/start-session', { sessionId }, { headers: { rToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getSessionAppointments(sessionId)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    // Function to mark a session as ended (only allowed once the session has started)
+    const endSession = async (sessionId) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/reception/end-session', { sessionId }, { headers: { rToken } })
+
+            if (data.success) {
+                toast.success(data.message)
+                getSessionAppointments(sessionId)
             } else {
                 toast.error(data.message)
             }
@@ -156,7 +238,8 @@ const ReceptionContextProvider = (props) => {
         backendUrl,
         rToken, setRToken,
         appointments, setAppointments, getAppointments,
-        sessions, setSessions, getSessions, cancelSession,
+        sessions, setSessions, getSessions, cancelSession, startSession, endSession,
+        sessionDetails, sessionAppointments, getSessionAppointments, completeSessionAppointment,
         bookWalkInAppointment,
         addSession,
         requestRefund,

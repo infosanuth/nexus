@@ -303,7 +303,7 @@ const DoctorSessionSchedule = () => {
               Cancelling the session will also cancel {cancelTarget.bookedPatientsCount === 1 ? 'that appointment' : 'all of those appointments'}.
             </p>
             <p className='mb-5 text-sm font-medium text-red-500'>
-              This action cannot be undone, and paid appointments cancelled this way will count against your reliability score in the doctor suggestion algorithm.
+              This action cannot be undone, and paid appointments cancelled this way will affect your ranking in Top Doctors.
             </p>
 
             <div className='flex gap-3'>
