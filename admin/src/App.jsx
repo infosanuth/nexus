@@ -9,6 +9,9 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Dashboard from './pages/Admin/Dashboard'
 import AllApointments from './pages/Admin/AllApointments'
 import Patients from './pages/Admin/Patients'
+import PatientHistory from './pages/Admin/PatientHistory'
+import RescheduledAppointments from './pages/Admin/RescheduledAppointments'
+import NoShows from './pages/Admin/NoShows'
 import AddDoctor from './pages/Admin/AddDoctor'
 import DoctorsList from './pages/Admin/DoctorsList'
 import EditDoctorProfile from './pages/Admin/EditDoctorProfile'
@@ -26,10 +29,20 @@ import DoctorProfile from './pages/Doctor/DoctorProfile';
 import DoctorAddSession from './pages/Doctor/DoctorAddSession';
 import DoctorSessionSchedule from './pages/Doctor/DoctorSessionSchedule';
 import Specialities from './pages/Admin/Specialities'
-import SpecialityReport from './pages/Admin/SpecialityReport'
+import SpecialityData from './pages/Admin/SpecialityData'
+import SpecialityDoctors from './pages/Admin/SpecialityDoctors'
 import Staff from './pages/Admin/Staff'
 import SessionSchedule from './pages/Admin/SessionSchedule'
+import SessionAppointments from './pages/Admin/SessionAppointments'
 import SessionHistory from './pages/Admin/SessionHistory'
+import SessionReport from './pages/Admin/SessionReport'
+import AppointmentReport from './pages/Admin/AppointmentReport'
+import CancelRateReport from './pages/Admin/CancelRateReport'
+import SpecialityReport from './pages/Admin/SpecialityReport'
+import DoctorPerformance from './pages/Admin/DoctorPerformance'
+import OnlineVsWalkIn from './pages/Admin/OnlineVsWalkIn'
+import MaleVsFemale from './pages/Admin/MaleVsFemale'
+import BookingType from './pages/Admin/BookingType'
 import { ReceptionContext } from './context/ReceptionContext'
 import PatientCheckIn from './pages/Reception/PatientCheckIn'
 import DoctorsForReception from './pages/Reception/DoctorsForReception'
@@ -72,14 +85,27 @@ const App = () => {
           <Route path='/admin-dashboard' element={<Dashboard />} />
           <Route path='/all-appointments' element={<AllApointments />} />
           <Route path='/all-patients' element={<Patients />} />
+          <Route path='/admin-patient-history' element={<PatientHistory />} />
+          <Route path='/admin-rescheduled-appointments' element={<RescheduledAppointments />} />
+          <Route path='/admin-no-shows' element={<NoShows />} />
           <Route path='/add-doctor' element={<AddDoctor />} />
           <Route path='/doctor-list' element={<DoctorsList />} />
           <Route path='/edit-doctor/:id' element={<EditDoctorProfile />} />
           <Route path='/specialities' element={<Specialities />} />
-          <Route path='/speciality-report' element={<SpecialityReport />} />
+          <Route path='/speciality-data' element={<SpecialityData />} />
+          <Route path='/speciality-data/:specialityName' element={<SpecialityDoctors />} />
           <Route path='/staff' element={<Staff />} />
           <Route path='/admin-sessions' element={<SessionSchedule />} />
+          <Route path='/admin-session-appointments/:sessionId' element={<SessionAppointments />} />
           <Route path='/admin-session-history' element={<SessionHistory />} />
+          <Route path='/admin-session-report' element={<SessionReport />} />
+          <Route path='/admin-appointment-report' element={<AppointmentReport />} />
+          <Route path='/admin-cancel-rate-report' element={<CancelRateReport />} />
+          <Route path='/admin-speciality-report' element={<SpecialityReport />} />
+          <Route path='/admin-doctor-performance' element={<DoctorPerformance />} />
+          <Route path='/admin-online-vs-walkin' element={<OnlineVsWalkIn />} />
+          <Route path='/admin-male-vs-female' element={<MaleVsFemale />} />
+          <Route path='/admin-booking-type' element={<BookingType />} />
           <Route path='/admin-profile' element={<AdminProfile />} />
           {/* Doctor Route */}
           <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
