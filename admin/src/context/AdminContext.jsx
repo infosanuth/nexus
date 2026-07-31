@@ -12,6 +12,7 @@ const AdminContextProvider = (props) => {
     const [myProfile, setMyProfile] = useState(false)
     const [doctors, setDoctors] = useState([])
     const [appointments, setAppointments] = useState([])
+    const [noShows, setNoShows] = useState([])
     const [dashData, setDashData] = useState(false)
     const [monthlyRevenue, setMonthlyRevenue] = useState([]);
     const [appointmentBySpeciallity, SetAppointmentBySpeciallity] = useState([]);
@@ -19,6 +20,13 @@ const AdminContextProvider = (props) => {
     const [specialities, setSpecialities] = useState([])
     const [staff, setStaff] = useState([])
     const [sessions, setSessions] = useState([])
+    const [sessionDetails, setSessionDetails] = useState(false)
+    const [sessionAppointments, setSessionAppointments] = useState([])
+    const [sessionReport, setSessionReport] = useState([])
+    const [appointmentReport, setAppointmentReport] = useState([])
+    const [cancelRateReport, setCancelRateReport] = useState([])
+    const [specialityReport, setSpecialityReport] = useState([])
+    const [doctorPerformance, setDoctorPerformance] = useState([])
 
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL
@@ -72,6 +80,21 @@ const AdminContextProvider = (props) => {
             console.log(error)
         }
 
+    }
+
+    // Function to get no-show appointments across all doctors (paid, session started & ended, never completed)
+    const getNoShows = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/no-shows', { headers: { aToken } })
+            if (data.success) {
+                setNoShows(data.noShows)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
     }
 
     // Cancelling an appointment by ID
@@ -220,6 +243,97 @@ const AdminContextProvider = (props) => {
         }
     }
 
+    // Getting the all-time per-doctor session/earnings/profit summary for admin
+    const getSessionReport = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/session-report', { headers: { aToken } })
+            if (data.success) {
+                setSessionReport(data.report)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+    }
+
+    // Getting the all-time per-doctor appointment/earnings/profit summary for admin
+    const getAppointmentReport = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/appointment-report', { headers: { aToken } })
+            if (data.success) {
+                setAppointmentReport(data.report)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+    }
+
+    // Getting the per-doctor cancel-rate (paid-cancel appointment % and cancel session %) summary for admin, optionally scoped to a period
+    const getCancelRateReport = async (period = 'all') => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/cancel-rate-report', { params: { period }, headers: { aToken } })
+            if (data.success) {
+                setCancelRateReport(data.report)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+    }
+
+    // Getting the per-speciality doctor-count/earnings/profit summary for admin, optionally scoped to a period
+    const getSpecialityReport = async (period = 'all') => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/speciality-report', { params: { period }, headers: { aToken } })
+            if (data.success) {
+                setSpecialityReport(data.report)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+    }
+
+    // Getting the per-doctor fee-revenue/hospital-profit performance summary for admin, optionally scoped to a period
+    const getDoctorPerformance = async (period = 'all') => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/doctor-performance', { params: { period }, headers: { aToken } })
+            if (data.success) {
+                setDoctorPerformance(data.report)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+    }
+
+    // Getting the appointments booked under a single session, for the admin session drill-down (read-only)
+    const getSessionAppointments = async (sessionId) => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/session-appointments/' + sessionId, { headers: { aToken } })
+            if (data.success) {
+                setSessionDetails(data.session)
+                setSessionAppointments(data.appointments)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+    }
+
     // Getting all specialities data
     const getSpecialities = async () => {
         try {
@@ -298,6 +412,7 @@ const AdminContextProvider = (props) => {
         getAllDoctors, changeAvailability,
         appointments, setAppointments,
         getAllAppointments,
+        noShows, getNoShows,
         cancelAppointment,
         dashData, getDashData,
         monthlyRevenue, getMonthlyRevenue,
@@ -305,7 +420,13 @@ const AdminContextProvider = (props) => {
         appointmentByChannel, ChannelPieChart,
         specialities, getSpecialities,
         staff, getAllStaff, deleteStaff, updateStaff,
-        sessions, getSessions
+        sessions, getSessions,
+        sessionDetails, sessionAppointments, getSessionAppointments,
+        sessionReport, getSessionReport,
+        appointmentReport, getAppointmentReport,
+        cancelRateReport, getCancelRateReport,
+        specialityReport, getSpecialityReport,
+        doctorPerformance, getDoctorPerformance
     }
 
     return (
