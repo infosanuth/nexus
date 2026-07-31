@@ -1,8 +1,10 @@
 import mongoose from "mongoose";
+import bcrypt from 'bcrypt'
 import doctorModel from "../models/doctorModel.js";
 import sessionModel from "../models/sessionModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import specialityModel from "../models/specialityModel.js";
+import staffModel from "../models/staffModel.js";
 import generateAppointmentId from "../utils/generateAppointmentId.js";
 import { refundPayHerePayment, getPayHerePaymentIdByOrderId } from "../middleware/payhere.js";
 
@@ -67,6 +69,9 @@ const bookWalkInAppointment = async (req, res) => {
 
         const hospitalCharge = (await specialityModel.findOne({ speciality: docData.speciality }))?.channelingFee ?? 0
 
+        // Calculate token number for this session, consistent with online bookings
+        const tokenNumber = session.bookedPatientsCount + 1
+
         const appointmentData = {
             ref: await generateAppointmentId(),
             userId: `walkin-${new mongoose.Types.ObjectId()}`,
@@ -83,6 +88,7 @@ const bookWalkInAppointment = async (req, res) => {
             docData: docDataObj,
             amount: docData.fees + hospitalCharge,
             date: Date.now(),
+            tokenNumber,
             payment: payment === true,
             isWalkIn: true,
             sessionId: session._id
@@ -111,6 +117,29 @@ const appointmentsReception = async (req, res) => {
 
         const appointments = await appointmentModel.find({})
         res.json({ success: true, appointments })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API for reception to get no-show appointments across all doctors
+// A no-show is a paid appointment in a session that has started and ended,
+// but was never marked completed (patient never came in)
+const getNoShowsReception = async (req, res) => {
+    try {
+
+        const appointments = await appointmentModel.find({
+            payment: true,
+            isCompleted: false,
+            cancelled: false,
+            sessionId: { $ne: null }
+        }).populate('sessionId')
+
+        const noShows = appointments.filter(item => item.sessionId?.sessionStart && item.sessionId?.sessionEnd)
+
+        res.json({ success: true, noShows })
 
     } catch (error) {
         console.log(error)
@@ -318,6 +347,7 @@ const getSessionAppointmentsReception = async (req, res) => {
     try {
 
         const { sessionId } = req.params
+        const { includeCancelled } = req.query
 
         const session = await sessionModel.findById(sessionId).populate('appointments')
 
@@ -325,7 +355,7 @@ const getSessionAppointmentsReception = async (req, res) => {
             return res.json({ success: false, message: 'Session not found' })
         }
 
-        const appointments = session.appointments.filter(item => !item.cancelled)
+        const appointments = includeCancelled === 'true' ? session.appointments : session.appointments.filter(item => !item.cancelled)
 
         res.json({ success: true, session, appointments })
 
@@ -432,8 +462,89 @@ const endSessionReception = async (req, res) => {
     }
 }
 
+// API for the currently logged-in receptionist to fetch their own profile
+const getMyProfileReception = async (req, res) => {
+    try {
+
+        const { staffId } = req.body
+
+        const staff = await staffModel.findById(staffId).select('-password')
+        if (!staff) {
+            return res.json({ success: false, message: 'Account not found' })
+        }
+
+        res.json({ success: true, profile: { name: staff.name, email: staff.email } })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API for the currently logged-in receptionist to update their own name
+// Email is fixed (it's the login identifier) and isn't editable here
+const updateMyProfileReception = async (req, res) => {
+    try {
+
+        const { staffId, name } = req.body
+
+        if (!name) {
+            return res.json({ success: false, message: 'Name is required' })
+        }
+
+        const updated = await staffModel.findByIdAndUpdate(staffId, { name }, { new: true }).select('-password')
+        if (!updated) {
+            return res.json({ success: false, message: 'Account not found' })
+        }
+
+        res.json({ success: true, message: 'Profile updated successfully', profile: { name: updated.name, email: updated.email } })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API for the currently logged-in receptionist to change their own password
+const changeMyPasswordReception = async (req, res) => {
+    try {
+
+        const { staffId, currentPassword, newPassword } = req.body
+
+        if (!currentPassword || !newPassword) {
+            return res.json({ success: false, message: 'Current and new password are required' })
+        }
+
+        if (newPassword.length < 8) {
+            return res.json({ success: false, message: 'New password must be at least 8 characters' })
+        }
+
+        const staff = await staffModel.findById(staffId)
+        if (!staff) {
+            return res.json({ success: false, message: 'Account not found' })
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, staff.password)
+        if (!isMatch) {
+            return res.json({ success: false, message: 'Current password is incorrect' })
+        }
+
+        const salt = await bcrypt.genSalt(10)
+        staff.password = await bcrypt.hash(newPassword, salt)
+        await staff.save()
+
+        res.json({ success: true, message: 'Password changed successfully' })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 export {
     bookWalkInAppointment, appointmentsReception, sessionsReception, addSessionReception,
     requestRefund, requestCashRefund, cancelSessionReception,
-    getSessionAppointmentsReception, completeAppointmentReception, startSessionReception, endSessionReception
+    getSessionAppointmentsReception, completeAppointmentReception, startSessionReception, endSessionReception,
+    getMyProfileReception, updateMyProfileReception, changeMyPasswordReception,
+    getNoShowsReception
 }
