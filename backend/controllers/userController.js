@@ -493,7 +493,8 @@ const bookAppointment = async (req, res) => {
             slotTime,
             slotDate,
             date: Date.now(),
-            tokenNumber
+            tokenNumber,
+            bookedForSelf: !otherPatient
         }
 
         if (matchedSession) {
