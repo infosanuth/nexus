@@ -1,5 +1,5 @@
 import express from "express";
-import { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, sessionsAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById } from "../controllers/adminController.js";
+import { addDoctor, allDoctors, appointmentsAdmin, appointmentCancel, sessionsAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById, getMyProfile, updateMyProfile, changeMyPassword } from "../controllers/adminController.js";
 import upload from "../middleware/multer.js";
 import authAdmin from "../middleware/authAdmin.js";
 import { changeAvailability } from "../controllers/doctorController.js";
@@ -26,6 +26,9 @@ adminRouter.put('/update-speciality/:id', authAdmin, upload.single('image'), edi
 adminRouter.get('/specialities', getSpecialities)
 adminRouter.get('/doctor/:id', authAdmin, getDoctorById)
 adminRouter.put('/update-doctor/:id', authAdmin, upload.single('image'), updateDoctorById)
+adminRouter.get('/my-profile', authAdmin, getMyProfile)
+adminRouter.put('/update-my-profile', authAdmin, updateMyProfile)
+adminRouter.post('/change-password', authAdmin, changeMyPassword)
 
 
 export default adminRouter  

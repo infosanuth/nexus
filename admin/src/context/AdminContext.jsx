@@ -8,6 +8,8 @@ export const AdminContext = createContext();
 const AdminContextProvider = (props) => {
 
     const [aToken, setAToken] = useState(localStorage.getItem('aToken') ? localStorage.getItem('aToken') : '')
+    const [aName, setAName] = useState(localStorage.getItem('aName') ? localStorage.getItem('aName') : '')
+    const [myProfile, setMyProfile] = useState(false)
     const [doctors, setDoctors] = useState([])
     const [appointments, setAppointments] = useState([])
     const [dashData, setDashData] = useState(false)
@@ -234,8 +236,64 @@ const AdminContextProvider = (props) => {
     }
 
 
+    // Function to get the currently logged-in admin's own profile
+    const getMyProfile = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/my-profile', { headers: { aToken } })
+            if (data.success) {
+                setMyProfile(data.profile)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    // Function to update the currently logged-in admin's own name
+    const updateMyProfile = async (name) => {
+        try {
+            const { data } = await axios.put(backendUrl + '/api/admin/update-my-profile', { name }, { headers: { aToken } })
+            if (data.success) {
+                toast.success(data.message)
+                setMyProfile(data.profile)
+                setAName(data.profile.name)
+                localStorage.setItem('aName', data.profile.name)
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
+    // Function to change the currently logged-in admin's own password
+    const changeMyPassword = async (currentPassword, newPassword) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/admin/change-password', { currentPassword, newPassword }, { headers: { aToken } })
+            if (data.success) {
+                toast.success(data.message)
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
     const value = {
         aToken, setAToken,
+        aName, setAName,
+        myProfile, getMyProfile, updateMyProfile, changeMyPassword,
         backendUrl, doctors,
         getAllDoctors, changeAvailability,
         appointments, setAppointments,

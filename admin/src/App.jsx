@@ -35,16 +35,22 @@ import PatientCheckIn from './pages/Reception/PatientCheckIn'
 import DoctorsForReception from './pages/Reception/DoctorsForReception'
 import AllAppointmentForReception from './pages/Reception/AllAppointmentForReception'
 import PatientsForReception from './pages/Reception/PatientsForReception'
+import PatientHistoryForReception from './pages/Reception/PatientHistoryForReception'
 import ReceptionSessions from './pages/Reception/SessionsForReception'
 import ReceptionSessionAppointments from './pages/Reception/ReceptionSessionAppointments'
+import ReceptionSessionAppointmentsHistory from './pages/Reception/ReceptionSessionAppointmentsHistory'
 import ReceptionSessionHistory from './pages/Reception/SessionHistoryForReception'
 import AddSessions from './pages/Reception/AddSessionsForReception'
 import RefundsForReception from './pages/Reception/RefundsForReception'
+import AllRefundsForReception from './pages/Reception/AllRefundsForReception'
 import CashRefundsForReception from './pages/Reception/CashRefundsForReception'
 import RescheduledAppointmentsForReception from './pages/Reception/RescheduledAppointmentsForReception'
+import NoShowsForReception from './pages/Reception/NoShowsForReception'
 import DoctorSessionHistory from './pages/Doctor/DoctorSessionHistory'
 import DoctorSessionAppointments from './pages/Doctor/DoctorSessionAppointments'
 import DoctorSessionAppointmentsHistory from './pages/Doctor/DoctorSessionAppointmentsHistory'
+import AdminProfile from './pages/Admin/AdminProfile'
+import ReceptionProfile from './pages/Reception/ReceptionProfile'
 
 
 const App = () => {
@@ -74,6 +80,7 @@ const App = () => {
           <Route path='/staff' element={<Staff />} />
           <Route path='/admin-sessions' element={<SessionSchedule />} />
           <Route path='/admin-session-history' element={<SessionHistory />} />
+          <Route path='/admin-profile' element={<AdminProfile />} />
           {/* Doctor Route */}
           <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
           <Route path='/doctor-appointments' element={<DoctorAppointments />} />
@@ -95,13 +102,18 @@ const App = () => {
           <Route path='/reception-doctors' element={<DoctorsForReception />} />
           <Route path='/reception-all-appointments' element={<AllAppointmentForReception />} />
           <Route path='/reception-patients' element={<PatientsForReception />} />
+          <Route path='/reception-patient-history' element={<PatientHistoryForReception />} />
           <Route path='/reception-sessions' element={<ReceptionSessions />} />
           <Route path='/reception-session-appointments/:sessionId' element={<ReceptionSessionAppointments />} />
+          <Route path='/reception-session-appointments-history/:sessionId' element={<ReceptionSessionAppointmentsHistory />} />
           <Route path='/reception-session-history' element={<ReceptionSessionHistory />} />
           <Route path='/reception-add-sessions' element={<AddSessions />} />
+          <Route path='/reception-all-refunds' element={<AllRefundsForReception />} />
           <Route path='/reception-refunds' element={<RefundsForReception />} />
           <Route path='/reception-cash-refunds' element={<CashRefundsForReception />} />
           <Route path='/reception-rescheduled-appointments' element={<RescheduledAppointmentsForReception />} />
+          <Route path='/reception-no-shows' element={<NoShowsForReception />} />
+          <Route path='/reception-profile' element={<ReceptionProfile />} />
         </Routes>
         </div>
       </div>

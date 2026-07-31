@@ -7,9 +7,9 @@ import { ReceptionContext } from '../context/ReceptionContext'
 
 const Navbar = () => {
 
-  const { aToken, setAToken } = useContext(AdminContext)
+  const { aToken, setAToken, setAName } = useContext(AdminContext)
   const { dToken, setDToken } = useContext(DoctorContext)
-  const { rToken, setRToken } = useContext(ReceptionContext)
+  const { rToken, setRToken, setRName } = useContext(ReceptionContext)
 
 
   const navigate = useNavigate()
@@ -19,9 +19,13 @@ const Navbar = () => {
     dToken && setDToken('')
     dToken && localStorage.removeItem('dToken')
     aToken && setAToken('')
+    aToken && setAName('')
     aToken && localStorage.removeItem('aToken')
+    aToken && localStorage.removeItem('aName')
     rToken && setRToken('')
+    rToken && setRName('')
     rToken && localStorage.removeItem('rToken')
+    rToken && localStorage.removeItem('rName')
   }
 
   return (

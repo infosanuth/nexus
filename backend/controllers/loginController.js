@@ -24,7 +24,7 @@ const loginHandler = async (req, res) => {
                 { id: staffUser._id, role: staffUser.role },
                 process.env.JWT_SECRET
             )
-            return res.json({ success: true, token, role: staffUser.role })
+            return res.json({ success: true, token, role: staffUser.role, name: staffUser.name })
         }
 
         // 2. Check Doctor table
@@ -47,7 +47,7 @@ const loginHandler = async (req, res) => {
                 { id: 'superadmin', role: 'admin' },
                 process.env.JWT_SECRET
             )
-            return res.json({ success: true, token, role: 'admin' })
+            return res.json({ success: true, token, role: 'admin', name: 'Admin' })
         }
 
         return res.json({ success: false, message: 'Invalid credentials' })

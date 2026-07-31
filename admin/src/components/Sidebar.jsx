@@ -1,19 +1,20 @@
 import React, { useContext } from 'react'
 import { AdminContext } from '../context/AdminContext'
 import { useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { assets } from '../assets/assets'
 import { DoctorContext } from '../context/DoctorContext'
 import { ReceptionContext } from '../context/ReceptionContext'
-import { Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck, Users, ArrowRightLeft, Banknote, BarChart3, ChartLine, UserX } from 'lucide-react';
+import { Settings, Stethoscope, UserRoundPen, CalendarPlus, CalendarDays, UserCheck, ClipboardList, RotateCcw, History, LayoutDashboard, ListCheck, Users, ArrowRightLeft, Banknote, BarChart3, ChartLine, UserX, Wallet } from 'lucide-react';
 
 
 const Sidebar = () => {
 
-  const { aToken } = useContext(AdminContext)
+  const { aToken, aName } = useContext(AdminContext)
   const { dToken, profileData, getProfileData, backendUrl } = useContext(DoctorContext)
-  const { rToken } = useContext(ReceptionContext)
+  const { rToken, rName } = useContext(ReceptionContext)
   const { getDashData, dashData } = useContext(AdminContext)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (aToken) {
@@ -27,8 +28,9 @@ const Sidebar = () => {
     }
   }, [dToken])
 
-  const displayName = dToken ? (profileData.name || 'Doctor') : aToken ? 'Admin' : rToken ? 'Receptionist' : ''
+  const displayName = dToken ? (profileData.name || 'Doctor') : aToken ? (aName || 'Admin') : rToken ? (rName || 'Receptionist') : ''
   const roleLabel = dToken ? 'Doctor' : aToken ? 'Admin' : rToken ? 'Reception' : ''
+  const profilePath = dToken ? '/doctor-profile' : aToken ? '/admin-profile' : rToken ? '/reception-profile' : ''
 
   return (
     <div className='flex flex-col justify-between h-full bg-white border-r'>
@@ -180,6 +182,11 @@ const Sidebar = () => {
             <p className='hidden md:block'>Patients</p>
           </NavLink>
 
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-patient-history'}>
+            <ClipboardList />
+            <p className='hidden md:block'>Patient History</p>
+          </NavLink>
+
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-sessions'}>
             <CalendarDays />
             <p className='hidden md:block'>Session Schedule</p>
@@ -193,6 +200,11 @@ const Sidebar = () => {
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-add-sessions'}>
             <CalendarPlus />
             <p className='hidden md:block'>Add Sessions</p>
+          </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-all-refunds'}>
+            <Wallet />
+            <p className='hidden md:block'>All Refunds</p>
           </NavLink>
 
           <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-refunds'}>
@@ -209,12 +221,21 @@ const Sidebar = () => {
             <ArrowRightLeft />
             <p className='hidden md:block'>Rescheduled</p>
           </NavLink>
+
+          <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#64748B]' : ''}`} to={'/reception-no-shows'}>
+            <UserX />
+            <p className='hidden md:block'>No-Shows</p>
+          </NavLink>
         </ul>
       }
       </div>
 
       {(aToken || dToken || rToken) && (
-        <div className='flex items-center gap-3 p-4 border-t'>
+        <button
+          // onClick={() => profilePath && navigate(profilePath)}
+          // className='flex items-center w-full gap-3 p-4 text-left transition-colors border-t hover:bg-gray-50'
+          className='flex items-center w-full gap-3 p-4 text-left transition-colors border-t'
+        >
           {dToken && profileData.image
             ? <img src={`${backendUrl}${profileData.image}`} alt="" className='object-cover rounded-full w-9 h-9' />
             : <div className='flex items-center justify-center text-sm font-semibold text-white rounded-full w-9 h-9 bg-primary'>{displayName.charAt(0).toUpperCase()}</div>
@@ -223,7 +244,7 @@ const Sidebar = () => {
             <p className='text-sm font-medium text-gray-700'>{displayName}</p>
             <p className='text-xs text-gray-400'>{roleLabel}</p>
           </div>
-        </div>
+        </button>
       )}
     </div>
   )

@@ -11,9 +11,9 @@ const Login = () => {
   const [password, setPassword] = useState('')
 
   const { backendUrl } = useContext(DoctorContext)
-  const { setAToken } = useContext(AdminContext)
+  const { setAToken, setAName } = useContext(AdminContext)
   const { setDToken } = useContext(DoctorContext)
-  const { setRToken } = useContext(ReceptionContext)
+  const { setRToken, setRName } = useContext(ReceptionContext)
 
   const onSubmitHandler = async (event) => {
     event.preventDefault()
@@ -25,17 +25,21 @@ const Login = () => {
         return toast.error(data.message)
       }
 
-      const { token, role } = data
+      const { token, role, name } = data
 
       if (role === 'admin') {
         localStorage.setItem('aToken', token)
+        localStorage.setItem('aName', name || '')
         setAToken(token)
+        setAName(name || '')
       } else if (role === 'doctor') {
         localStorage.setItem('dToken', token)
         setDToken(token)
       } else if (role === 'receptionist') {
         localStorage.setItem('rToken', token)
+        localStorage.setItem('rName', name || '')
         setRToken(token)
+        setRName(name || '')
       } else {
         toast.error('Unknown role. Contact administrator.')
       }

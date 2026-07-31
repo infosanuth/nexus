@@ -8,6 +8,9 @@ const ReceptionContextProvider = (props) => {
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL
     const [rToken, setRToken] = useState(localStorage.getItem('rToken') ? localStorage.getItem('rToken') : '')
+    const [rName, setRName] = useState(localStorage.getItem('rName') ? localStorage.getItem('rName') : '')
+    const [myProfile, setMyProfile] = useState(false)
+    const [noShows, setNoShows] = useState([])
     const [appointments, setAppointments] = useState([])
     const [sessions, setSessions] = useState([])
     const [sessionDetails, setSessionDetails] = useState(false)
@@ -159,10 +162,10 @@ const ReceptionContextProvider = (props) => {
     }
 
     // Function to get a single session's booked appointments
-    const getSessionAppointments = async (sessionId) => {
+    const getSessionAppointments = async (sessionId, includeCancelled = false) => {
         try {
 
-            const { data } = await axios.get(backendUrl + '/api/reception/session-appointments/' + sessionId, { headers: { rToken } })
+            const { data } = await axios.get(backendUrl + '/api/reception/session-appointments/' + sessionId + (includeCancelled ? '?includeCancelled=true' : ''), { headers: { rToken } })
 
             if (data.success) {
                 setSessionDetails(data.session)
@@ -234,9 +237,81 @@ const ReceptionContextProvider = (props) => {
         }
     }
 
+    // Function to get the currently logged-in receptionist's own profile
+    const getMyProfile = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/reception/my-profile', { headers: { rToken } })
+            if (data.success) {
+                setMyProfile(data.profile)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
+    // Function to update the currently logged-in receptionist's own name
+    const updateMyProfile = async (name) => {
+        try {
+            const { data } = await axios.put(backendUrl + '/api/reception/update-my-profile', { name }, { headers: { rToken } })
+            if (data.success) {
+                toast.success(data.message)
+                setMyProfile(data.profile)
+                setRName(data.profile.name)
+                localStorage.setItem('rName', data.profile.name)
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
+    // Function to change the currently logged-in receptionist's own password
+    const changeMyPassword = async (currentPassword, newPassword) => {
+        try {
+            const { data } = await axios.post(backendUrl + '/api/reception/change-password', { currentPassword, newPassword }, { headers: { rToken } })
+            if (data.success) {
+                toast.success(data.message)
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
+    // Function to get no-show appointments across all doctors (paid, session started & ended, never completed)
+    const getNoShows = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/reception/no-shows', { headers: { rToken } })
+            if (data.success) {
+                setNoShows(data.noShows)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+
     const value = {
         backendUrl,
         rToken, setRToken,
+        rName, setRName,
+        myProfile, getMyProfile, updateMyProfile, changeMyPassword,
+        noShows, getNoShows,
         appointments, setAppointments, getAppointments,
         sessions, setSessions, getSessions, cancelSession, startSession, endSession,
         sessionDetails, sessionAppointments, getSessionAppointments, completeSessionAppointment,
