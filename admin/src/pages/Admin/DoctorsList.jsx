@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react'
+import React, { useContext, useEffect, useRef } from 'react'
 import { AdminContext } from '../../context/AdminContext'
 import { ClipboardMinus, Download, Pencil, Search, X } from 'lucide-react';
 import html2pdf from 'html2pdf.js'
@@ -28,12 +28,25 @@ const DoctorsList = () => {
   const [search, setSearch] = useState('')
   const [specialityFilter, setSpecialityFilter] = useState('all')
   const [genderFilter, setGenderFilter] = useState('all')
+  const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false)
+  const doctorDropdownRef = useRef(null)
 
   const navigate = useNavigate()
 
   useEffect(() => {
     if (aToken) getAllDoctors()
   }, [aToken])
+
+  // Close the doctor search dropdown when clicking outside of it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (doctorDropdownRef.current && !doctorDropdownRef.current.contains(event.target)) {
+        setIsDoctorDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     getSpecialities()
@@ -59,6 +72,9 @@ const DoctorsList = () => {
 
     return matchesSearch && matchesSpeciality && matchesGender
   })
+
+  const doctorNames = [...new Set(doctors.map((item) => item.name?.trim()).filter(Boolean))].sort()
+  const doctorSearchResults = doctorNames.filter((name) => name.toLowerCase().includes(search.trim().toLowerCase()))
 
   const isFiltered = search || specialityFilter !== 'all' || genderFilter !== 'all'
 
@@ -146,19 +162,35 @@ const DoctorsList = () => {
         <h1 className='text-lg font-medium'>All Doctors</h1>
 
         <div className='flex flex-wrap items-center gap-3 mt-4'>
-          <div className='relative flex-1 min-w-[200px]'>
+          <div className='relative flex-1 min-w-[200px]' ref={doctorDropdownRef}>
             <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
             <input
               type='text'
               placeholder='Search by name'
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setIsDoctorDropdownOpen(true)}
               className='w-full py-2 pl-8 pr-8 text-sm border rounded-lg focus:outline-none focus:border-primary'
+              autoComplete='off'
             />
             {search && (
-              <button onClick={() => setSearch('')} className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500'>
+              <button onClick={() => { setSearch(''); setIsDoctorDropdownOpen(false) }} className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500'>
                 <X size={13} />
               </button>
+            )}
+            {isDoctorDropdownOpen && doctorSearchResults.length > 0 && (
+              <div className='absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border rounded-lg shadow-lg z-10'>
+                {doctorSearchResults.map((name) => (
+                  <button
+                    key={name}
+                    type='button'
+                    onClick={() => { setSearch(name); setIsDoctorDropdownOpen(false) }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${search === name ? 'bg-primary/10 text-primary' : ''}`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
