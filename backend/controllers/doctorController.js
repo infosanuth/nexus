@@ -148,35 +148,84 @@ const appointmentCancel = async (req, res) => {
 
 }
 
-// API to get dashboard data for doctor panel
+// API to get no-show appointments for doctor panel
+// A no-show is a paid appointment in a session that has started and ended,
+// but was never marked completed (patient never came in)
+const getNoShows = async (req, res) => {
+    try {
+
+        const { docId } = req.body
+
+        const appointments = await appointmentModel.find({
+            docId,
+            payment: true,
+            isCompleted: false,
+            cancelled: false,
+            sessionId: { $ne: null }
+        }).populate('sessionId')
+
+        const noShows = appointments.filter(item => item.sessionId?.sessionStart && item.sessionId?.sessionEnd)
+
+        res.json({ success: true, noShows })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
+// API to get dashboard data for doctor panel, scoped to the current month
 const doctorDashboard = async (req, res) => {
     try {
 
         const { docId } = req.body
 
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const currentMonth = now.getMonth() + 1 // slotDate months are 1-based
+
         const appointments = await appointmentModel.find({ docId })
 
-        let earnings = 0
-
-        appointments.map((item) => {
-            if (item.isCompleted || item.payment) {
-                earnings += item.amount
-            }
+        const thisMonthAppointments = appointments.filter((item) => {
+            const [, month, year] = item.slotDate.split('_').map(Number)
+            return year === currentYear && month === currentMonth
         })
 
-        let patients = []
+        const totalAppointmentsThisMonth = thisMonthAppointments.length
+        const completedAppointmentsThisMonth = thisMonthAppointments.filter((item) => item.isCompleted).length
+        const cancelledAppointmentsThisMonth = thisMonthAppointments.filter((item) => item.cancelled).length
+        const upcomingAppointmentsThisMonth = thisMonthAppointments.filter((item) => !item.cancelled && !item.isCompleted).length
+        const rescheduledAppointmentsThisMonth = thisMonthAppointments.filter((item) => item.reSchedule && item.previousSlotDate).length
 
-        appointments.map((item) => {
-            if (!patients.includes(item.userId)) {
-                patients.push(item.userId)
-            }
-        })
+        // Earnings only count appointments that were both paid and actually completed,
+        // and only the doctor's own fee (not the hospital/speciality channeling fee bundled into `amount`)
+        const earningsThisMonth = thisMonthAppointments
+            .filter((item) => item.payment && item.isCompleted)
+            .reduce((sum, item) => sum + item.docData.fees, 0)
+
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+
+        const sessions = await sessionModel.find({ doctorId: docId, date: { $gte: startOfMonth, $lt: startOfNextMonth } })
+
+        const sessionsThisMonth = sessions.length
+        const completedSessionsThisMonth = sessions.filter((s) => s.sessionEnd).length
+        const upcomingSessionsThisMonth = sessions.filter((s) => s.status === 'active' && !s.sessionStart).length
+        const cancelledSessionsThisMonth = sessions.filter((s) => s.status === 'cancelled').length
 
         const dashData = {
-            earnings,
-            appointments: appointments.length,
-            patients: patients.length,
-            latestAppointments: appointments.reverse().slice(0, 5)
+            totalAppointmentsThisMonth,
+            completedAppointmentsThisMonth,
+            upcomingAppointmentsThisMonth,
+            cancelledAppointmentsThisMonth,
+            rescheduledAppointmentsThisMonth,
+
+            sessionsThisMonth,
+            completedSessionsThisMonth,
+            upcomingSessionsThisMonth,
+            cancelledSessionsThisMonth,
+
+            earningsThisMonth
         }
 
         res.json({ success: true, dashData })
@@ -280,15 +329,25 @@ const addSession = async (req, res) => {
     }
 }
 
-// API for doctor to get sessions
+// API for doctor to get sessions, with per-session earnings summed from paid & completed appointments only
+// (doctor's own fee only, not the hospital/speciality channeling fee bundled into `amount`)
 const getSessions = async (req, res) => {
     try {
 
         const { docId } = req.body
 
-        const sessions = await sessionModel.find({ doctorId: docId }).sort({ date: 1, startTime: 1 })
+        const sessions = await sessionModel.find({ doctorId: docId }).sort({ date: 1, startTime: 1 }).populate('appointments')
 
-        res.json({ success: true, sessions })
+        const sessionsWithEarnings = sessions.map(session => {
+            const { appointments, ...sessionObj } = session.toObject()
+            const earnings = appointments
+                .filter(appt => appt.payment && appt.isCompleted)
+                .reduce((sum, appt) => sum + appt.docData.fees, 0)
+
+            return { ...sessionObj, appointments, earnings }
+        })
+
+        res.json({ success: true, sessions: sessionsWithEarnings })
 
     } catch (error) {
         console.log(error)
@@ -323,7 +382,9 @@ const getSessionAppointments = async (req, res) => {
     }
 }
 
-// API for doctor to cancel a session (kept in the database, marked cancelled)
+// API for doctor to cancel a session (kept in the database, marked cancelled).
+// Any appointments still booked into the session are cancelled along with it, and
+// paid ones count against the doctor's reliability score (see cancellationRate in doctorList).
 const cancelSession = async (req, res) => {
     try {
 
@@ -339,14 +400,35 @@ const cancelSession = async (req, res) => {
             return res.json({ success: false, message: 'Not Authorized' })
         }
 
-        if (session.bookedPatientsCount > 0 || session.appointments.length > 0) {
-            return res.json({ success: false, message: 'Cannot cancel a session with booked patients' })
+        if (session.status === 'cancelled') {
+            return res.json({ success: false, message: 'Session already cancelled' })
+        }
+
+        const activeAppointments = await appointmentModel.find({
+            _id: { $in: session.appointments },
+            cancelled: false
+        })
+
+        if (activeAppointments.length > 0) {
+            await appointmentModel.updateMany(
+                { _id: { $in: activeAppointments.map(item => item._id) } },
+                { cancelled: true }
+            )
+
+            const paidCount = activeAppointments.filter(item => item.payment === true).length
+            if (paidCount > 0) {
+                await doctorModel.findByIdAndUpdate(docId, { $inc: { cancelAppointments: paidCount } })
+            }
         }
 
         session.status = 'cancelled'
         await session.save()
 
-        res.json({ success: true, message: 'Session Cancelled' })
+        const message = activeAppointments.length > 0
+            ? `Session cancelled along with ${activeAppointments.length} booked appointment${activeAppointments.length === 1 ? '' : 's'}`
+            : 'Session Cancelled'
+
+        res.json({ success: true, message })
 
     } catch (error) {
         console.log(error)
@@ -457,4 +539,4 @@ const getAvailableSessions = async (req, res) => {
     }
 }
 
-export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, getSessionAppointments, cancelSession, startSession, endSession, getAvailableSessions }
+export { changeAvailability, doctorList, appointmentsDoctor, appointmentComplete, appointmentCancel, getNoShows, doctorDashboard, doctorProfile, updateDoctorProfile, addSession, getSessions, getSessionAppointments, cancelSession, startSession, endSession, getAvailableSessions }

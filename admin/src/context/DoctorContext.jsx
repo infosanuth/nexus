@@ -15,6 +15,7 @@ const DoctorContextProvider = (props) => {
     const [sessions, setSessions] = useState([])
     const [sessionDetails, setSessionDetails] = useState(false)
     const [sessionAppointments, setSessionAppointments] = useState([])
+    const [noShows, setNoShows] = useState([])
 
     // Getting Doctor appointment data from Database using API
     const getAppointments = async () => {
@@ -77,6 +78,24 @@ const DoctorContextProvider = (props) => {
             console.log(error)
         }
 
+    }
+
+    // Function to get no-show appointments (paid, session started & ended, never completed)
+    const getNoShows = async () => {
+        try {
+
+            const { data } = await axios.get(backendUrl + '/api/doctor/no-shows', { headers: { dToken } })
+
+            if (data.success) {
+                setNoShows(data.noShows)
+            } else {
+                toast.error(data.message)
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+        }
     }
 
     // Getting Doctor dashboard data using API
@@ -192,7 +211,8 @@ const DoctorContextProvider = (props) => {
         }
     }
 
-    // Function to cancel an empty session (kept in the database, marked cancelled)
+    // Function to cancel a session (kept in the database, marked cancelled).
+    // Any appointments still booked into it are cancelled along with it.
     const cancelSession = async (sessionId) => {
         try {
 
@@ -201,13 +221,16 @@ const DoctorContextProvider = (props) => {
             if (data.success) {
                 toast.success(data.message)
                 getSessions()
+                return true
             } else {
                 toast.error(data.message)
+                return false
             }
 
         } catch (error) {
             console.log(error)
             toast.error(error.message)
+            return false
         }
     }
 
@@ -254,6 +277,7 @@ const DoctorContextProvider = (props) => {
         backendUrl,
         appointments, setAppointments, getAppointments,
         completeAppointment, cancelAppointment,
+        noShows, setNoShows, getNoShows,
         dashData, setDashData, getDashData,
         profileData, setProfileData, getProfileData,
         addSession,
