@@ -74,13 +74,35 @@ const AppContextProvider = (props) => {
         }
     }
     
+    // Change user password using API
+    const changeMyPassword = async (currentPassword, newPassword) => {
+        try {
+
+            const { data } = await axios.post(backendUrl + '/api/user/change-password', { currentPassword, newPassword }, { headers: { token } })
+
+            if (data.success) {
+                toast.success(data.message)
+                return true
+            } else {
+                toast.error(data.message)
+                return false
+            }
+
+        } catch (error) {
+            console.log(error)
+            toast.error(error.message)
+            return false
+        }
+    }
+
     const value = {
         doctors, getDoctorsData,
         specialities, getSpecialityData,
         currencySymbol,
         backendUrl,
         token, setToken,
-        userData, setUserData, loadUserProfileData
+        userData, setUserData, loadUserProfileData,
+        changeMyPassword
     }
 
     useEffect(() => {

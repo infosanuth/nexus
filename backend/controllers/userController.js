@@ -341,6 +341,66 @@ const resetPassword = async (req, res) => {
     }
 }
 
+// API to change password (requires current password) for a logged-in user
+const changePassword = async (req, res) => {
+    try {
+        const { userId, currentPassword, newPassword } = req.body
+
+        if (!currentPassword || !newPassword) {
+            return res.json({ success: false, message: "Current and new password are required" })
+        }
+
+        const user = await userModel.findById(userId)
+        if (!user) {
+            return res.json({ success: false, message: "User not found" })
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password)
+        if (!isMatch) {
+            return res.json({ success: false, message: "Current password is incorrect" })
+        }
+
+        // validating password length
+        if (newPassword.length < 8 || newPassword.length > 20) {
+            return res.json({ success: false, message: "Password must be 8-20 characters long" })
+        }
+
+        // validating password has at least one digit
+        let hasDigit = false
+        for (let i = 0; i < newPassword.length; i++) {
+            if (newPassword[i] >= '0' && newPassword[i] <= '9') {
+                hasDigit = true
+                break
+            }
+        }
+        if (!hasDigit) {
+            return res.json({ success: false, message: "Password must contain at least one digit" })
+        }
+
+        // validating password has at least one letter
+        let hasLetter = false
+        for (let i = 0; i < newPassword.length; i++) {
+            const ch = newPassword[i]
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+                hasLetter = true
+                break
+            }
+        }
+        if (!hasLetter) {
+            return res.json({ success: false, message: "Password must contain at least one letter" })
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10)
+        await user.save()
+
+        return res.json({ success: true, message: "Password changed successfully" })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 // API to get user profile data
 const getProfile = async (req, res) => {
     try {
@@ -866,6 +926,6 @@ const payhereNotify = async (req, res) => {
 };
 
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, requestRefund, rescheduleAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, requestRefund, rescheduleAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, changePassword }
 
        

@@ -31,6 +31,8 @@ const SessionsForReception = () => {
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [bookingFilter, setBookingFilter] = useState('all')
+  const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false)
+  const doctorDropdownRef = useRef(null)
   const dateInputRef = useRef(null)
   const [cancelTarget, setCancelTarget] = useState(null)
   const [cancelLoading, setCancelLoading] = useState(false)
@@ -40,6 +42,20 @@ const SessionsForReception = () => {
       getSessions()
     }
   }, [rToken])
+
+  // Close the doctor search dropdown when clicking outside of it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (doctorDropdownRef.current && !doctorDropdownRef.current.contains(event.target)) {
+        setIsDoctorDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const doctorNames = [...new Set(sessions.map((item) => item.doctorName?.trim()).filter(Boolean))].sort()
+  const doctorSearchResults = doctorNames.filter((name) => name.toLowerCase().includes(search.trim().toLowerCase()))
 
   const today = todayUTC()
 
@@ -154,15 +170,31 @@ const SessionsForReception = () => {
       <p className='mb-3 text-lg font-medium'>Session Schedule</p>
 
       <div className='flex items-center gap-3 px-5 py-3 mb-3 overflow-x-auto bg-white border rounded-xl'>
-        <div className='relative shrink-0'>
+        <div className='relative shrink-0' ref={doctorDropdownRef}>
           <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-2.5 top-1/2' />
           <input
             type='text'
             placeholder='Search doctor...'
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onFocus={() => setIsDoctorDropdownOpen(true)}
             className='py-1.5 pl-7 pr-2 text-xs transition-colors border border-gray-200 rounded-lg w-44 focus:outline-none focus:border-primary'
+            autoComplete='off'
           />
+          {isDoctorDropdownOpen && doctorSearchResults.length > 0 && (
+            <div className='absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border rounded-lg shadow-lg z-10'>
+              {doctorSearchResults.map((name) => (
+                <button
+                  key={name}
+                  type='button'
+                  onClick={() => { setSearch(name); setIsDoctorDropdownOpen(false) }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${search === name ? 'bg-primary/10 text-primary' : ''}`}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className='w-px h-5 bg-gray-200 shrink-0' />
