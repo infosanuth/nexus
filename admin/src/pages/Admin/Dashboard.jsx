@@ -99,7 +99,7 @@ const Dashboard = () => {
 
         <StatCard icon={Stethoscope} value={dashData.doctors} label='Doctors' tone='indigo' />
         <StatCard icon={UserCheck} value={dashData.availableDoctors} label='Available Doctors' tone='cyan' />
-        <StatCard icon={Users} value={dashData.patientsThisMonth} label='Patients (This Month)' tone='blue' />
+        <StatCard icon={Users} value={dashData.patients} label='Patients' tone='blue' />
 
         <StatCard icon={CalendarDays} value={dashData.totalAppointmentsThisMonth} label='Total Appointments' tone='slate' />
         <StatCard icon={CalendarCheck} value={dashData.completedAppointmentsThisMonth} label='Completed Appointments' tone='emerald' />

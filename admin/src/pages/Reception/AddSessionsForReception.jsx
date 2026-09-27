@@ -150,8 +150,24 @@ const AddSessionsForReception = () => {
       return toast.error('End time must be after start time')
     }
 
-    if (Number(maxPatients) <= 0) {
-      return toast.error('Max patients must be greater than 0')
+    if (startTime < '07:00' || startTime > '22:00') {
+      return toast.error('Sessions can only be scheduled between 7:00 AM and 10:00 PM')
+    }
+
+    if (endTime && (endTime < '07:00' || endTime > '22:00')) {
+      return toast.error('Sessions can only be scheduled between 7:00 AM and 10:00 PM')
+    }
+
+    if (endTime) {
+      const [startH, startM] = startTime.split(':').map(Number)
+      const [endH, endM] = endTime.split(':').map(Number)
+      if ((endH * 60 + endM) - (startH * 60 + startM) < 60) {
+        return toast.error('Session must be at least 1 hour long')
+      }
+    }
+
+    if (Number(maxPatients) < 10 || Number(maxPatients) > 40) {
+      return toast.error('Max patients must be between 10 and 40')
     }
 
     setLoading(true)
@@ -193,8 +209,24 @@ const AddSessionsForReception = () => {
       return toast.error('End time must be after start time')
     }
 
-    if (Number(multiMaxPatients) <= 0) {
-      return toast.error('Max patients must be greater than 0')
+    if (multiStartTime < '07:00' || multiStartTime > '22:00') {
+      return toast.error('Sessions can only be scheduled between 7:00 AM and 10:00 PM')
+    }
+
+    if (multiEndTime && (multiEndTime < '07:00' || multiEndTime > '22:00')) {
+      return toast.error('Sessions can only be scheduled between 7:00 AM and 10:00 PM')
+    }
+
+    if (multiEndTime) {
+      const [startH, startM] = multiStartTime.split(':').map(Number)
+      const [endH, endM] = multiEndTime.split(':').map(Number)
+      if ((endH * 60 + endM) - (startH * 60 + startM) < 60) {
+        return toast.error('Session must be at least 1 hour long')
+      }
+    }
+
+    if (Number(multiMaxPatients) < 10 || Number(multiMaxPatients) > 40) {
+      return toast.error('Max patients must be between 10 and 40')
     }
 
     setMultiLoading(true)
@@ -277,18 +309,18 @@ const AddSessionsForReception = () => {
             <div className='flex flex-col sm:flex-row gap-4'>
               <div className='flex-1 flex flex-col gap-1'>
                 <p>Start Time</p>
-                <input onChange={(e) => setStartTime(e.target.value)} value={startTime} className='border rounded px-3 py-2' type='time' required />
+                <input onChange={(e) => setStartTime(e.target.value)} value={startTime} className='border rounded px-3 py-2' type='time' min='07:00' max='22:00' required />
               </div>
 
               <div className='flex-1 flex flex-col gap-1'>
                 <p>End Time</p>
-                <input onChange={(e) => setEndTime(e.target.value)} value={endTime} className='border rounded px-3 py-2' type='time' />
+                <input onChange={(e) => setEndTime(e.target.value)} value={endTime} className='border rounded px-3 py-2' type='time' min='07:00' max='22:00' />
               </div>
             </div>
 
             <div className='flex-1 flex flex-col gap-1'>
               <p>Max Patients</p>
-              <input onChange={(e) => setMaxPatients(e.target.value)} value={maxPatients} className='border rounded px-3 py-2' type='number' min='1' placeholder='e.g. 10' required />
+              <input onChange={(e) => setMaxPatients(e.target.value)} value={maxPatients} className='border rounded px-3 py-2' type='number' min='10' max='40' placeholder='10-40' required />
             </div>
 
             <button type='submit' disabled={loading} className='bg-primary text-white text-sm px-10 py-3 rounded-full w-fit mt-2 disabled:opacity-60'>
@@ -356,18 +388,18 @@ const AddSessionsForReception = () => {
             <div className='flex flex-col sm:flex-row gap-4'>
               <div className='flex-1 flex flex-col gap-1'>
                 <p>Start Time</p>
-                <input onChange={(e) => setMultiStartTime(e.target.value)} value={multiStartTime} className='border rounded px-3 py-2' type='time' required />
+                <input onChange={(e) => setMultiStartTime(e.target.value)} value={multiStartTime} className='border rounded px-3 py-2' type='time' min='07:00' max='22:00' required />
               </div>
 
               <div className='flex-1 flex flex-col gap-1'>
                 <p>End Time</p>
-                <input onChange={(e) => setMultiEndTime(e.target.value)} value={multiEndTime} className='border rounded px-3 py-2' type='time' />
+                <input onChange={(e) => setMultiEndTime(e.target.value)} value={multiEndTime} className='border rounded px-3 py-2' type='time' min='07:00' max='22:00' />
               </div>
             </div>
 
             <div className='flex-1 flex flex-col gap-1'>
               <p>Max Patients</p>
-              <input onChange={(e) => setMultiMaxPatients(e.target.value)} value={multiMaxPatients} className='border rounded px-3 py-2' type='number' min='1' placeholder='e.g. 10' required />
+              <input onChange={(e) => setMultiMaxPatients(e.target.value)} value={multiMaxPatients} className='border rounded px-3 py-2' type='number' min='10' max='40' placeholder='10-40' required />
             </div>
 
             {generatedDates.length > 0 && (

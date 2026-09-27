@@ -2,15 +2,12 @@ import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, Clock, Download, Search, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { AdminContext } from '../../context/AdminContext'
-import { AppContext } from '../../context/AppContext'
 import { PERIOD_OPTIONS } from '../../utils/date'
 
-const DoctorPerformance = () => {
+const CompleteRateReport = () => {
 
-  const { aToken, doctorPerformance, getDoctorPerformance } = useContext(AdminContext)
-  const { currency } = useContext(AppContext)
+  const { aToken, completeRateReport, getCompleteRateReport } = useContext(AdminContext)
   const [search, setSearch] = useState('')
-  const [specialityFilter, setSpecialityFilter] = useState('all')
   const [period, setPeriod] = useState('all')
   const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false)
   const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false)
@@ -19,7 +16,7 @@ const DoctorPerformance = () => {
 
   useEffect(() => {
     if (aToken) {
-      getDoctorPerformance(period)
+      getCompleteRateReport(period)
     }
   }, [aToken, period])
 
@@ -37,18 +34,14 @@ const DoctorPerformance = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const doctorNames = [...new Set(doctorPerformance.map((item) => item.doctorName?.trim()).filter(Boolean))].sort()
+  const doctorNames = [...new Set(completeRateReport.map((item) => item.doctorName?.trim()).filter(Boolean))].sort()
   const doctorSearchResults = doctorNames.filter((name) => name.toLowerCase().includes(search.trim().toLowerCase()))
-  const specialityNames = [...new Set(doctorPerformance.map((item) => item.speciality?.trim()).filter(Boolean))].sort()
 
   const filteredReport = useMemo(() => {
     const term = search.trim().toLowerCase()
-    return doctorPerformance.filter((item) => {
-      const matchesSearch = !term || item.doctorName.toLowerCase().includes(term)
-      const matchesSpeciality = specialityFilter === 'all' || item.speciality === specialityFilter
-      return matchesSearch && matchesSpeciality
-    })
-  }, [doctorPerformance, search, specialityFilter])
+    if (!term) return completeRateReport
+    return completeRateReport.filter((item) => item.doctorName.toLowerCase().includes(term))
+  }, [completeRateReport, search])
 
   // Pagination
   const PAGE_SIZE = 10
@@ -59,33 +52,31 @@ const DoctorPerformance = () => {
 
   useEffect(() => {
     setPage(1)
-  }, [search, specialityFilter])
+  }, [search])
 
   const handleExport = () => {
-    const header = ['Doctor', 'Speciality', 'Doctor Fee', 'Profit']
+    const header = ['Doctor', 'Complete Appointment %', 'Complete Session %']
     const rows = filteredReport.map((item) => [
       item.doctorName,
-      item.speciality,
-      item.earnings,
-      item.profit
+      `${item.completeAppointmentRate.toFixed(1)}%`,
+      `${item.completeSessionRate.toFixed(1)}%`
     ])
 
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows])
     ws['!cols'] = [
       { wch: 22 }, // Doctor
-      { wch: 20 }, // Speciality
-      { wch: 14 }, // Doctor Fee
-      { wch: 14 }, // Profit
+      { wch: 18 }, // Complete Appointment %
+      { wch: 15 }, // Complete Session %
     ]
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Doctor Performance')
-    XLSX.writeFile(wb, `doctor-performance-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    XLSX.utils.book_append_sheet(wb, ws, 'Complete Rate Report')
+    XLSX.writeFile(wb, `complete-rate-report-${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   return (
-    <div className='w-full max-w-4xl m-5'>
+    <div className='w-full max-w-6xl m-5'>
 
-      <p className='mb-3 text-lg font-medium'>Doctor Performance</p>
+      <p className='mb-3 text-lg font-medium'>Complete Rate Report</p>
 
       <div className='flex flex-wrap items-center gap-3 px-5 py-3 mb-3 bg-white border rounded-xl'>
         <div className='relative' ref={doctorDropdownRef}>
@@ -119,17 +110,6 @@ const DoctorPerformance = () => {
             </div>
           )}
         </div>
-
-        <select
-          value={specialityFilter}
-          onChange={(e) => setSpecialityFilter(e.target.value)}
-          className='py-2 pl-3 pr-8 text-sm text-gray-600 border rounded-lg shrink-0 focus:outline-none focus:border-primary'
-        >
-          <option value='all'>All Specialities</option>
-          {specialityNames.map((name) => (
-            <option key={name} value={name}>{name}</option>
-          ))}
-        </select>
 
         <div className='flex items-center gap-3 ml-auto'>
           <div className='relative' ref={periodDropdownRef}>
@@ -169,28 +149,22 @@ const DoctorPerformance = () => {
       </div>
 
       <div className='overflow-hidden bg-white border rounded-xl text-sm max-h-[80vh] overflow-y-auto'>
-        <div className='max-sm:hidden grid grid-cols-[1.6fr_1.4fr_1fr_1fr] gap-1 py-3 px-6 border-b bg-gray-50 text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>
+        <div className='max-sm:hidden grid grid-cols-[2fr_1fr_1fr] gap-1 py-3 px-6 border-b bg-gray-50 text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>
           <p>Doctor</p>
-          <p>Speciality</p>
-          <p className='text-right'>Doctor Fee</p>
-          <p className='text-right'>Profit</p>
+          <p className='text-center'>Complete Appointment %</p>
+          <p className='text-center'>Complete Session %</p>
         </div>
 
         {filteredReport.length === 0
           ? <p className='p-6 text-gray-500'>No doctors found</p>
           : paginatedReport.map((item) => (
             <div
-              className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[1.6fr_1.4fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b last:border-0'
+              className='flex flex-wrap justify-between max-sm:gap-5 max-sm:text-base sm:grid grid-cols-[2fr_1fr_1fr] gap-1 items-center text-gray-500 py-3 px-6 border-b last:border-0'
               key={item.doctorId}
             >
               <p className='font-medium text-gray-800'>{item.doctorName}</p>
-              <p>{item.speciality}</p>
-              <p className={`text-right ${item.earnings ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
-                {currency}{item.earnings.toLocaleString()}
-              </p>
-              <p className={`text-right ${item.profit ? 'font-semibold text-gray-800' : 'text-gray-400'}`}>
-                {currency}{item.profit.toLocaleString()}
-              </p>
+              <p className='font-semibold text-center text-gray-800'>{item.completeAppointmentRate.toFixed(1)}%</p>
+              <p className='font-semibold text-center text-gray-800'>{item.completeSessionRate.toFixed(1)}%</p>
             </div>
           ))
         }
@@ -208,4 +182,4 @@ const DoctorPerformance = () => {
   )
 }
 
-export default DoctorPerformance
+export default CompleteRateReport

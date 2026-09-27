@@ -7,6 +7,7 @@ import specialityModel from "../models/specialityModel.js";
 import staffModel from "../models/staffModel.js";
 import generateAppointmentId from "../utils/generateAppointmentId.js";
 import { refundPayHerePayment, getPayHerePaymentIdByOrderId } from "../middleware/payhere.js";
+import { sendSMS } from "../config/twilio.js";
 
 // Helper to convert a 24-hour "HH:MM" session start time to a 12-hour "h:mm AM/PM" slot time
 const convertTo12Hour = (time24) => {
@@ -103,6 +104,13 @@ const bookWalkInAppointment = async (req, res) => {
 
         await doctorModel.findByIdAndUpdate(docId, { slots_booked })
 
+        try {
+            // await sendSMS(phoneNumber, `Your appointment with ${docData.name} has been booked. Token No: ${tokenNumber}, ${slotDate.replace(/_/g, '-')} at ${slotTime}. Thank you!`)
+            console.log(`Your appointment with ${docData.name} has been booked. Token No: ${tokenNumber}, ${slotDate.replace(/_/g, '-')} at ${slotTime}. Thank you!`)
+        } catch (smsError) {
+            console.log('Failed to send walk-in booking SMS:', smsError.message)
+        }
+
         res.json({ success: true, message: 'Appointment booked successfully', appointment: newAppointment })
 
     } catch (error) {
@@ -170,6 +178,19 @@ const addSessionReception = async (req, res) => {
             return res.json({ success: false, message: 'Missing Details' })
         }
 
+        if (Number(maxPatients) < 10 || Number(maxPatients) > 40) {
+            return res.json({ success: false, message: 'Max patients must be between 10 and 40' })
+        }
+
+        const SESSION_WINDOW_START = '07:00'
+        const SESSION_WINDOW_END = '22:00'
+        if (startTime < SESSION_WINDOW_START || startTime > SESSION_WINDOW_END) {
+            return res.json({ success: false, message: 'Sessions can only be scheduled between 7:00 AM and 10:00 PM' })
+        }
+        if (endTime && (endTime < SESSION_WINDOW_START || endTime > SESSION_WINDOW_END)) {
+            return res.json({ success: false, message: 'Sessions can only be scheduled between 7:00 AM and 10:00 PM' })
+        }
+
         const now = new Date()
         const todayStr = now.toLocaleDateString('en-CA')
         if (date < todayStr) {
@@ -185,9 +206,55 @@ const addSessionReception = async (req, res) => {
             return res.json({ success: false, message: 'End time must be after start time' })
         }
 
+        if (endTime) {
+            const [startH, startM] = startTime.split(':').map(Number)
+            const [endH, endM] = endTime.split(':').map(Number)
+            if ((endH * 60 + endM) - (startH * 60 + startM) < 60) {
+                return res.json({ success: false, message: 'Session must be at least 1 hour long' })
+            }
+        }
+
         const doctor = await doctorModel.findById(docId).select('name')
         if (!doctor) {
             return res.json({ success: false, message: 'Doctor not found' })
+        }
+
+        const existingSessionsCount = await sessionModel.countDocuments({ doctorId: docId, date, status: 'active' })
+        if (existingSessionsCount >= 2) {
+            return res.json({ success: false, message: 'Maximum 2 sessions per day allowed for a doctor' })
+        }
+
+        // A doctor can only have one session at a time, with a 2-hour gap required before and after it.
+        // Nearby sessions on the adjacent days are checked too since the buffer can cross midnight.
+        const SESSION_GAP_MINUTES = 120
+        const toMinutesSinceEpoch = (dateStr, timeStr) => {
+            const [year, month, day] = dateStr.split('-').map(Number)
+            const [hour, minute] = timeStr.split(':').map(Number)
+            return Date.UTC(year, month - 1, day, hour, minute) / 60000
+        }
+        const shiftDateStr = (dateStr, days) => {
+            const [year, month, day] = dateStr.split('-').map(Number)
+            const dt = new Date(Date.UTC(year, month - 1, day))
+            dt.setUTCDate(dt.getUTCDate() + days)
+            return dt.toISOString().slice(0, 10)
+        }
+
+        const newStart = toMinutesSinceEpoch(date, startTime)
+        const newEnd = endTime ? toMinutesSinceEpoch(date, endTime) : newStart
+
+        const nearbySessions = await sessionModel.find({
+            doctorId: docId,
+            status: 'active',
+            date: { $gte: new Date(shiftDateStr(date, -1)), $lte: new Date(shiftDateStr(date, 1)) }
+        })
+
+        for (const s of nearbySessions) {
+            const sDateStr = s.date.toISOString().slice(0, 10)
+            const existStart = toMinutesSinceEpoch(sDateStr, s.startTime) - SESSION_GAP_MINUTES
+            const existEnd = toMinutesSinceEpoch(sDateStr, s.endTime || s.startTime) + SESSION_GAP_MINUTES
+            if (newStart < existEnd && newEnd > existStart) {
+                return res.json({ success: false, message: `Doctor has a session on ${sDateStr} at ${s.startTime}. Sessions must be at least 2 hours apart.` })
+            }
         }
 
         const sessionData = {
@@ -245,6 +312,14 @@ const requestRefund = async (req, res) => {
 
             await refundPayHerePayment(payherePaymentId, `Refund for appointment ${appointmentId}`)
             await appointmentModel.findByIdAndUpdate(appointmentId, { refundPayment: true })
+
+            try {
+                // await sendSMS(appointmentData.userData.phoneNumber, `Your refund for the appointment with ${appointmentData.docData.name} has been approved. The amount will be credited to your bank account within 24 hours.`)
+                console.log(`Your refund for the appointment with ${appointmentData.docData.name} has been approved. The amount will be credited to your bank account within 24 hours.`)
+            } catch (smsError) {
+                console.log('Failed to send refund approval SMS:', smsError.message)
+            }
+
             res.json({ success: true, message: 'Refund processed successfully' })
         } catch (refundError) {
             console.log(refundError)
@@ -325,6 +400,19 @@ const cancelSessionReception = async (req, res) => {
             if (paidCount > 0) {
                 await doctorModel.findByIdAndUpdate(session.doctorId, { $inc: { cancelAppointments: paidCount } })
             }
+
+            for (const appt of activeAppointments) {
+                try {
+                    const dateStr = appt.slotDate.replace(/_/g, '-')
+                    const smsText = appt.payment
+                        ? `Your appointment with ${appt.docData.name} on ${dateStr} has been cancelled. You can request a refund from the My Appointments page or contact us.`
+                        : `Your appointment with ${appt.docData.name} on ${dateStr} has been cancelled.`
+                    // await sendSMS(appt.userData.phoneNumber, smsText)
+                    console.log(smsText)
+                } catch (smsError) {
+                    console.log('Failed to send session cancellation SMS:', smsError.message)
+                }
+            }
         }
 
         session.status = 'cancelled'
@@ -365,7 +453,7 @@ const getSessionAppointmentsReception = async (req, res) => {
     }
 }
 
-// API for reception to mark a session appointment as completed
+// API for reception to toggle a session appointment's completed status
 const completeAppointmentReception = async (req, res) => {
     try {
 
@@ -376,13 +464,31 @@ const completeAppointmentReception = async (req, res) => {
             return res.json({ success: false, message: 'Appointment not found' })
         }
 
-        await appointmentModel.findByIdAndUpdate(appointmentId, { isCompleted: true })
+        const newStatus = !appointmentData.isCompleted
 
-        if (appointmentData.payment === true) {
-            await doctorModel.findByIdAndUpdate(appointmentData.docId, { $inc: { totalAppointments: 1 } })
+        if (newStatus && appointmentData.sessionId) {
+            const session = await sessionModel.findById(appointmentData.sessionId)
+            if (!session?.sessionStart) {
+                return res.json({ success: false, message: 'Cannot complete an appointment before the session has started' })
+            }
         }
 
-        res.json({ success: true, message: 'Appointment Completed' })
+        await appointmentModel.findByIdAndUpdate(appointmentId, { isCompleted: newStatus })
+
+        if (appointmentData.payment === true) {
+            await doctorModel.findByIdAndUpdate(appointmentData.docId, { $inc: { totalAppointments: newStatus ? 1 : -1 } })
+        }
+
+        if (newStatus) {
+            try {
+                // await sendSMS(appointmentData.userData.phoneNumber, `Thank you for visiting ${appointmentData.docData.name} today. Your appointment is now complete.`)
+                console.log(`Thank you for visiting ${appointmentData.docData.name} today. Your appointment is now complete.`)
+            } catch (smsError) {
+                console.log('Failed to send appointment completion SMS:', smsError.message)
+            }
+        }
+
+        res.json({ success: true, message: newStatus ? 'Appointment Completed' : 'Marked as Not Completed' })
 
     } catch (error) {
         console.log(error)
@@ -426,6 +532,16 @@ const startSessionReception = async (req, res) => {
 
         session.sessionStart = true
         await session.save()
+
+        const activeAppointments = await appointmentModel.find({ _id: { $in: session.appointments }, cancelled: false })
+        for (const appt of activeAppointments) {
+            try {
+                // await sendSMS(appt.userData.phoneNumber, `${appt.docData.name} has arrived and the session has started. Please proceed to the hospital. Your token number is ${appt.tokenNumber}.`)
+                console.log(`${appt.docData.name} has arrived and the session has started. Please proceed to the hospital. Your token number is ${appt.tokenNumber}.`)
+            } catch (smsError) {
+                console.log('Failed to send session start SMS:', smsError.message)
+            }
+        }
 
         res.json({ success: true, message: 'Session Started' })
 

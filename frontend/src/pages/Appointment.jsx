@@ -83,7 +83,7 @@ const Appointment = () => {
     bookAppointment()
   }
 
-  const handleBookForSomeoneElse = () => {
+  const handleBookForSomeoneElse = async () => {
     if (!token) {
       toast.warning('Login to book an appointment')
       return navigate('/login')
@@ -91,6 +91,26 @@ const Appointment = () => {
 
     if (!selectedSessionId) {
       return toast.error('Please choose a session')
+    }
+
+    // Check the active-appointment limits up front so the user isn't blocked only after
+    // filling out the whole patient details form (the booking API enforces these regardless)
+    try {
+      const { data } = await axios.get(backendUrl + '/api/user/appointments', { headers: { token } })
+      if (data.success) {
+        const active = data.appointments.filter(a => !a.cancelled && !a.isCompleted)
+
+        if (active.length >= 3) {
+          return toast.error('You already have 3 active appointments. Complete or cancel one before booking another.')
+        }
+
+        const hasOtherInSession = active.some(a => a.sessionId === selectedSessionId && a.bookedForSelf === false)
+        if (hasOtherInSession) {
+          return toast.error('You already have an appointment for someone else in this session.')
+        }
+      }
+    } catch (error) {
+      console.log(error)
     }
 
     setShowOtherPatientForm(true)
@@ -503,6 +523,14 @@ const Appointment = () => {
                   {selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </p>
               }
+
+              <div className='hidden'>
+              {selectedSession &&
+                <p className='mb-3 text-xs text-gray-500'>
+                  This session has {selectedSession.bookedPatientsCount} appointment{selectedSession.bookedPatientsCount === 1 ? '' : 's'}
+                </p>
+              }
+              </div>
 
               <div className='grid max-w-md grid-cols-3 gap-2 sm:gap-3'>
                 {sessionsForSelectedDate.map((item) => {

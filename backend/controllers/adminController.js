@@ -104,7 +104,7 @@ const allDoctors = async (req, res) => {
 const appointmentsAdmin = async (req, res) => {
   try {
 
-    const appointments = await appointmentModel.find({})
+    const appointments = await appointmentModel.find({}).populate('sessionId', 'sessionStart sessionEnd')
     res.json({ success: true, appointments })
 
   } catch (error) {
@@ -395,41 +395,100 @@ const cancelRateReportAdmin = async (req, res) => {
   }
 }
 
-// API to get a per-speciality summary of doctor counts and earnings/profit for admin, with
-// earnings/profit scoped to the requested period (req.query.period — see getPeriodStartDate;
-// defaults to all-time when omitted/'all'). Doctor count is a live headcount, not period-scoped.
-// Earnings/profit mirror appointmentReportAdmin/sessionReportAdmin/adminDashboard: sum of amount
-// on paid & completed appointments, matched to a speciality via docData.speciality (same field
-// getAppointmentsBySpecialty groups by), profit = earnings - doctor fees.
-const specialityReportAdmin = async (req, res) => {
+// API to get a per-doctor complete-rate summary for admin, scoped to the requested period
+// (req.query.period — see getPeriodStartDate; defaults to all-time when omitted/'all').
+// Mirrors cancelRateReportAdmin's buckets/denominators exactly — Complete Appointment % and
+// Complete Session % are just the complement of the cancel rates (complete / (complete + cancel) * 100).
+const completeRateReportAdmin = async (req, res) => {
   try {
     const periodStart = getPeriodStartDate(req.query.period)
 
+    const doctors = await doctorModel.find({}).select('name')
+    const appointments = await appointmentModel.find({})
+    const sessions = await sessionModel.find({}).populate('appointments')
+
+    const now = new Date()
+    const todayUTCms = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+
+    const report = doctors.map(doctor => {
+      const doctorAppointments = appointments.filter(appt =>
+        appt.docId === String(doctor._id) && (!periodStart || slotDateToDate(appt.slotDate) >= periodStart)
+      )
+      const doctorSessions = sessions.filter(session =>
+        String(session.doctorId) === String(doctor._id) && session.appointments.length > 0 &&
+        (!periodStart || new Date(session.date) >= periodStart)
+      )
+
+      let completeAppointments = 0
+      let cancelAppointments = 0
+      doctorAppointments.forEach(appt => {
+        if (appt.isCompleted) completeAppointments++
+        if (appt.cancelled && appt.payment) cancelAppointments++
+      })
+
+      let completeSessions = 0
+      let cancelSessions = 0
+      doctorSessions.forEach(session => {
+        const sessionDayMs = new Date(session.date).setUTCHours(0, 0, 0, 0)
+        const isPast = sessionDayMs < todayUTCms
+
+        if (session.status === 'cancelled') {
+          cancelSessions++
+        } else if (session.sessionEnd) {
+          completeSessions++
+        } else if (isPast) {
+          cancelSessions++
+        }
+        // future, not-yet-held sessions are left out of both buckets
+      })
+
+      const appointmentDenom = completeAppointments + cancelAppointments
+      const sessionDenom = completeSessions + cancelSessions
+
+      return {
+        doctorId: doctor._id,
+        doctorName: doctor.name,
+        completeAppointmentRate: appointmentDenom > 0 ? (completeAppointments / appointmentDenom) * 100 : 0,
+        completeSessionRate: sessionDenom > 0 ? (completeSessions / sessionDenom) * 100 : 0
+      }
+    })
+
+    res.json({ success: true, report })
+
+  } catch (error) {
+    console.log(error)
+    res.json({ success: false, message: error.message })
+  }
+}
+
+const specialityReportAdmin = async (req, res) => {
+  try {
+
     const specialities = await specialityModel.find({}).select('speciality')
     const doctors = await doctorModel.find({}).select('speciality')
-    let appointments = await appointmentModel.find({ payment: true, isCompleted: true })
-    if (periodStart) appointments = appointments.filter(appt => slotDateToDate(appt.slotDate) >= periodStart)
+    // const appointments = await appointmentModel.find({ payment: true, isCompleted: true }).select('docData.speciality')
+    const appointments = await appointmentModel.find({ payment: true, isCompleted: true })
 
     const report = specialities.map(item => {
       const name = item.speciality
 
       const doctorCount = doctors.filter(doc => doc.speciality === name).length
+      const appointmentCount = appointments.filter(app => app.docData.speciality === name).length
+      console.log(appointmentCount)
 
-      let earnings = 0
-      let profit = 0
-      appointments
-        .filter(appt => appt.docData?.speciality === name)
-        .forEach(appt => {
-          earnings += appt.amount
-          profit += appt.amount - (appt.docData?.fees || 0)
-        })
+      // appointments
+      //   .filter(appt => appt.docData?.speciality === name)
+      //   .forEach(appt => {
+      //     earnings += appt.amount
+      //     profit += appt.amount - (appt.docData?.fees || 0)
+      //   })
 
       return {
-        specialityId: item._id,
-        specialityName: name,
-        doctorCount,
-        earnings,
-        profit
+        // specialityId: item._id,
+        // specialityName: name,
+        // doctorCount,
+        appointmentCount,
+        // profit
       }
     })
 
@@ -523,6 +582,21 @@ const adminDashboard = async (req, res) => {
         }
       },
       {
+        // Same identity rule the Patients admin page uses to group appointments into
+        // patients: phone number first, falling back to userId when no phone is on file.
+        $addFields: {
+          patientKey: {
+            $switch: {
+              branches: [
+                { case: { $not: [{ $in: ["$userData.phoneNumber", [null, ""]] }] }, then: "$userData.phoneNumber" },
+                { case: { $not: [{ $in: ["$userData.phone", [null, ""]] }] }, then: "$userData.phone" }
+              ],
+              default: "$userId"
+            }
+          }
+        }
+      },
+      {
         $facet: {
           total: [
             { $match: { slotYear: currentYear, slotMonth: currentMonth } },
@@ -540,9 +614,11 @@ const adminDashboard = async (req, res) => {
             { $match: { slotYear: currentYear, slotMonth: currentMonth, cancelled: false, isCompleted: false } },
             { $count: "count" }
           ],
-          patients: [
-            { $match: { slotYear: currentYear, slotMonth: currentMonth } },
-            { $group: { _id: "$userId" } },
+          // All-time unique patient count, matching the Patients admin page (paid
+          // appointments only, grouped by patientKey, not scoped to this month).
+          allPatients: [
+            { $match: { payment: true } },
+            { $group: { _id: "$patientKey" } },
             { $count: "count" }
           ],
           // Cancel rate follows the same paid-only cancel rule as cancelRateReportAdmin/
@@ -603,7 +679,7 @@ const adminDashboard = async (req, res) => {
       doctors: doctorsCount,
       availableDoctors: availableDoctorsCount,
 
-      patientsThisMonth: pick(appointmentStats.patients),
+      patients: pick(appointmentStats.allPatients),
       totalAppointmentsThisMonth: pick(appointmentStats.total),
       completedAppointmentsThisMonth,
       upcomingAppointmentsThisMonth: pick(appointmentStats.upcoming),
@@ -1093,6 +1169,8 @@ const updateDoctorById = async (req, res) => {
       email,
       registrationNumber,
       speciality,
+
+      
       gender,
       experience,
       fees: Number(fees),
@@ -1116,4 +1194,4 @@ const updateDoctorById = async (req, res) => {
   }
 }
 
-export { addDoctor, allDoctors, appointmentsAdmin, getNoShowsAdmin, appointmentCancel, sessionsAdmin, getSessionAppointmentsAdmin, sessionReportAdmin, appointmentReportAdmin, cancelRateReportAdmin, specialityReportAdmin, doctorPerformanceAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById, getMyProfile, updateMyProfile, changeMyPassword }
+export { addDoctor, allDoctors, appointmentsAdmin, getNoShowsAdmin, appointmentCancel, sessionsAdmin, getSessionAppointmentsAdmin, sessionReportAdmin, appointmentReportAdmin, cancelRateReportAdmin, completeRateReportAdmin, specialityReportAdmin, doctorPerformanceAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById, getMyProfile, updateMyProfile, changeMyPassword }

@@ -64,6 +64,9 @@ const PatientCheckIn = () => {
   const [gender, setGender] = useState('Not Selected')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [payment, setPayment] = useState(false)
+  const [PatientType, setPatientType] = useState('Not Selected')
+  const [discount, setDiscount] = useState('')
+  const [value, setValue] = useState()
 
   const [loading, setLoading] = useState(false)
 
@@ -173,6 +176,7 @@ const PatientCheckIn = () => {
     setName('')
     setAge('')
     setGender('Not Selected')
+    setPatientType('Not Selected')
     setPhoneNumber('')
     setPayment(false)
   }
@@ -186,7 +190,13 @@ const PatientCheckIn = () => {
     if (name.trim().length < 8 || name.trim().length > 24) return toast.error('Patient name must be between 8 and 24 characters')
     if (!isValidPhoneNumber(phoneNumber)) return toast.error('Phone number must be 10 digits and start with 07')
     if (gender === 'Not Selected') return toast.error('Please select a gender')
-    // if (age && (Number(age) < 1 || Number(age) > 120)) return toast.error('Age must be between 1 and 120')
+    if (!payment) return toast.error('Please mark as paid before booking')
+    if (age && (Number(age) < 1 || Number(age) > 120)) return toast.error('Age must be between 1 and 120')
+
+
+    if(PatientType === silver){
+      (selectedDoctor.fees + hospitalCharg) * 100 
+    }
 
     setLoading(true)
     try {
@@ -204,6 +214,9 @@ const PatientCheckIn = () => {
       setLoading(false)
     }
   }
+
+  // setSessionId('')
+  //  value = selectedDoctor.fees + hospitalCharge- discount + PatientType
 
   return (
     <form onSubmit={onSubmitHandler} className='w-full m-5'>
@@ -359,6 +372,15 @@ const PatientCheckIn = () => {
               </select>
             </div>
           </div>
+          <div className='flex flex-col flex-1 gap-1'>
+            <p>Patient type</p>
+            <select value={PatientType} onChange={(e) => setPatientType(e.target.value)} className='px-3 py-2 border rounded' required>
+              <option value='0'>Not Selected</option>
+              <option value='5%'>Silvar</option>
+              <option value='10%'>Gold</option>
+              <option value='30%'>Platinum</option>
+            </select>
+          </div>
         </div>
 
         {/* Step 4: Payment */}
@@ -366,18 +388,27 @@ const PatientCheckIn = () => {
           <p className='mb-2 font-medium text-gray-800'>4. Payment</p>
           {selectedDoctor && (
             <div className='flex flex-col gap-0.5 mb-3 text-sm text-gray-500 w-fit'>
-              <div className='flex justify-between gap-6'>
+              {/* <div className='flex justify-between gap-6'>
                 <span>Consultation fee</span>
                 <span>Rs {selectedDoctor.fees}</span>
               </div>
               <div className='flex justify-between gap-6'>
                 <span>Hospital Charges</span>
                 <span>Rs {hospitalCharge}</span>
+              </div> */}
+              <div className='flex justify-between gap-6 font-medium text-gray-700'>
+                <span>Fee</span>
+                <span>Rs {selectedDoctor.fees + hospitalCharge}</span>
+              </div>
+              <div className='flex justify-between gap-6 font-medium text-gray-700'>
+                <span>Discount</span>
+                <span>Rs {discount}{PatientType}</span>
               </div>
               <div className='flex justify-between gap-6 font-medium text-gray-700'>
                 <span>Amount</span>
-                <span>Rs {selectedDoctor.fees + hospitalCharge}</span>
+                <span>Rs {selectedDoctor.fees + hospitalCharge} - {discount}{PatientType} </span>
               </div>
+
             </div>
           )}
           <button

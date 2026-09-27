@@ -25,6 +25,7 @@ const AdminContextProvider = (props) => {
     const [sessionReport, setSessionReport] = useState([])
     const [appointmentReport, setAppointmentReport] = useState([])
     const [cancelRateReport, setCancelRateReport] = useState([])
+    const [completeRateReport, setCompleteRateReport] = useState([])
     const [specialityReport, setSpecialityReport] = useState([])
     const [doctorPerformance, setDoctorPerformance] = useState([])
 
@@ -288,10 +289,25 @@ const AdminContextProvider = (props) => {
         }
     }
 
-    // Getting the per-speciality doctor-count/earnings/profit summary for admin, optionally scoped to a period
-    const getSpecialityReport = async (period = 'all') => {
+    // Getting the per-doctor complete-rate (complete appointment % and complete session %) summary for admin, optionally scoped to a period
+    const getCompleteRateReport = async (period = 'all') => {
         try {
-            const { data } = await axios.get(backendUrl + '/api/admin/speciality-report', { params: { period }, headers: { aToken } })
+            const { data } = await axios.get(backendUrl + '/api/admin/complete-rate-report', { params: { period }, headers: { aToken } })
+            if (data.success) {
+                setCompleteRateReport(data.report)
+            } else {
+                toast.error(data.message)
+            }
+        } catch (error) {
+            toast.error(error.message)
+            console.log(error)
+        }
+    }
+
+    // Getting the per-speciality doctor-count/earnings/profit summary for admin, optionally scoped to a period
+    const getSpecialityReport = async () => {
+        try {
+            const { data } = await axios.get(backendUrl + '/api/admin/speciality-report', {headers: { aToken } })
             if (data.success) {
                 setSpecialityReport(data.report)
             } else {
@@ -425,6 +441,7 @@ const AdminContextProvider = (props) => {
         sessionReport, getSessionReport,
         appointmentReport, getAppointmentReport,
         cancelRateReport, getCancelRateReport,
+        completeRateReport, getCompleteRateReport,
         specialityReport, getSpecialityReport,
         doctorPerformance, getDoctorPerformance
     }

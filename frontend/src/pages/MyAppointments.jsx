@@ -9,12 +9,19 @@ const PAYMENT_WINDOW_SECONDS = 10 * 60
 const formatMMSS = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
 // Shows the "pay within 10 minutes" warning and a live countdown for one appointment
-const PaymentBanner = ({ item }) => {
+const PaymentBanner = ({ item, onExpire }) => {
   const getRemaining = () => Math.max(0, PAYMENT_WINDOW_SECONDS - Math.floor((Date.now() - item.date) / 1000))
   const [seconds, setSeconds] = useState(getRemaining())
 
   useEffect(() => {
-    const t = setInterval(() => setSeconds(getRemaining()), 1000)
+    const t = setInterval(() => {
+      const remaining = getRemaining()
+      setSeconds(remaining)
+      if (remaining <= 0) {
+        clearInterval(t)
+        onExpire()
+      }
+    }, 1000)
     return () => clearInterval(t)
   }, [])
 
@@ -133,6 +140,7 @@ const MyAppointments = () => {
 
       if (!data.success) {
         toast.error(data.message);
+        getUserAppointments();
         return;
       }
 
@@ -216,12 +224,12 @@ const MyAppointments = () => {
         {appointments.length === 0 && (
           <p className='py-6 text-center text-gray-400'>No appointments available.</p>
         )}
-        {appointments.map((item, index) => (
+        {appointments.slice(0, 5).map((item, index) => (
           <div key={index} className='overflow-hidden bg-white border border-gray-200 rounded-lg'>
-            {!item.cancelled && !item.payment && !item.isCompleted && <PaymentBanner item={item} />}
+            {!item.cancelled && !item.payment && !item.isCompleted && <PaymentBanner item={item} onExpire={getUserAppointments} />}
             {item.cancelled && item.payment && (
               <div className='px-4 py-2 text-xs font-medium text-left text-black bg-red-50'>
-                Your appointment was cancelled. <Link to='/contact' className='underline hover:text-primary'>Contact us</Link>.
+                Your appointment was cancelled. please <Link to='/contact' className='underline hover:text-primary'>Contact us</Link>.
               </div>
             )}
             <div className='flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-6 sm:p-5'>
@@ -235,11 +243,26 @@ const MyAppointments = () => {
                   }
                 </div>
                 <div className='flex-1 min-w-0 text-sm text-[#5E5E5E] flex flex-col justify-center gap-1'>
-                  <p className='text-[#262626] text-base font-semibold truncate'>{item.docData.name}</p>
-                  <p className='truncate'>{item.docData.speciality}</p>
+                  <p className='truncate'><span className='text-[#262626] text-base font-semibold'>{item.docData.name}</span> · <span className='font-medium text-primary'>{item.docData.speciality}</span></p>
+                  <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Patient:</span> {item.bookedForSelf ? item.userData.name : (item.otherPatient?.name || item.userData.name)}</p>
                   <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Date & Time:</span> {slotDateFormat(item.slotDate)} | {item.slotTime}</p>
-                  {item.tokenNumber && <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Token No:</span> {item.tokenNumber}</p>}
-                  <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Ref :</span> APT-{item._id.slice(-6).toUpperCase()}</p>
+                  {item.tokenNumber && (() => {
+                    const isVoided = item.cancelled && !item.payment
+                    return (
+                      <p className='truncate'>
+                        <span className='text-sm text-[#3C3C3C] font-medium'>Token No:</span>{' '}
+                        <span className={`relative inline-flex items-center justify-center px-2 py-0.5 ml-1 font-semibold border rounded ${isVoided ? 'border-gray-300 text-gray-400' : 'border-primary text-primary'}`}>
+                          {item.tokenNumber}
+                          {isVoided && (
+                            <span className='absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none'>
+                              <span className='w-full h-[1.5px] bg-red-500 rotate-45'></span>
+                            </span>
+                          )}
+                        </span>
+                      </p>
+                    )
+                  })()}
+                  <p className='truncate'><span className='text-sm text-[#3C3C3C] font-medium'>Ref :</span> {item.ref || item._id.slice(-6).toUpperCase()}</p>
                 </div>
               </div>
               <div className='flex flex-col justify-center flex-shrink-0 gap-2 text-sm text-center sm:w-48'>
@@ -276,7 +299,7 @@ const MyAppointments = () => {
                 {item.cancelled && !item.isCompleted && !item.payment && <button className='w-full py-2 text-red-500 border border-red-500 rounded'>Appointment cancelled</button>}
                 {item.payment && item.cancelled && (
                   item.refund
-                    ? <button className='w-full py-2 border border-stone-500 text-stone-500 bg-indigo-50 cursor-not-allowed'>Refund Requested</button>
+                    ? <button className='w-full py-2 border cursor-not-allowed border-stone-500 text-stone-500 bg-indigo-50'>Refund Requested</button>
                     : <button onClick={() => requestRefund(item._id)} className='w-full text-[#696969] py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300'>Refund Request</button>
                 )}
 

@@ -13,7 +13,7 @@ const getPageSize = () => {
   const w = window.innerWidth
   if (w >= 1920) return 12  // 24"+ displays
   if (w >= 1024) return 10  // 13"–22" laptops & monitors
-  if (w >= 640)  return 10  // tablets
+  if (w >= 640) return 10  // tablets
   return 6                   // mobile
 }
 
@@ -85,12 +85,14 @@ const DoctorsList = () => {
   }
 
   const handleExport = () => {
-    const header = ['Name', 'Speciality', 'Gender', 'Fees', 'Available']
+    // const header = ['Name', 'Speciality', 'Gender', 'Fees', 'Available']
+    const header = ['Name', 'Speciality', 'Gender','Available']
+
     const rows = filteredDoctors.map((item) => [
       item.name,
       item.speciality,
       item.gender || '-',
-      item.fees,
+      // item.fees,
       item.available ? 'Yes' : 'No'
     ])
 
@@ -179,7 +181,7 @@ const DoctorsList = () => {
               </button>
             )}
             {isDoctorDropdownOpen && doctorSearchResults.length > 0 && (
-              <div className='absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border rounded-lg shadow-lg z-10'>
+              <div className='absolute left-0 right-0 z-10 mt-1 overflow-y-auto bg-white border rounded-lg shadow-lg top-full max-h-56'>
                 {doctorSearchResults.map((name) => (
                   <button
                     key={name}
@@ -235,39 +237,39 @@ const DoctorsList = () => {
         {filteredDoctors.length === 0 ? (
           <p className='py-10 text-center text-gray-400'>No doctors found</p>
         ) : (
-        <div className='grid w-full gap-4 pt-5 gap-y-9' style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-          {paginatedDoctors.map((item, index) => (
-            <div
-              className='flex flex-col items-center justify-center gap-2 p-5 text-center transition-all duration-300 bg-white border border-gray-200 cursor-pointer rounded-2xl min-h-[300px] hover:-translate-y-1 hover:shadow-lg'
-              key={index}
-            >
+          <div className='grid w-full gap-4 pt-5 gap-y-9' style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+            {paginatedDoctors.map((item, index) => (
               <div
-                className='relative cursor-pointer group'
-                onClick={() => navigate(`/edit-doctor/${item._id}`)}
+                className='flex flex-col items-center justify-center gap-2 p-5 text-center transition-all duration-300 bg-white border border-gray-200 cursor-pointer rounded-2xl min-h-[300px] hover:-translate-y-1 hover:shadow-lg'
+                key={index}
               >
-                <img
-                  src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor}
-                  alt={item.name}
-                  className='object-cover w-24 h-24 bg-gray-100 rounded-full ring-4 ring-gray-100'
-                />
-                <div className='absolute inset-0 flex items-center justify-center transition-opacity rounded-full opacity-0 bg-black/40 group-hover:opacity-100'>
-                  <Pencil size={18} className='text-white' />
+                <div
+                  className='relative cursor-pointer group'
+                  onClick={() => navigate(`/edit-doctor/${item._id}`)}
+                >
+                  <img
+                    src={item.image ? `${backendUrl}${item.image}` : assets.default_doctor}
+                    alt={item.name}
+                    className='object-cover w-24 h-24 bg-gray-100 rounded-full ring-4 ring-gray-100'
+                  />
+                  <div className='absolute inset-0 flex items-center justify-center transition-opacity rounded-full opacity-0 bg-black/40 group-hover:opacity-100'>
+                    <Pencil size={18} className='text-white' />
+                  </div>
+                </div>
+                {item.gender && (
+                  <p className='text-xs font-medium text-gray-600'>
+                    {item.gender}
+                  </p>
+                )}
+                <p className='mt-6 font-semibold text-gray-900'>{item.name}</p>
+                <p className='text-sm text-gray-500'>{item.speciality}</p>
+                <div className='flex items-center gap-1 mt-2 text-sm'>
+                  <input className="accent-blue-600" onChange={() => changeAvailability(item._id)} type="checkbox" checked={item.available} />
+                  <p>Available</p>
                 </div>
               </div>
-              {item.gender && (
-                <p className='text-xs font-medium text-gray-600'>
-                  {item.gender}
-                </p>
-              )}
-              <p className='mt-6 font-semibold text-gray-900'>{item.name}</p>
-              <p className='text-sm text-gray-500'>{item.speciality}</p>
-              <div className='flex items-center gap-1 mt-2 text-sm'>
-                <input className="accent-blue-600" onChange={() => changeAvailability(item._id)} type="checkbox" checked={item.available} />
-                <p>Available</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
 
         {/* Pagination */}
@@ -285,12 +287,12 @@ const DoctorsList = () => {
               page === '...'
                 ? <span key={`ellipsis-${idx}`} className='px-2 py-1.5 text-sm text-gray-400 select-none'>…</span>
                 : <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-3 py-1.5 text-sm border rounded transition-all ${currentPage === page ? 'bg-indigo-500 text-white border-indigo-500' : 'border-gray-300 hover:bg-gray-100'}`}
-                  >
-                    {page}
-                  </button>
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={`px-3 py-1.5 text-sm border rounded transition-all ${currentPage === page ? 'bg-indigo-500 text-white border-indigo-500' : 'border-gray-300 hover:bg-gray-100'}`}
+                >
+                  {page}
+                </button>
             )}
 
             <button

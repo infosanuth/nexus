@@ -9,12 +9,14 @@ import doctorRouter from './routes/doctorRoute.js'
 import userRouter from './routes/userRoute.js'
 import loginRouter from './routes/loginRoute.js'
 import receptionRouter from './routes/receptionRoute.js'
-import { payhereNotify } from './controllers/userController.js'
+import { payhereNotify, autoCancelAllExpiredAppointments } from './controllers/userController.js'
 
 // app config
 const app = express()
 const port = process.env.PORT || 4000
 connectDB()
+
+setInterval(() => autoCancelAllExpiredAppointments().catch(() => {}), 60 * 1000)
 
 // middlewares
 app.use(express.json())

@@ -89,8 +89,8 @@ const SessionHistory = () => {
   const pastSessions = sessions.filter((item) => {
     const sessionDay = new Date(item.date).setUTCHours(0, 0, 0, 0)
 
-    // This page only covers past sessions — today + upcoming live on the schedule page
-    if (sessionDay >= today) return false
+    // This page covers past sessions, plus any session already ended even if it's still today
+    if (sessionDay >= today && !item.sessionEnd) return false
 
     if (search.trim() && !item.doctorName.toLowerCase().includes(search.trim().toLowerCase())) return false
 

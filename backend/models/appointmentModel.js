@@ -18,6 +18,7 @@ const appointmentSchema = new mongoose.Schema({
     isCompleted: { type: Boolean, default: false },
     isWalkIn: { type: Boolean, default: false },
     bookedForSelf: { type: Boolean, default: true },
+    otherPatient: { type: Object, default: null },
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "session", default: null },
     tokenNumber: { type: Number, default: null },
     payherePaymentId: { type: String, default: null },

@@ -26,7 +26,7 @@ const sendAccountVerificationOtp = async (user) => {
         subject: 'Account Verification OTP',
         text: `Your OTP is ${otp}. Verify your account using this OTP.`
     }
-    await transporter.sendMail(mailOptions)
+    // await transporter.sendMail(mailOptions)
     console.log(mailOptions)
 }
 
@@ -307,6 +307,34 @@ const sendResetOtp = async (req, res) => {
     }
 }
 
+// Verify the reset OTP without consuming it, before showing the new password form
+const verifyResetOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body
+
+        if (!email || !otp) {
+            return res.json({ success: false, message: "Email and OTP are required" })
+        }
+
+        const user = await userModel.findOne({ email })
+        if (!user) {
+            return res.json({ success: false, message: "User not found" })
+        }
+        if (user.resetOtp === "" || user.resetOtp !== otp) {
+            return res.json({ success: false, message: "Invalid OTP" })
+        }
+        if (user.resetOtpExpireAt < Date.now()) {
+            return res.json({ success: false, message: "OTP Expired" })
+        }
+
+        return res.json({ success: true, message: "OTP verified successfully" })
+
+    } catch (error) {
+        console.log(error)
+        res.json({ success: false, message: error.message })
+    }
+}
+
 // Reset user password
 const resetPassword = async (req, res) => {
     try {
@@ -476,6 +504,11 @@ const bookAppointment = async (req, res) => {
 
         const { userId, docId, slotDate, slotTime, otherPatient } = req.body
 
+        const activeAppointmentCount = await appointmentModel.countDocuments({ userId, cancelled: false, isCompleted: false })
+        if (activeAppointmentCount >= 3) {
+            return res.json({ success: false, message: 'You already have 3 active appointments. Complete or cancel one before booking another.' })
+        }
+
         const docData = await doctorModel.findById(docId).select("-password")
 
 
@@ -505,6 +538,24 @@ const bookAppointment = async (req, res) => {
             // Session capacity governs availability, multiple patients can share the same slot time
             if (matchedSession.bookedPatientsCount >= matchedSession.maxPatients) {
                 return res.json({ success: false, message: 'Session is fully booked' })
+            }
+
+            // Per account, at most 1 self-booking and 1 other-patient booking per session
+            const bookedForSelf = !otherPatient
+            const sameKindInSessionCount = await appointmentModel.countDocuments({
+                userId,
+                sessionId: matchedSession._id,
+                cancelled: false,
+                isCompleted: false,
+                bookedForSelf
+            })
+            if (sameKindInSessionCount >= 1) {
+                return res.json({
+                    success: false,
+                    message: bookedForSelf
+                        ? 'You already have an appointment for yourself in this session.'
+                        : 'You already have an appointment for someone else in this session.'
+                })
             }
 
             if (!slots_booked[slotDate]) {
@@ -554,7 +605,8 @@ const bookAppointment = async (req, res) => {
             slotDate,
             date: Date.now(),
             tokenNumber,
-            bookedForSelf: !otherPatient
+            bookedForSelf: !otherPatient,
+            otherPatient: otherPatient || null
         }
 
         if (matchedSession) {
@@ -582,11 +634,95 @@ const bookAppointment = async (req, res) => {
     }
 }
 
+// Online appointments must be paid within 10 minutes of booking, matching the countdown
+// shown on the frontend appointments page (PAYMENT_WINDOW_SECONDS in MyAppointments.jsx)
+const PAYMENT_WINDOW_MS = 10 * 60 * 1000
+
+// Marks an appointment cancelled and releases its session/doctor slot. Shared by manual
+// cancellation and the auto-cancel of online appointments left unpaid past the payment window.
+const releaseAndCancelAppointment = async (appointmentData) => {
+
+    await appointmentModel.findByIdAndUpdate(appointmentData._id, { cancelled: true })
+
+    // releasing session slot, if this appointment belonged to a session
+    if (appointmentData.sessionId) {
+        await sessionModel.findByIdAndUpdate(appointmentData.sessionId, {
+            $pull: { appointments: appointmentData._id },
+            $inc: { bookedPatientsCount: -1 }
+        })
+
+        // Re-read this appointment's current token number rather than trusting the value on the
+        // passed-in object: if another appointment in this session was already cancelled earlier
+        // in the same sweep pass, this one's tokenNumber may have already shifted down since then
+        const current = await appointmentModel.findById(appointmentData._id).select('tokenNumber')
+
+        // shift every later token in this session down by one so token numbers stay contiguous
+        if (current?.tokenNumber != null) {
+            await appointmentModel.updateMany(
+                {
+                    sessionId: appointmentData.sessionId,
+                    cancelled: false,
+                    tokenNumber: { $gt: current.tokenNumber }
+                },
+                { $inc: { tokenNumber: -1 } }
+            )
+        }
+    }
+
+    // releasing doctor slot
+    const { docId, slotDate, slotTime } = appointmentData
+
+    const doctorData = await doctorModel.findById(docId)
+
+    if (doctorData) {
+        let slots_booked = doctorData.slots_booked
+
+        if (slots_booked[slotDate]) {
+            slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime)
+            if (slots_booked[slotDate].length === 0) {
+                delete slots_booked[slotDate]
+            }
+            await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+        }
+    }
+}
+
+// Finds online (non-walk-in) appointments left unpaid past the payment window, optionally scoped to one user
+const findExpiredAppointments = (extraFilter = {}) => appointmentModel.find({
+    ...extraFilter,
+    isWalkIn: { $ne: true },
+    payment: false,
+    cancelled: false,
+    isCompleted: false,
+    date: { $lt: Date.now() - PAYMENT_WINDOW_MS }
+})
+
+// Auto-cancels this user's online (non-walk-in) appointments left unpaid past the payment window
+const autoCancelExpiredAppointments = async (userId) => {
+    const expired = await findExpiredAppointments({ userId })
+    for (const appointmentData of expired) {
+        await releaseAndCancelAppointment(appointmentData)
+    }
+}
+
+// Auto-cancels every user's expired unpaid appointments. Run on a timer (see server.js) so
+// bookings get cancelled in the database as soon as the payment window closes, even if nobody
+// happens to reopen the appointments page (the previous behaviour only swept on that page load).
+const autoCancelAllExpiredAppointments = async () => {
+    const expired = await findExpiredAppointments()
+    for (const appointmentData of expired) {
+        await releaseAndCancelAppointment(appointmentData)
+    }
+}
+
 // API to get user appointments for frontend my-appointments page
 const listAppointment = async (req, res) => {
     try {
 
         const { userId } = req.body
+
+        await autoCancelExpiredAppointments(userId)
+
         const appointments = await appointmentModel.find({ userId })
 
         res.json({ success: true, appointments })
@@ -604,36 +740,12 @@ const cancelAppointment = async (req, res) => {
         const { userId, appointmentId } = req.body
         const appointmentData = await appointmentModel.findById(appointmentId)
 
-        // verify appointment user 
+        // verify appointment user
         if (appointmentData.userId !== userId) {
             return res.json({ success: false, message: 'Unauthorized action' })
         }
 
-        await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true })
-
-        // releasing session slot, if this appointment belonged to a session
-        if (appointmentData.sessionId) {
-            await sessionModel.findByIdAndUpdate(appointmentData.sessionId, {
-                $pull: { appointments: appointmentData._id },
-                $inc: { bookedPatientsCount: -1 }
-            })
-        }
-
-        // releasing doctor slot
-        const { docId, slotDate, slotTime } = appointmentData
-
-        const doctorData = await doctorModel.findById(docId)
-
-        let slots_booked = doctorData.slots_booked
-
-        // slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime)
-
-        slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime);
-        if (slots_booked[slotDate].length === 0) {
-            delete slots_booked[slotDate];
-        }
-
-        await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+        await releaseAndCancelAppointment(appointmentData)
 
         res.json({ success: true, message: 'Appointment Cancelled' })
 
@@ -668,6 +780,13 @@ const requestRefund = async (req, res) => {
         }
 
         await appointmentModel.findByIdAndUpdate(appointmentId, { refund: true })
+
+        try {
+            // await sendSMS(appointmentData.userData.phoneNumber, `We've received your refund request for your appointment with ${appointmentData.docData.name} on ${appointmentData.slotDate.replace(/_/g, '-')}. Our team will process it shortly.`)
+            console.log(`We've received your refund request for your appointment with ${appointmentData.docData.name} on ${appointmentData.slotDate.replace(/_/g, '-')}. Our team will process it shortly.`)
+        } catch (smsError) {
+            console.log('Failed to send refund request SMS:', smsError.message)
+        }
 
         res.json({ success: true, message: 'Refund requested successfully' })
 
@@ -821,6 +940,11 @@ const paymentPayHere = async (req, res) => {
             return res.json({ success: false, message: 'Appointment Cancelled or not found' })
         }
 
+        if (!appointmentData.isWalkIn && !appointmentData.payment && Date.now() - appointmentData.date > PAYMENT_WINDOW_MS) {
+            await releaseAndCancelAppointment(appointmentData)
+            return res.json({ success: false, message: 'Payment window expired. This appointment has been cancelled.' })
+        }
+
         const fullName = appointmentData.userData.name || 'Unknown Patient';
         const [firstName, ...rest] = fullName.split(' ');
         const lastName = rest.join(' ') || ' ';
@@ -926,6 +1050,6 @@ const payhereNotify = async (req, res) => {
 };
 
 
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, requestRefund, rescheduleAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, resetPassword, changePassword }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, requestRefund, rescheduleAppointment, paymentPayHere, verifyPayhere, payhereNotify, sendVerifyOtp, verifyEmail, isAuthenticated, sendResetOtp, verifyResetOtp, resetPassword, changePassword, autoCancelAllExpiredAppointments }
 
        

@@ -172,11 +172,11 @@ const DoctorSessionAppointments = () => {
                 </div>
                 <div className='flex justify-center'>
                   <button
-                    onClick={() => !item.isCompleted && completeSessionAppointment(item._id, sessionId)}
-                    title={item.isCompleted ? 'Completed' : 'Mark as completed'}
-                    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors ${item.isCompleted
-                      ? 'bg-green-100 border-green-200 text-green-600 cursor-default'
-                      : 'border-gray-200 text-gray-300 hover:border-primary hover:text-primary cursor-pointer'
+                    onClick={() => completeSessionAppointment(item._id, sessionId)}
+                    title={item.isCompleted ? 'Click to mark as not completed' : 'Mark as completed'}
+                    className={`flex items-center justify-center w-8 h-8 rounded-full border transition-colors cursor-pointer ${item.isCompleted
+                      ? 'bg-green-100 border-green-200 text-green-600 hover:bg-red-50 hover:border-red-200 hover:text-red-500'
+                      : 'border-gray-200 text-gray-300 hover:border-primary hover:text-primary'
                       }`}
                   >
                     <Check size={15} />

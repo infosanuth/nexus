@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken"
 import appointmentModel from "../models/appointmentModel.js";
 import sessionModel from "../models/sessionModel.js";
+import { sendSMS } from "../config/twilio.js";
 
 const changeAvailability = async (req, res) => {
     try {
@@ -89,7 +90,7 @@ const appointmentsDoctor = async (req, res) => {
     }
 }
 
-// API to mark appointment completed for doctor panel
+// API to toggle appointment completed status for doctor panel
 const appointmentComplete = async (req, res) => {
     try {
 
@@ -97,13 +98,22 @@ const appointmentComplete = async (req, res) => {
 
         const appointmentData = await appointmentModel.findById(appointmentId)
         if (appointmentData && appointmentData.docId === docId) {
-            await appointmentModel.findByIdAndUpdate(appointmentId, { isCompleted: true })
+            const newStatus = !appointmentData.isCompleted
 
-            if (appointmentData.payment === true) {
-                await doctorModel.findByIdAndUpdate(docId, { $inc: { totalAppointments: 1 } })
+            if (newStatus && appointmentData.sessionId) {
+                const session = await sessionModel.findById(appointmentData.sessionId)
+                if (!session?.sessionStart) {
+                    return res.json({ success: false, message: 'Cannot complete an appointment before the session has started' })
+                }
             }
 
-            return res.json({ success: true, message: 'Appointment Completed' })
+            await appointmentModel.findByIdAndUpdate(appointmentId, { isCompleted: newStatus })
+
+            if (appointmentData.payment === true) {
+                await doctorModel.findByIdAndUpdate(docId, { $inc: { totalAppointments: newStatus ? 1 : -1 } })
+            }
+
+            return res.json({ success: true, message: newStatus ? 'Appointment Completed' : 'Marked as Not Completed' })
         }
 
         res.json({ success: false, message: 'Mark failed' })
@@ -289,6 +299,19 @@ const addSession = async (req, res) => {
 
         const { docId, date, startTime, endTime, maxPatients } = req.body
 
+        if (Number(maxPatients) < 10 || Number(maxPatients) > 40) {
+            return res.json({ success: false, message: 'Max patients must be between 10 and 40' })
+        }
+
+        const SESSION_WINDOW_START = '07:00'
+        const SESSION_WINDOW_END = '22:00'
+        if (startTime < SESSION_WINDOW_START || startTime > SESSION_WINDOW_END) {
+            return res.json({ success: false, message: 'Sessions can only be scheduled between 7:00 AM and 10:00 PM' })
+        }
+        if (endTime && (endTime < SESSION_WINDOW_START || endTime > SESSION_WINDOW_END)) {
+            return res.json({ success: false, message: 'Sessions can only be scheduled between 7:00 AM and 10:00 PM' })
+        }
+
         const now = new Date()
         const todayStr = now.toLocaleDateString('en-CA')
         if (date < todayStr) {
@@ -304,9 +327,55 @@ const addSession = async (req, res) => {
             return res.json({ success: false, message: 'End time must be after start time' })
         }
 
+        if (endTime) {
+            const [startH, startM] = startTime.split(':').map(Number)
+            const [endH, endM] = endTime.split(':').map(Number)
+            if ((endH * 60 + endM) - (startH * 60 + startM) < 60) {
+                return res.json({ success: false, message: 'Session must be at least 1 hour long' })
+            }
+        }
+
         const doctor = await doctorModel.findById(docId).select('name')
         if (!doctor) {
             return res.json({ success: false, message: 'Doctor not found' })
+        }
+
+        const existingSessionsCount = await sessionModel.countDocuments({ doctorId: docId, date, status: 'active' })
+        if (existingSessionsCount >= 2) {
+            return res.json({ success: false, message: 'Maximum 2 sessions per day allowed for a doctor' })
+        }
+
+        // A doctor can only have one session at a time, with a 2-hour gap required before and after it.
+        // Nearby sessions on the adjacent days are checked too since the buffer can cross midnight.
+        const SESSION_GAP_MINUTES = 120
+        const toMinutesSinceEpoch = (dateStr, timeStr) => {
+            const [year, month, day] = dateStr.split('-').map(Number)
+            const [hour, minute] = timeStr.split(':').map(Number)
+            return Date.UTC(year, month - 1, day, hour, minute) / 60000
+        }
+        const shiftDateStr = (dateStr, days) => {
+            const [year, month, day] = dateStr.split('-').map(Number)
+            const dt = new Date(Date.UTC(year, month - 1, day))
+            dt.setUTCDate(dt.getUTCDate() + days)
+            return dt.toISOString().slice(0, 10)
+        }
+
+        const newStart = toMinutesSinceEpoch(date, startTime)
+        const newEnd = endTime ? toMinutesSinceEpoch(date, endTime) : newStart
+
+        const nearbySessions = await sessionModel.find({
+            doctorId: docId,
+            status: 'active',
+            date: { $gte: new Date(shiftDateStr(date, -1)), $lte: new Date(shiftDateStr(date, 1)) }
+        })
+
+        for (const s of nearbySessions) {
+            const sDateStr = s.date.toISOString().slice(0, 10)
+            const existStart = toMinutesSinceEpoch(sDateStr, s.startTime) - SESSION_GAP_MINUTES
+            const existEnd = toMinutesSinceEpoch(sDateStr, s.endTime || s.startTime) + SESSION_GAP_MINUTES
+            if (newStart < existEnd && newEnd > existStart) {
+                return res.json({ success: false, message: `Doctor has a session on ${sDateStr} at ${s.startTime}. Sessions must be at least 2 hours apart.` })
+            }
         }
 
         const sessionData = {
@@ -419,6 +488,19 @@ const cancelSession = async (req, res) => {
             if (paidCount > 0) {
                 await doctorModel.findByIdAndUpdate(docId, { $inc: { cancelAppointments: paidCount } })
             }
+
+            for (const appt of activeAppointments) {
+                try {
+                    const dateStr = appt.slotDate.replace(/_/g, '-')
+                    const smsText = appt.payment
+                        ? `Your appointment with ${appt.docData.name} on ${dateStr} has been cancelled. You can request a refund from the My Appointments page or contact us.`
+                        : `Your appointment with ${appt.docData.name} on ${dateStr} has been cancelled.`
+                    // await sendSMS(appt.userData.phoneNumber, smsText)
+                    console.log(smsText)
+                } catch (smsError) {
+                    console.log('Failed to send session cancellation SMS:', smsError.message)
+                }
+            }
         }
 
         session.status = 'cancelled'
@@ -473,10 +555,20 @@ const startSession = async (req, res) => {
         if (session.appointments.length === 0) {
             return res.json({ success: false, message: 'Cannot start a session with no appointments booked.' })
         }
-        
+
 
         session.sessionStart = true
         await session.save()
+
+        const activeAppointments = await appointmentModel.find({ _id: { $in: session.appointments }, cancelled: false })
+        for (const appt of activeAppointments) {
+            try {
+                // await sendSMS(appt.userData.phoneNumber, `${appt.docData.name} has arrived and the session has started. Please proceed to the hospital. Your token number is ${appt.tokenNumber}.`)
+                console.log(`${appt.docData.name} has arrived and the session has started. Please proceed to the hospital. Your token number is ${appt.tokenNumber}.`)
+            } catch (smsError) {
+                console.log('Failed to send session start SMS:', smsError.message)
+            }
+        }
 
         res.json({ success: true, message: 'Session Started' })
 

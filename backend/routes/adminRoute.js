@@ -1,5 +1,5 @@
 import express from "express";
-import { addDoctor, allDoctors, appointmentsAdmin, getNoShowsAdmin, appointmentCancel, sessionsAdmin, getSessionAppointmentsAdmin, sessionReportAdmin, appointmentReportAdmin, cancelRateReportAdmin, specialityReportAdmin, doctorPerformanceAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById, getMyProfile, updateMyProfile, changeMyPassword } from "../controllers/adminController.js";
+import { addDoctor, allDoctors, appointmentsAdmin, getNoShowsAdmin, appointmentCancel, sessionsAdmin, getSessionAppointmentsAdmin, sessionReportAdmin, appointmentReportAdmin, cancelRateReportAdmin, completeRateReportAdmin, specialityReportAdmin, doctorPerformanceAdmin, adminDashboard, getMonthlyRevenue, getAppointmentsBySpecialty, getAppointmentsByChannel, addSpeciality, getSpecialities, editSpeciality, addStaff, getStaff, deleteStaff, updateStaff, getDoctorById, updateDoctorById, getMyProfile, updateMyProfile, changeMyPassword } from "../controllers/adminController.js";
 import upload from "../middleware/multer.js";
 import authAdmin from "../middleware/authAdmin.js";
 import { changeAvailability } from "../controllers/doctorController.js";
@@ -17,6 +17,7 @@ adminRouter.get('/session-appointments/:sessionId', authAdmin, getSessionAppoint
 adminRouter.get('/session-report', authAdmin, sessionReportAdmin)
 adminRouter.get('/appointment-report', authAdmin, appointmentReportAdmin)
 adminRouter.get('/cancel-rate-report', authAdmin, cancelRateReportAdmin)
+adminRouter.get('/complete-rate-report', authAdmin, completeRateReportAdmin)
 adminRouter.get('/speciality-report', authAdmin, specialityReportAdmin)
 adminRouter.get('/doctor-performance', authAdmin, doctorPerformanceAdmin)
 adminRouter.get('/dashboard', authAdmin, adminDashboard)

@@ -14,6 +14,8 @@ import RescheduledAppointments from './pages/Admin/RescheduledAppointments'
 import NoShows from './pages/Admin/NoShows'
 import AddDoctor from './pages/Admin/AddDoctor'
 import DoctorsList from './pages/Admin/DoctorsList'
+import DoctorDetails from './pages/Admin/DoctorDetails'
+import DoctorRegistry from './pages/Admin/DoctorRegistry'
 import EditDoctorProfile from './pages/Admin/EditDoctorProfile'
 import { DoctorContext } from './context/DoctorContext'
 import DoctorAppointments from './pages/Doctor/DoctorAppointments';
@@ -38,8 +40,10 @@ import SessionHistory from './pages/Admin/SessionHistory'
 import SessionReport from './pages/Admin/SessionReport'
 import AppointmentReport from './pages/Admin/AppointmentReport'
 import CancelRateReport from './pages/Admin/CancelRateReport'
+import CompleteRateReport from './pages/Admin/CompleteRateReport'
 import SpecialityReport from './pages/Admin/SpecialityReport'
 import DoctorPerformance from './pages/Admin/DoctorPerformance'
+import AllRefunds from './pages/Admin/AllRefunds'
 import OnlineVsWalkIn from './pages/Admin/OnlineVsWalkIn'
 import MaleVsFemale from './pages/Admin/MaleVsFemale'
 import BookingType from './pages/Admin/BookingType'
@@ -60,6 +64,8 @@ import CashRefundsForReception from './pages/Reception/CashRefundsForReception'
 import RescheduledAppointmentsForReception from './pages/Reception/RescheduledAppointmentsForReception'
 import NoShowsForReception from './pages/Reception/NoShowsForReception'
 import DoctorSessionHistory from './pages/Doctor/DoctorSessionHistory'
+import DoctorMonthlySummary from './pages/Doctor/DoctorMonthlySummary'
+import DoctorMonthlySessionDetail from './pages/Doctor/DoctorMonthlySessionDetail'
 import DoctorSessionAppointments from './pages/Doctor/DoctorSessionAppointments'
 import DoctorSessionAppointmentsHistory from './pages/Doctor/DoctorSessionAppointmentsHistory'
 import AdminProfile from './pages/Admin/AdminProfile'
@@ -88,8 +94,11 @@ const App = () => {
           <Route path='/admin-patient-history' element={<PatientHistory />} />
           <Route path='/admin-rescheduled-appointments' element={<RescheduledAppointments />} />
           <Route path='/admin-no-shows' element={<NoShows />} />
+          <Route path='/admin-all-refunds' element={<AllRefunds />} />
           <Route path='/add-doctor' element={<AddDoctor />} />
           <Route path='/doctor-list' element={<DoctorsList />} />
+          <Route path='/doctor-details' element={<DoctorDetails />} />
+          <Route path='/doctor-registry' element={<DoctorRegistry />} />
           <Route path='/edit-doctor/:id' element={<EditDoctorProfile />} />
           <Route path='/specialities' element={<Specialities />} />
           <Route path='/speciality-data' element={<SpecialityData />} />
@@ -101,6 +110,7 @@ const App = () => {
           <Route path='/admin-session-report' element={<SessionReport />} />
           <Route path='/admin-appointment-report' element={<AppointmentReport />} />
           <Route path='/admin-cancel-rate-report' element={<CancelRateReport />} />
+          <Route path='/admin-complete-rate-report' element={<CompleteRateReport />} />
           <Route path='/admin-speciality-report' element={<SpecialityReport />} />
           <Route path='/admin-doctor-performance' element={<DoctorPerformance />} />
           <Route path='/admin-online-vs-walkin' element={<OnlineVsWalkIn />} />
@@ -121,6 +131,8 @@ const App = () => {
           <Route path='/doctor-add-session' element={<DoctorAddSession />} />
           <Route path='/doctor-sessions' element={<DoctorSessionSchedule />} />
           <Route path='/doctor-session-history' element={<DoctorSessionHistory />} />
+          <Route path='/doctor-monthly-summary' element={<DoctorMonthlySummary />} />
+          <Route path='/doctor-monthly-summary/:year/:month' element={<DoctorMonthlySessionDetail />} />
           <Route path='/doctor-session-appointments/:sessionId' element={<DoctorSessionAppointments />} />
           <Route path='/doctor-session-appointments-history/:sessionId' element={<DoctorSessionAppointmentsHistory     />} />
           {/* Reception Route */}

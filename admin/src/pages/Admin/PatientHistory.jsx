@@ -4,6 +4,7 @@ import { Download, Search, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { AdminContext } from '../../context/AdminContext'
 import { AppContext } from '../../context/AppContext'
+import { todayUTC } from '../../utils/date'
 
 const GENDER_OPTIONS = [
   { label: 'All', value: 'all' },
@@ -38,8 +39,10 @@ const PatientHistory = () => {
 
   const patients = useMemo(() => {
     const map = new Map()
+    const today = todayUTC()
 
-    appointments.filter((item) => item.payment && !item.cancelled).forEach((item) => {
+    // History can only contain visits that already happened
+    appointments.filter((item) => item.payment && !item.cancelled && slotDateToUTC(item.slotDate) < today).forEach((item) => {
       const key = item.userData.phoneNumber || item.userData.phone || item.userId
       const existing = map.get(key)
       const visitDay = slotDateToUTC(item.slotDate)

@@ -43,7 +43,7 @@ const RescheduleAppointment = () => {
   const { docId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const { doctors, currencySymbol, specialities, backendUrl, token } = useContext(AppContext)
+  const { doctors, backendUrl, token } = useContext(AppContext)
 
   const { appointmentId, slotDate: currentSlotDate, slotTime: currentSlotTime } = location.state || {}
 
@@ -52,6 +52,7 @@ const RescheduleAppointment = () => {
   const [selectedDate, setSelectedDate] = useState(null)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const [selectedSessionId, setSelectedSessionId] = useState('')
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -95,10 +96,12 @@ const RescheduleAppointment = () => {
     if (!selectedSessionId) {
       return toast.error('Please choose a new session')
     }
-    rescheduleAppointment()
+    setShowConfirmDialog(true)
   }
 
   const rescheduleAppointment = async () => {
+
+    setShowConfirmDialog(false)
 
     const session = availableSessions.find(item => item._id === selectedSessionId)
 
@@ -175,8 +178,6 @@ const RescheduleAppointment = () => {
     .sort((a, b) => a.startTime.localeCompare(b.startTime))
     .slice(0, 3)
 
-  const hospitalCharge = specialities.find(item => item.speciality === docInfo?.speciality)?.channelingFee ?? 0
-
   return docInfo && (
     <div>
       {/* Doctor details */}
@@ -207,10 +208,10 @@ const RescheduleAppointment = () => {
             <button className='py-0.5 px-2 border text-xs rounded-full'>{docInfo.experience}</button>
           </div>
 
-          {/* Fees */}
-          <div className='flex flex-col gap-1 mt-4 text-sm text-gray-700'>
-            <p>Doctor Fee - {currencySymbol}{docInfo.fees}</p>
-            <p>Hospital Charges - {currencySymbol}{hospitalCharge}</p>
+          {/* Practising hospital & registration */}
+          <div className='flex flex-col gap-1 mt-3 text-sm text-gray-600'>
+            {docInfo.governmentHospital && <p>Practising Government Hospitals - {docInfo.governmentHospital}</p>}
+            <p>Registration - {docInfo.registrationNumber}</p>
           </div>
 
           {/* Current appointment being rescheduled */}
@@ -328,6 +329,25 @@ const RescheduleAppointment = () => {
           </div>
         }
       </div>
+
+      {showConfirmDialog && (() => {
+        const session = availableSessions.find(item => item._id === selectedSessionId)
+        return (
+          <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/30'>
+            <div className='w-[320px] rounded-lg bg-white p-6 shadow-lg'>
+              <h2 className='mb-3 text-lg font-semibold text-gray-800'>Confirm Reschedule</h2>
+              <p className='mb-1 text-sm text-gray-600'>
+                Move this appointment to <span className='font-medium text-gray-800'>{slotDateFormat(getSessionSlotDate(session))} | {formatTime12(session.startTime)}</span>?
+              </p>
+              <p className='mb-4 text-xs text-red-500'>An appointment can only be rescheduled once. You won't be able to reschedule it again.</p>
+              <div className='flex justify-end gap-3'>
+                <button onClick={() => setShowConfirmDialog(false)} className='px-4 py-2 text-sm text-gray-600 rounded hover:bg-gray-100'>Cancel</button>
+                <button onClick={rescheduleAppointment} className='px-4 py-2 text-sm text-white rounded bg-primary hover:bg-primary/90'>Confirm</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

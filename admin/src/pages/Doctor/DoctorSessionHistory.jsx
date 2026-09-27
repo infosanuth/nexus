@@ -2,9 +2,9 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DoctorContext } from '../../context/DoctorContext'
 import { AppContext } from '../../context/AppContext'
-import { CalendarDays, Download, X } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown, Clock, Download, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { todayUTC, dateInputToUTC } from '../../utils/date'
+import { todayUTC, dateInputToUTC, getPeriodStartUTC, PERIOD_OPTIONS } from '../../utils/date'
 
 const STATUS_OPTIONS = [
   { label: 'All', value: 'all' },
@@ -29,13 +29,27 @@ const DoctorSessionHistory = () => {
   const navigate = useNavigate()
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [period, setPeriod] = useState('all')
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false)
   const dateInputRef = useRef(null)
+  const periodDropdownRef = useRef(null)
 
   useEffect(() => {
     if (dToken) {
       getSessions()
     }
   }, [dToken])
+
+  // Close the period dropdown when clicking outside of it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (periodDropdownRef.current && !periodDropdownRef.current.contains(event.target)) {
+        setIsPeriodDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const today = todayUTC()
 
@@ -51,23 +65,28 @@ const DoctorSessionHistory = () => {
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
-  const isFiltered = specificDate || statusFilter !== 'all'
+  const isFiltered = specificDate || statusFilter !== 'all' || period !== 'all'
 
   const resetFilters = () => {
     setSpecificDate('')
     setStatusFilter('all')
+    setPeriod('all')
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
+
+  const periodStart = getPeriodStartUTC(period)
 
   const pastSessions = sessions.filter((item) => {
     const sessionDay = new Date(item.date).setUTCHours(0, 0, 0, 0)
 
-    // This page only covers past sessions — today + upcoming live on the schedule page
-    if (sessionDay >= today) return false
+    // This page covers past sessions, plus any session already ended even if it's still today
+    if (sessionDay >= today && !item.sessionEnd) return false
 
     if (specificDate && sessionDay !== dateInputToUTC(specificDate)) return false
 
     if (statusFilter !== 'all' && getSessionStatusLabel(item).value !== statusFilter) return false
+
+    if (periodStart !== null && sessionDay < periodStart) return false
 
     return true
   }).sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -159,6 +178,35 @@ const DoctorSessionHistory = () => {
             {opt.label}
           </button>
         ))}
+
+        <div className='w-px h-5 bg-gray-200' />
+
+        <div className='relative' ref={periodDropdownRef}>
+          <button
+            type='button'
+            onClick={() => setIsPeriodDropdownOpen((open) => !open)}
+            className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+          >
+            <Clock size={14} />
+            Period: {PERIOD_OPTIONS.find((opt) => opt.value === period)?.label}
+            <ChevronDown size={14} />
+          </button>
+          {isPeriodDropdownOpen && (
+            <div className='absolute right-0 z-10 mt-1 overflow-hidden bg-white border rounded-lg shadow-lg top-full w-44'>
+              {PERIOD_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type='button'
+                  onClick={() => { setPeriod(opt.value); setIsPeriodDropdownOpen(false) }}
+                  className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left hover:bg-gray-100 ${period === opt.value ? 'text-primary font-medium' : 'text-gray-600'}`}
+                >
+                  {opt.label}
+                  {period === opt.value && <Check size={14} />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {isFiltered && (
           <button

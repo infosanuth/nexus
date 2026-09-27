@@ -1,12 +1,12 @@
 import React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { useContext } from 'react'
-import { CalendarDays, Download, Search, X } from 'lucide-react'
+import { CalendarDays, Check, ChevronDown, Clock, Download, Search, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { DoctorContext } from '../../context/DoctorContext'
 import { AppContext } from '../../context/AppContext'
 
-import { todayUTC, dateInputToUTC } from '../../utils/date'
+import { todayUTC, dateInputToUTC, getPeriodStartUTC, PERIOD_OPTIONS } from '../../utils/date'
 
 const slotDateToUTC = (slotDate) => {
   const [d, m, y] = slotDate.split('_').map(Number)
@@ -40,13 +40,27 @@ const DoctorAppointments = () => {
   const [specificDate, setSpecificDate] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [methodFilter, setMethodFilter] = useState('all')
+  const [period, setPeriod] = useState('all')
+  const [isPeriodDropdownOpen, setIsPeriodDropdownOpen] = useState(false)
   const dateInputRef = useRef(null)
+  const periodDropdownRef = useRef(null)
 
   useEffect(() => {
     if (dToken) {
       getAppointments()
     }
   }, [dToken])
+
+  // Close the period dropdown when clicking outside of it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (periodDropdownRef.current && !periodDropdownRef.current.contains(event.target)) {
+        setIsPeriodDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const today = todayUTC()
 
@@ -65,7 +79,7 @@ const DoctorAppointments = () => {
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
-  const isFiltered = dateFilter !== 'all' || specificDate || statusFilter !== 'all' || methodFilter !== 'all' || search
+  const isFiltered = dateFilter !== 'all' || specificDate || statusFilter !== 'all' || methodFilter !== 'all' || search || period !== 'all'
 
   const resetFilters = () => {
     setDateFilter('all')
@@ -73,6 +87,7 @@ const DoctorAppointments = () => {
     setStatusFilter('all')
     setMethodFilter('all')
     setSearch('')
+    setPeriod('all')
     if (dateInputRef.current) dateInputRef.current.value = ''
   }
 
@@ -94,6 +109,9 @@ const DoctorAppointments = () => {
 
     if (methodFilter === 'online' && item.isWalkIn) return false
     if (methodFilter === 'walk-in' && !item.isWalkIn) return false
+
+    const periodStart = getPeriodStartUTC(period)
+    if (periodStart !== null && itemDay < periodStart) return false
 
     const term = search.trim().toLowerCase()
     if (term && !(String(item.ref || '').includes(term) || item.userData?.name?.toLowerCase().includes(term))) return false
@@ -137,14 +155,39 @@ const DoctorAppointments = () => {
 
   useEffect(() => {
     setPage(1)
-  }, [search, dateFilter, specificDate, statusFilter, methodFilter])
+  }, [search, dateFilter, specificDate, statusFilter, methodFilter, period])
 
   return (
     <div className='w-full max-w-6xl m-5'>
 
-      <p className='mb-3 text-lg font-medium'>All Appointments</p>
+      <div className='flex flex-wrap items-center justify-between gap-3 mb-3'>
+        <p className='text-lg font-medium'>All Appointments</p>
+        <div className='flex items-center gap-3'>
+          <div className='relative w-64'>
+            <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
+            <input
+              type='text'
+              placeholder='Search by ref or name'
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className='w-full py-1.5 pl-8 pr-8 text-sm border rounded-lg focus:outline-none focus:border-primary'
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500'>
+                <X size={13} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={handleExport}
+            className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors border rounded-lg shrink-0 hover:border-gray-300 hover:text-gray-800'
+          >
+            <Download size={14} /> Export
+          </button>
+        </div>
+      </div>
 
-      <div className='flex items-center gap-3 px-5 py-3 mb-3 overflow-x-auto bg-white border rounded-xl'>
+      <div className='flex flex-wrap items-center gap-3 px-5 py-3 mb-3 bg-white border rounded-xl'>
         <div className='flex items-center gap-2 shrink-0'>
           <span className='text-[11px] font-semibold text-gray-400 uppercase tracking-wider'>Date</span>
           {QUICK_OPTIONS.map((opt) => (
@@ -226,6 +269,35 @@ const DoctorAppointments = () => {
           ))}
         </div>
 
+        <div className='w-px h-5 bg-gray-200 shrink-0' />
+
+        <div className='relative shrink-0' ref={periodDropdownRef}>
+          <button
+            type='button'
+            onClick={() => setIsPeriodDropdownOpen((open) => !open)}
+            className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700'
+          >
+            <Clock size={14} />
+            Period: {PERIOD_OPTIONS.find((opt) => opt.value === period)?.label}
+            <ChevronDown size={14} />
+          </button>
+          {isPeriodDropdownOpen && (
+            <div className='absolute right-0 z-10 mt-1 overflow-hidden bg-white border rounded-lg shadow-lg top-full w-44'>
+              {PERIOD_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type='button'
+                  onClick={() => { setPeriod(opt.value); setIsPeriodDropdownOpen(false) }}
+                  className={`flex items-center justify-between w-full px-3 py-2 text-sm text-left hover:bg-gray-100 ${period === opt.value ? 'text-primary font-medium' : 'text-gray-600'}`}
+                >
+                  {opt.label}
+                  {period === opt.value && <Check size={14} />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {isFiltered && (
           <button
             onClick={resetFilters}
@@ -234,31 +306,6 @@ const DoctorAppointments = () => {
             <X size={12} /> Clear
           </button>
         )}
-
-        <div className='flex items-center flex-1 min-w-0 gap-3 ml-auto'>
-          <div className='relative flex-1 min-w-[120px] max-w-56'>
-            <Search size={14} className='absolute text-gray-400 -translate-y-1/2 left-3 top-1/2' />
-            <input
-              type='text'
-              placeholder='Search by ref or name'
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className='w-full py-1.5 pl-8 pr-8 text-sm border rounded-lg focus:outline-none focus:border-primary'
-            />
-            {search && (
-              <button onClick={() => setSearch('')} className='absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500'>
-                <X size={13} />
-              </button>
-            )}
-          </div>
-
-          <button
-            onClick={handleExport}
-            className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors border rounded-lg shrink-0 whitespace-nowrap hover:border-gray-300 hover:text-gray-800'
-          >
-            <Download size={14} /> Export
-          </button>
-        </div>
       </div>
 
       <div className='bg-white border rounded text-sm max-h-[80vh] overflow-y-scroll'>
